@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Study Tracker</title>
+    <title>Nous</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         .timer-display {
@@ -342,7 +342,7 @@
             return React.createElement('div', { className: "min-h-screen bg-gray-50 flex flex-col justify-center items-center p-4" },
                 React.createElement('div', { className: "max-w-md w-full bg-white rounded-xl shadow-lg p-8 space-y-6" },
                     React.createElement('div', { className: "text-center" },
-                        React.createElement('h1', { className: "text-3xl font-bold text-gray-800" }, "Study Tracker"),
+                        React.createElement('h1', { className: "text-3xl font-bold text-gray-800" }, "Nous"),
                         React.createElement('p', { className: "text-gray-500 mt-2" }, "Log in or sign up to track your progress")
                     ),
                     React.createElement('form', { onSubmit: handleAuthAction, className: "space-y-4" },
@@ -395,7 +395,7 @@
             return React.createElement('header', { className: "bg-white shadow-md sticky top-0 z-10" },
                 React.createElement('div', { className: "max-w-7xl mx-auto px-4 sm:px-6 lg:px-8" },
                     React.createElement('div', { className: "flex justify-between items-center h-16" },
-                        React.createElement('h1', { className: "text-2xl font-bold text-blue-600" }, "Study Tracker"),
+                        React.createElement('h1', { className: "text-2xl font-bold text-blue-600" }, "Nous"),
                         React.createElement('nav', { className: "flex items-center space-x-4" },
                             React.createElement('button', { onClick: () => setCurrentPage('dashboard'), title: "Dashboard", className: "p-2 rounded-full hover:bg-gray-100 transition" },
                                 React.createElement(HomeIcon)
@@ -648,7 +648,7 @@
                             habitName,
                             startTime: window.Timestamp.fromMillis(timerData.startTime),
                             endTime: window.Timestamp.now(),
-                            duration: Math.floor(timerData.elapsedMilliseconds / 1000)
+                            duration: Math.round(timerData.elapsedMilliseconds / 1000)
                         });
                         setNotification({ type: 'success', message: `Session for ${habitName} saved.` });
                     } catch(error) {
