@@ -1,0 +1,27 @@
+{
+  "name": "nous",
+  "version": "1.0.0",
+  "description": "A modern, single-page Nous web application for monitoring study habits and time tracking",
+  "main": "index.html",
+  "scripts": {
+    "start": "python3 -m http.server 8080",
+    "build": "echo 'No build step required for this static app'",
+    "deploy": "echo 'Deploy to Netlify by connecting your repository'"
+  },
+  "keywords": [
+    "nous",
+    "time-tracking",
+    "habits",
+    "firebase",
+    "react",
+    "tailwind"
+  ],
+  "author": "Your Name",
+  "license": "MIT",
+  "dependencies": {
+    "firebase": "^12.3.0"
+  },
+  "engines": {
+    "node": ">=14.0.0"
+  }
+}

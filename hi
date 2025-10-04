@@ -1,0 +1,697 @@
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+
+// --- Firebase Imports ---
+// These imports will be resolved by the browser environment when using the provided CDN links in a real HTML file.
+// For a local React setup (like Create React App), you would install these with npm/yarn.
+import { initializeApp } from 'firebase/app';
+import { 
+    getAuth, 
+    onAuthStateChanged, 
+    signInAnonymously, 
+    createUserWithEmailAndPassword, 
+    signInWithEmailAndPassword, 
+    signOut,
+    signInWithCustomToken
+} from 'firebase/auth';
+import { 
+    getFirestore, 
+    collection, 
+    addDoc, 
+    doc, 
+    onSnapshot, 
+    query, 
+    where, 
+    setDoc,
+    deleteDoc,
+    Timestamp,
+    getDocs,
+    writeBatch
+} from 'firebase/firestore';
+
+// --- Helper Functions & Icons ---
+
+// Icon components (using inline SVG for single-file simplicity)
+const PlayIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>;
+const PauseIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect></svg>;
+const StopIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect></svg>;
+const PlusCircleIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="16"></line><line x1="8" y1="12" x2="16" y2="12"></line></svg>;
+const TrashIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>;
+const ChartIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 3v18h18"/><path d="M18.7 8a6 6 0 0 0-6 0"/><path d="M12.7 14a6 6 0 0 0-6 0"/><path d="m20.7 17.5-8-8"/></svg>;
+const HomeIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>;
+const LogOutIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>;
+const LoaderIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="animate-spin"><line x1="12" y1="2" x2="12" y2="6"></line><line x1="12" y1="18" x2="12" y2="22"></line><line x1="4.93" y1="4.93" x2="7.76" y2="7.76"></line><line x1="16.24" y1="16.24" x2="19.07" y2="19.07"></line><line x1="2" y1="12" x2="6" y2="12"></line><line x1="18" y1="12" x2="22" y2="12"></line><line x1="4.93" y1="19.07" x2="7.76" y2="16.24"></line><line x1="16.24" y1="7.76" x2="19.07" y2="4.93"></line></svg>;
+
+// Function to format seconds into HH:MM:SS
+const formatTime = (totalSeconds) => {
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = totalSeconds % 60;
+    return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+};
+
+// Function to format Firestore Timestamp to a readable date
+const formatDate = (timestamp) => {
+    if (!timestamp) return 'N/A';
+    return timestamp.toDate().toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric'
+    });
+};
+
+// --- Authentication Component ---
+const AuthComponent = ({ auth, setNotification }) => {
+    const [email, setEmail] = useState('');
+    const [password, setPassword] = useState('');
+    const [isSignUp, setIsSignUp] = useState(false);
+
+    const handleAuthAction = async (e) => {
+        e.preventDefault();
+        try {
+            if (isSignUp) {
+                await createUserWithEmailAndPassword(auth, email, password);
+                setNotification({ type: 'success', message: 'Signed up successfully! You are now logged in.' });
+            } else {
+                await signInWithEmailAndPassword(auth, email, password);
+                setNotification({ type: 'success', message: 'Logged in successfully!' });
+            }
+        } catch (error) {
+            console.error("Authentication error:", error);
+            setNotification({ type: 'error', message: error.message });
+        }
+    };
+    
+    const handleAnonymousSignIn = async () => {
+        try {
+            await signInAnonymously(auth);
+            setNotification({ type: 'success', message: 'Signed in as a guest. Your data is temporary.' });
+        } catch (error) {
+            console.error("Anonymous sign-in error:", error);
+            setNotification({ type: 'error', message: "Could not sign in as a guest." });
+        }
+    };
+
+    return (
+        <div className="min-h-screen bg-gray-50 flex flex-col justify-center items-center p-4">
+            <div className="max-w-md w-full bg-white rounded-xl shadow-lg p-8 space-y-6">
+                <div className="text-center">
+                    <h1 className="text-3xl font-bold text-gray-800">Study Tracker</h1>
+                    <p className="text-gray-500 mt-2">Log in or sign up to track your progress</p>
+                </div>
+                <form onSubmit={handleAuthAction} className="space-y-4">
+                    <input
+                        type="email"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        placeholder="Email address"
+                        required
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none transition"
+                    />
+                    <input
+                        type="password"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        placeholder="Password (6+ characters)"
+                        required
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none transition"
+                    />
+                    <button
+                        type="submit"
+                        className="w-full bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 transition transform hover:scale-105"
+                    >
+                        {isSignUp ? 'Sign Up' : 'Log In'}
+                    </button>
+                </form>
+                <div className="text-center">
+                    <button onClick={() => setIsSignUp(!isSignUp)} className="text-sm text-blue-600 hover:underline">
+                        {isSignUp ? 'Already have an account? Log In' : "Don't have an account? Sign Up"}
+                    </button>
+                </div>
+                <div className="relative flex py-3 items-center">
+                    <div className="flex-grow border-t border-gray-300"></div>
+                    <span className="flex-shrink mx-4 text-gray-400">Or</span>
+                    <div className="flex-grow border-t border-gray-300"></div>
+                </div>
+                <button
+                    onClick={handleAnonymousSignIn}
+                    className="w-full bg-gray-200 text-gray-700 font-semibold py-2 px-4 rounded-lg hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-opacity-50 transition"
+                >
+                    Continue as Guest
+                </button>
+            </div>
+        </div>
+    );
+};
+
+// --- Main App Components ---
+
+const Header = ({ auth, userId, setCurrentPage }) => {
+    const handleLogout = () => {
+        signOut(auth);
+    };
+
+    return (
+        <header className="bg-white shadow-md sticky top-0 z-10">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div className="flex justify-between items-center h-16">
+                    <h1 className="text-2xl font-bold text-blue-600">Study Tracker</h1>
+                    <nav className="flex items-center space-x-4">
+                         <button onClick={() => setCurrentPage('dashboard')} title="Dashboard" className="p-2 rounded-full hover:bg-gray-100 transition">
+                            <HomeIcon />
+                        </button>
+                        <button onClick={() => setCurrentPage('reports')} title="Monthly Reports" className="p-2 rounded-full hover:bg-gray-100 transition">
+                           <ChartIcon />
+                        </button>
+                        <button onClick={handleLogout} title="Logout" className="p-2 rounded-full hover:bg-gray-100 transition text-red-500">
+                            <LogOutIcon />
+                        </button>
+                    </nav>
+                </div>
+                <div className="text-xs text-gray-500 pb-2 truncate">User ID: {userId}</div>
+            </div>
+        </header>
+    );
+};
+
+const ManualEntryModal = ({ db, userId, habit, onClose, setNotification }) => {
+    const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
+    const [hours, setHours] = useState('');
+    const [minutes, setMinutes] = useState('');
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        const totalMinutes = parseInt(hours || 0) * 60 + parseInt(minutes || 0);
+        if (totalMinutes <= 0) {
+            setNotification({ type: 'error', message: 'Duration must be greater than zero.' });
+            return;
+        }
+
+        try {
+            const sessionDate = new Date(date);
+            const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+            const sessionsCol = collection(db, `/artifacts/${appId}/users/${userId}/sessions`);
+            await addDoc(sessionsCol, {
+                habitId: habit.id,
+                habitName: habit.name,
+                startTime: Timestamp.fromDate(sessionDate),
+                endTime: Timestamp.fromDate(new Date(sessionDate.getTime() + totalMinutes * 60000)),
+                duration: totalMinutes * 60, // store in seconds
+            });
+            setNotification({ type: 'success', message: 'Manual session added successfully.' });
+            onClose();
+        } catch (error) {
+            console.error("Error adding manual session:", error);
+            setNotification({ type: 'error', message: 'Failed to add manual session.' });
+        }
+    };
+
+    return (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-20">
+            <div className="bg-white rounded-lg p-8 w-full max-w-md m-4">
+                <h2 className="text-2xl font-bold mb-4">Add Manual Entry for "{habit.name}"</h2>
+                <form onSubmit={handleSubmit} className="space-y-4">
+                    <div>
+                        <label htmlFor="date" className="block text-sm font-medium text-gray-700">Date</label>
+                        <input
+                            type="date"
+                            id="date"
+                            value={date}
+                            onChange={e => setDate(e.target.value)}
+                            className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                        />
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700">Duration</label>
+                        <div className="flex items-center space-x-2 mt-1">
+                            <input
+                                type="number"
+                                value={hours}
+                                onChange={e => setHours(e.target.value)}
+                                placeholder="Hours"
+                                min="0"
+                                className="block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                            />
+                            <input
+                                type="number"
+                                value={minutes}
+                                onChange={e => setMinutes(e.target.value)}
+                                placeholder="Minutes"
+                                min="0"
+                                max="59"
+                                className="block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                            />
+                        </div>
+                    </div>
+                    <div className="flex justify-end space-x-2 pt-4">
+                        <button type="button" onClick={onClose} className="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300">Cancel</button>
+                        <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">Save</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    );
+};
+
+
+const Dashboard = ({ db, userId, setNotification }) => {
+    const [habits, setHabits] = useState([]);
+    const [sessions, setSessions] = useState([]);
+    const [newHabitName, setNewHabitName] = useState('');
+    const [isLoading, setIsLoading] = useState(true);
+    const [activeTimers, setActiveTimers] = useState({});
+    const timerIntervals = useRef({});
+    const [modalHabit, setModalHabit] = useState(null);
+
+    const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+
+    useEffect(() => {
+        if (!db || !userId) return;
+        setIsLoading(true);
+
+        const habitsCol = collection(db, `/artifacts/${appId}/users/${userId}/habits`);
+        const sessionsCol = collection(db, `/artifacts/${appId}/users/${userId}/sessions`);
+
+        const unsubscribeHabits = onSnapshot(habitsCol, (snapshot) => {
+            const habitsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            setHabits(habitsData);
+            setIsLoading(false);
+        }, (error) => {
+            console.error("Error fetching habits:", error);
+            setNotification({ type: 'error', message: "Could not fetch habits." });
+            setIsLoading(false);
+        });
+
+        const unsubscribeSessions = onSnapshot(sessionsCol, (snapshot) => {
+            const sessionsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            // Sort sessions by start time, descending
+            sessionsData.sort((a, b) => b.startTime.toMillis() - a.startTime.toMillis());
+            setSessions(sessionsData);
+        }, (error) => {
+            console.error("Error fetching sessions:", error);
+            setNotification({ type: 'error', message: "Could not fetch sessions." });
+        });
+
+        return () => {
+            unsubscribeHabits();
+            unsubscribeSessions();
+            // Clear all intervals on component unmount
+            Object.values(timerIntervals.current).forEach(clearInterval);
+        };
+    }, [db, userId, appId, setNotification]);
+
+
+    const handleAddHabit = async (e) => {
+        e.preventDefault();
+        if (newHabitName.trim() === '') return;
+        try {
+            const habitsCol = collection(db, `/artifacts/${appId}/users/${userId}/habits`);
+            await addDoc(habitsCol, {
+                name: newHabitName,
+                createdAt: Timestamp.now()
+            });
+            setNewHabitName('');
+            setNotification({ type: 'success', message: 'Habit added!' });
+        } catch (error) {
+            console.error("Error adding habit:", error);
+            setNotification({ type: 'error', message: 'Failed to add habit.' });
+        }
+    };
+
+    const handleDeleteHabit = async (habitId) => {
+        if (window.confirm("Are you sure you want to delete this habit and all its sessions? This cannot be undone.")) {
+            try {
+                // Use a batch write to delete the habit and all its sessions atomically
+                const batch = writeBatch(db);
+                
+                // 1. Delete the habit document
+                const habitDocRef = doc(db, `/artifacts/${appId}/users/${userId}/habits/${habitId}`);
+                batch.delete(habitDocRef);
+                
+                // 2. Query and delete all associated sessions
+                const sessionsQuery = query(collection(db, `/artifacts/${appId}/users/${userId}/sessions`), where("habitId", "==", habitId));
+                const sessionsSnapshot = await getDocs(sessionsQuery);
+                sessionsSnapshot.forEach(doc => {
+                    batch.delete(doc.ref);
+                });
+                
+                await batch.commit();
+                setNotification({ type: 'success', message: 'Habit and all its sessions deleted.' });
+            } catch (error) {
+                console.error("Error deleting habit:", error);
+                setNotification({ type: 'error', message: 'Failed to delete habit.' });
+            }
+        }
+    };
+    
+    const startTimer = useCallback((habitId) => {
+        clearInterval(timerIntervals.current[habitId]);
+        
+        setActiveTimers(prev => ({
+            ...prev,
+            [habitId]: {
+                startTime: Date.now(),
+                elapsedSeconds: prev[habitId]?.elapsedSeconds || 0,
+                isPaused: false
+            }
+        }));
+
+        timerIntervals.current[habitId] = setInterval(() => {
+            setActiveTimers(prev => {
+                if (!prev[habitId] || prev[habitId].isPaused) {
+                    return prev;
+                }
+                const newElapsed = prev[habitId].elapsedSeconds + 1;
+                return {
+                    ...prev,
+                    [habitId]: { ...prev[habitId], elapsedSeconds: newElapsed }
+                };
+            });
+        }, 1000);
+    }, []);
+
+    const pauseTimer = useCallback((habitId) => {
+        setActiveTimers(prev => ({
+            ...prev,
+            [habitId]: { ...prev[habitId], isPaused: true }
+        }));
+        clearInterval(timerIntervals.current[habitId]);
+    }, []);
+
+    const stopTimer = useCallback(async (habitId, habitName) => {
+        clearInterval(timerIntervals.current[habitId]);
+        const timerData = activeTimers[habitId];
+
+        if (timerData && timerData.elapsedSeconds > 0) {
+            try {
+                const sessionsCol = collection(db, `/artifacts/${appId}/users/${userId}/sessions`);
+                await addDoc(sessionsCol, {
+                    habitId,
+                    habitName,
+                    startTime: Timestamp.fromMillis(timerData.startTime),
+                    endTime: Timestamp.now(),
+                    duration: timerData.elapsedSeconds
+                });
+                setNotification({ type: 'success', message: `Session for ${habitName} saved.` });
+            } catch(error) {
+                console.error("Error saving session:", error);
+                setNotification({ type: 'error', message: 'Failed to save session.' });
+            }
+        }
+        
+        setActiveTimers(prev => {
+            const newTimers = { ...prev };
+            delete newTimers[habitId];
+            return newTimers;
+        });
+        delete timerIntervals.current[habitId];
+
+    }, [activeTimers, db, userId, appId, setNotification]);
+
+
+    if (isLoading) {
+        return <div className="flex justify-center items-center p-8"><LoaderIcon /> <span className="ml-2">Loading your dashboard...</span></div>;
+    }
+
+    return (
+        <div className="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8 grid grid-cols-1 lg:grid-cols-3 gap-8">
+            {modalHabit && <ManualEntryModal db={db} userId={userId} habit={modalHabit} onClose={() => setModalHabit(null)} setNotification={setNotification} />}
+            
+            {/* Left/Main Column: Habits */}
+            <div className="lg:col-span-2">
+                <h2 className="text-2xl font-bold text-gray-800 mb-4">My Habits</h2>
+                
+                {/* Add new habit form */}
+                <form onSubmit={handleAddHabit} className="bg-white p-4 rounded-lg shadow-sm mb-6 flex gap-4">
+                    <input
+                        type="text"
+                        value={newHabitName}
+                        onChange={(e) => setNewHabitName(e.target.value)}
+                        placeholder="e.g., Morning Run"
+                        className="flex-grow px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                    />
+                    <button type="submit" className="bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-blue-700 transition">Add Habit</button>
+                </form>
+
+                {/* Habits List */}
+                <div className="space-y-4">
+                    {habits.length > 0 ? habits.map(habit => {
+                        const timer = activeTimers[habit.id];
+                        const isRunning = timer && !timer.isPaused;
+                        
+                        return (
+                            <div key={habit.id} className="bg-white p-4 rounded-lg shadow-sm flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                                <div className="flex-grow">
+                                    <h3 className="text-xl font-semibold text-gray-700">{habit.name}</h3>
+                                    <div className="text-4xl font-mono text-gray-800 my-2">
+                                        {formatTime(timer?.elapsedSeconds || 0)}
+                                    </div>
+                                </div>
+                                <div className="flex items-center gap-2 flex-wrap">
+                                    {isRunning ? (
+                                        <button onClick={() => pauseTimer(habit.id)} className="p-3 bg-yellow-100 text-yellow-600 rounded-full hover:bg-yellow-200 transition"><PauseIcon /></button>
+                                    ) : (
+                                        <button onClick={() => startTimer(habit.id)} className="p-3 bg-green-100 text-green-600 rounded-full hover:bg-green-200 transition"><PlayIcon /></button>
+                                    )}
+                                    <button onClick={() => stopTimer(habit.id, habit.name)} disabled={!timer} className="p-3 bg-red-100 text-red-600 rounded-full hover:bg-red-200 transition disabled:opacity-50 disabled:cursor-not-allowed"><StopIcon /></button>
+                                    <button onClick={() => setModalHabit(habit)} className="p-3 bg-blue-100 text-blue-600 rounded-full hover:bg-blue-200 transition"><PlusCircleIcon /></button>
+                                    <button onClick={() => handleDeleteHabit(habit.id)} className="p-3 bg-gray-100 text-gray-500 rounded-full hover:bg-gray-200 transition"><TrashIcon /></button>
+                                </div>
+                            </div>
+                        )
+                    }) : (
+                        <p className="text-gray-500 text-center py-8">No habits yet. Add one to get started!</p>
+                    )}
+                </div>
+            </div>
+
+            {/* Right/Side Column: Recent Sessions */}
+            <div className="lg:col-span-1">
+                 <h2 className="text-2xl font-bold text-gray-800 mb-4">Recent Sessions</h2>
+                 <div className="bg-white p-4 rounded-lg shadow-sm space-y-3 max-h-[600px] overflow-y-auto">
+                    {sessions.length > 0 ? sessions.slice(0, 15).map(session => (
+                        <div key={session.id} className="border-b pb-2 last:border-b-0">
+                            <p className="font-semibold">{session.habitName}</p>
+                            <div className="flex justify-between text-sm text-gray-600">
+                                <span>{formatDate(session.startTime)}</span>
+                                <span>{formatTime(session.duration)}</span>
+                            </div>
+                        </div>
+                    )) : (
+                        <p className="text-gray-500">No sessions recorded yet.</p>
+                    )}
+                 </div>
+            </div>
+        </div>
+    );
+};
+
+const Reports = ({ db, userId, setNotification }) => {
+    const [reportData, setReportData] = useState([]);
+    const [sessions, setSessions] = useState([]);
+    const [isLoading, setIsLoading] = useState(true);
+    const [month, setMonth] = useState(new Date().toISOString().slice(0, 7));
+
+    const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+
+    useEffect(() => {
+        if (!db || !userId) return;
+
+        const fetchReportData = async () => {
+            setIsLoading(true);
+            try {
+                const [year, monthNum] = month.split('-').map(Number);
+                const startDate = new Date(year, monthNum - 1, 1);
+                const endDate = new Date(year, monthNum, 0, 23, 59, 59);
+
+                const sessionsQuery = query(
+                    collection(db, `/artifacts/${appId}/users/${userId}/sessions`),
+                    where('startTime', '>=', Timestamp.fromDate(startDate)),
+                    where('startTime', '<=', Timestamp.fromDate(endDate))
+                );
+
+                const snapshot = await getDocs(sessionsQuery);
+                const monthlySessions = snapshot.docs.map(doc => ({id: doc.id, ...doc.data()}));
+                monthlySessions.sort((a,b) => b.startTime.toMillis() - a.startTime.toMillis());
+                setSessions(monthlySessions);
+
+                const data = monthlySessions.reduce((acc, session) => {
+                    acc[session.habitName] = (acc[session.habitName] || 0) + session.duration;
+                    return acc;
+                }, {});
+                
+                const formattedData = Object.entries(data).map(([name, duration]) => ({ name, duration }));
+                setReportData(formattedData);
+
+            } catch (error) {
+                console.error("Error fetching report data:", error);
+                setNotification({ type: 'error', message: 'Failed to load report data.' });
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        fetchReportData();
+    }, [db, userId, month, appId, setNotification]);
+    
+    const maxDuration = Math.max(...reportData.map(d => d.duration), 0);
+    const colors = ['bg-blue-500', 'bg-green-500', 'bg-yellow-500', 'bg-purple-500', 'bg-pink-500', 'bg-indigo-500'];
+
+    return (
+        <div className="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8">
+            <h2 className="text-3xl font-bold text-gray-800 mb-4">Monthly Report</h2>
+            <div className="mb-6">
+                <label htmlFor="month-select" className="mr-2 font-semibold">Select Month:</label>
+                <input 
+                    type="month" 
+                    id="month-select"
+                    value={month}
+                    onChange={e => setMonth(e.target.value)}
+                    className="p-2 border border-gray-300 rounded-lg"
+                />
+            </div>
+
+            {isLoading ? (
+                 <div className="flex justify-center items-center p-8"><LoaderIcon /> <span className="ml-2">Generating report...</span></div>
+            ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    {/* Chart Section */}
+                    <div className="bg-white p-6 rounded-lg shadow-sm">
+                        <h3 className="text-xl font-bold mb-4">Habit Totals</h3>
+                        <div className="space-y-4">
+                            {reportData.length > 0 ? reportData.map((item, index) => (
+                                <div key={item.name}>
+                                    <div className="flex justify-between mb-1 text-sm font-medium">
+                                        <span>{item.name}</span>
+                                        <span>{formatTime(item.duration)}</span>
+                                    </div>
+                                    <div className="w-full bg-gray-200 rounded-full h-4">
+                                        <div
+                                            className={`${colors[index % colors.length]} h-4 rounded-full`}
+                                            style={{ width: `${maxDuration > 0 ? (item.duration / maxDuration) * 100 : 0}%` }}
+                                        ></div>
+                                    </div>
+                                </div>
+                            )) : <p>No data for this month.</p>}
+                        </div>
+                    </div>
+
+                    {/* Sessions List */}
+                    <div className="bg-white p-4 rounded-lg shadow-sm">
+                        <h3 className="text-xl font-bold mb-4">Session Log</h3>
+                         <div className="space-y-3 max-h-[400px] overflow-y-auto">
+                            {sessions.length > 0 ? sessions.map(session => (
+                                <div key={session.id} className="border-b pb-2 last:border-b-0">
+                                    <p className="font-semibold">{session.habitName}</p>
+                                    <div className="flex justify-between text-sm text-gray-600">
+                                        <span>{formatDate(session.startTime)}</span>
+                                        <span>{formatTime(session.duration)}</span>
+                                    </div>
+                                </div>
+                            )) : (
+                                <p className="text-gray-500">No sessions recorded this month.</p>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+};
+
+// --- Main App Component ---
+export default function App() {
+    // These would be provided by the environment (e.g., Netlify build environment variables)
+    // For local testing, you would replace these with your actual Firebase config.
+    const firebaseConfig = typeof __firebase_config !== 'undefined' 
+        ? JSON.parse(__firebase_config) 
+        : { /* YOUR FIREBASE CONFIG HERE FOR LOCAL TESTING */ };
+        
+    const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+
+    const [firebaseApp, setFirebaseApp] = useState(null);
+    const [auth, setAuth] = useState(null);
+    const [db, setDb] = useState(null);
+    const [user, setUser] = useState(null);
+    const [userId, setUserId] = useState(null);
+    const [isAuthReady, setIsAuthReady] = useState(false);
+    const [currentPage, setCurrentPage] = useState('dashboard');
+    const [notification, setNotification] = useState(null);
+
+    useEffect(() => {
+        if (firebaseConfig && Object.keys(firebaseConfig).length > 0) {
+            const app = initializeApp(firebaseConfig);
+            const authInstance = getAuth(app);
+            const dbInstance = getFirestore(app);
+            
+            setFirebaseApp(app);
+            setAuth(authInstance);
+            setDb(dbInstance);
+
+            const unsubscribe = onAuthStateChanged(authInstance, async (user) => {
+                if (user) {
+                    setUser(user);
+                    setUserId(user.uid);
+                } else {
+                    // If no user and an initial token exists, try to sign in with it.
+                    // This handles the case where the Canvas environment provides a token.
+                    if(initialAuthToken) {
+                         try {
+                            await signInWithCustomToken(authInstance, initialAuthToken);
+                            // The onAuthStateChanged will re-trigger with the new user.
+                         } catch (error) {
+                             console.error("Custom token sign-in failed, trying anonymous:", error);
+                             await signInAnonymously(authInstance); // Fallback to anonymous
+                         }
+                    } else {
+                        // Otherwise, no user and no token, so clear state.
+                        setUser(null);
+                        setUserId(null);
+                    }
+                }
+                setIsAuthReady(true);
+            });
+            return () => unsubscribe();
+        } else {
+            console.error("Firebase config is not available.");
+            setIsAuthReady(true); // Allow UI to render with an error or login state
+        }
+    }, [JSON.stringify(firebaseConfig), initialAuthToken]); // Effect depends on config values
+    
+    // Notification timeout
+    useEffect(() => {
+        if (notification) {
+            const timer = setTimeout(() => setNotification(null), 5000);
+            return () => clearTimeout(timer);
+        }
+    }, [notification]);
+
+    if (!isAuthReady) {
+        return (
+            <div className="min-h-screen bg-gray-50 flex justify-center items-center">
+                <LoaderIcon /> <span className="text-xl ml-4">Connecting...</span>
+            </div>
+        );
+    }
+
+    return (
+        <div className="bg-gray-50 min-h-screen font-sans">
+             {notification && (
+                <div className={`fixed top-5 right-5 p-4 rounded-lg shadow-lg text-white z-50 ${notification.type === 'success' ? 'bg-green-500' : 'bg-red-500'}`}>
+                    {notification.message}
+                </div>
+            )}
+            
+            {!user ? (
+                <AuthComponent auth={auth} setNotification={setNotification} />
+            ) : (
+                <>
+                    <Header auth={auth} userId={userId} setCurrentPage={setCurrentPage} />
+                    <main>
+                        {currentPage === 'dashboard' && <Dashboard db={db} userId={userId} setNotification={setNotification} />}
+                        {currentPage === 'reports' && <Reports db={db} userId={userId} setNotification={setNotification} />}
+                    </main>
+                </>
+            )}
+        </div>
+    );
+}
