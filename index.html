@@ -50,7 +50,10 @@
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    
+
+    <!-- Firebase Configuration -->
+    <script src="config.js"></script>
+
     <!-- Firebase SDK -->
     <script type="module">
         import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
@@ -100,19 +103,8 @@
         window.getDocs = getDocs;
         window.writeBatch = writeBatch;
 
-        // Firebase configuration - Your actual config
-        window.__firebase_config = {
-            apiKey: "AIzaSyAk5qHtY3Y_988RBWprbKMiiRc63IECsbg",
-            authDomain: "study-d2678.firebaseapp.com",
-            projectId: "study-d2678",
-            storageBucket: "study-d2678.firebasestorage.app",
-            messagingSenderId: "531881111589",
-            appId: "1:531881111589:web:4f3acc170683d154210fcc",
-            measurementId: "G-W95VY7VVSX"
-        };
-
-        // App ID for data organization
-        window.__app_id = "study-tracker-app";
+        // Firebase configuration is loaded from config.js
+        // If config.js is not found, the app will show an error
     </script>
 <style>
         .timer-container {
