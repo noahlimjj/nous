@@ -47,12 +47,12 @@
             color: #d97706;
         }
     </style>
+    <!-- Firebase Configuration - Must load first -->
+    <script src="config.js"></script>
+
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-
-    <!-- Firebase Configuration -->
-    <script src="config.js"></script>
 
     <!-- Firebase SDK -->
     <script type="module">
@@ -947,8 +947,9 @@
             );
         }
 
-        // Render the app
-        ReactDOM.render(React.createElement(App), document.getElementById('root'));
+        // Render the app (React 18 syntax)
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(React.createElement(App));
     </script>
 </body>
 </html>
