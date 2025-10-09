@@ -556,6 +556,16 @@
             });
         };
 
+        // Generate unique friend code
+        const generateFriendCode = () => {
+            const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+            let code = '';
+            for (let i = 0; i < 8; i++) {
+                code += chars.charAt(Math.floor(Math.random() * chars.length));
+            }
+            return code;
+        };
+
         // Tree types with unlock requirements (total hours studied)
         const TREE_TYPES = [
             { id: 'seedling', name: 'Seedling', requiredHours: 0, color: '#86efac' },
@@ -820,6 +830,60 @@
             );
         };
 
+        // Update user stats in /users collection
+        const updateUserStats = async (db, userId, sessions) => {
+            try {
+                const userDocRef = window.doc(db, 'users', userId);
+
+                const totalHours = calculateTotalHours(sessions);
+                const totalSessions = sessions.length;
+
+                // Calculate current streak
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+
+                let streak = 0;
+                let checkDate = new Date(today);
+
+                const sortedSessions = [...sessions].sort((a, b) =>
+                    b.startTime.toMillis() - a.startTime.toMillis()
+                );
+
+                for (let i = 0; i < 365; i++) {
+                    const dayStart = new Date(checkDate);
+                    const dayEnd = new Date(checkDate);
+                    dayEnd.setHours(23, 59, 59, 999);
+
+                    const hasSessionOnDay = sortedSessions.some(s => {
+                        const sessionDate = s.startTime.toDate();
+                        return sessionDate >= dayStart && sessionDate <= dayEnd;
+                    });
+
+                    if (hasSessionOnDay) {
+                        streak++;
+                        checkDate.setDate(checkDate.getDate() - 1);
+                    } else if (i === 0 && checkDate.getTime() === today.getTime()) {
+                        checkDate.setDate(checkDate.getDate() - 1);
+                    } else {
+                        break;
+                    }
+                }
+
+                await window.setDoc(userDocRef, {
+                    stats: {
+                        totalHours,
+                        currentStreak: streak,
+                        totalSessions,
+                        goalsCompleted: 0,
+                        treeLevel: Math.floor(totalHours / 10),
+                        lastUpdated: window.Timestamp.now()
+                    }
+                }, { merge: true });
+            } catch (error) {
+                console.error("Error updating user stats:", error);
+            }
+        };
+
         const Dashboard = ({ db, userId, setNotification, activeTimers, setActiveTimers, timerIntervals }) => {
             const [habits, setHabits] = useState([]);
             const [sessions, setSessions] = useState([]);
@@ -870,6 +934,11 @@
                     // Sort sessions by start time, descending
                     sessionsData.sort((a, b) => b.startTime.toMillis() - a.startTime.toMillis());
                     setSessions(sessionsData);
+
+                    // Update user stats whenever sessions change
+                    if (sessionsData.length > 0) {
+                        updateUserStats(db, userId, sessionsData);
+                    }
                 }, (error) => {
                     console.error("Error fetching sessions:", error);
                     setNotification({ type: 'error', message: "Could not fetch sessions." });
@@ -1197,13 +1266,86 @@
             );
         };
 
-        const Settings = ({ auth, userId }) => {
+        const Settings = ({ auth, userId, db, userProfile, setNotification }) => {
+            const [username, setUsername] = useState('');
+            const [isEditingUsername, setIsEditingUsername] = useState(false);
+
+            useEffect(() => {
+                if (userProfile?.username) {
+                    setUsername(userProfile.username);
+                }
+            }, [userProfile]);
+
+            const handleSaveUsername = async () => {
+                if (!username.trim() || username === userProfile?.username) {
+                    setIsEditingUsername(false);
+                    return;
+                }
+
+                try {
+                    const usersQuery = window.query(
+                        window.collection(db, 'users'),
+                        window.where('username', '==', username.trim())
+                    );
+                    const snapshot = await window.getDocs(usersQuery);
+
+                    if (!snapshot.empty && snapshot.docs[0].id !== userId) {
+                        setNotification({ type: 'error', message: 'Username already taken.' });
+                        setUsername(userProfile?.username || '');
+                        setIsEditingUsername(false);
+                        return;
+                    }
+
+                    const userDocRef = window.doc(db, 'users', userId);
+                    await window.setDoc(userDocRef, {
+                        username: username.trim()
+                    }, { merge: true });
+
+                    setNotification({ type: 'success', message: 'Username updated!' });
+                    setIsEditingUsername(false);
+                } catch (error) {
+                    console.error("Error updating username:", error);
+                    setNotification({ type: 'error', message: 'Failed to update username.' });
+                    setIsEditingUsername(false);
+                }
+            };
+
             const handleLogout = () => {
                 window.signOut(auth);
             };
 
             return React.createElement('div', { className: "max-w-4xl mx-auto p-4 sm:p-6 lg:p-8" },
                 React.createElement('h2', { className: "text-3xl text-gray-800 mb-6", style: { fontWeight: 300 } }, "settings"),
+
+                // Profile Section
+                React.createElement('div', { className: "bg-white rounded-lg shadow-sm p-6 mb-6" },
+                    React.createElement('h3', { className: "text-xl text-gray-700 mb-4", style: { fontWeight: 400 } }, "profile"),
+                    React.createElement('div', { className: "space-y-3" },
+                        React.createElement('div', { className: "flex justify-between items-center py-2 border-b" },
+                            React.createElement('span', { className: "text-gray-600" }, "Username:"),
+                            isEditingUsername ?
+                                React.createElement('input', {
+                                    type: "text",
+                                    value: username,
+                                    onChange: (e) => setUsername(e.target.value),
+                                    onBlur: handleSaveUsername,
+                                    onKeyPress: (e) => e.key === 'Enter' && handleSaveUsername(),
+                                    autoFocus: true,
+                                    className: "border px-2 py-1 rounded focus:ring-2 focus:ring-blue-500 focus:outline-none",
+                                    placeholder: "username"
+                                }) :
+                                React.createElement('span', {
+                                    className: "text-gray-800 cursor-pointer hover:text-blue-600 transition",
+                                    onClick: () => setIsEditingUsername(true),
+                                    title: "Click to edit"
+                                }, `@${userProfile?.username || 'loading...'}`)
+                        ),
+                        React.createElement('div', { className: "flex justify-between items-center py-2" },
+                            React.createElement('span', { className: "text-gray-600" }, "Friend Code:"),
+                            React.createElement('span', { className: "font-mono text-sm text-gray-800" }, userProfile?.friendCode || 'Loading...')
+                        )
+                    )
+                ),
 
                 // Account Information Section
                 React.createElement('div', { className: "bg-white rounded-lg shadow-sm p-6 mb-6" },
@@ -1656,6 +1798,625 @@
             );
         };
 
+        // --- Friends Page Component ---
+        const Friends = ({ db, userId, setNotification, userProfile }) => {
+            const [friendRequests, setFriendRequests] = useState([]);
+            const [friends, setFriends] = useState([]);
+            const [searchTerm, setSearchTerm] = useState('');
+            const [searchResult, setSearchResult] = useState(null);
+            const [friendCodeInput, setFriendCodeInput] = useState('');
+            const [isLoading, setIsLoading] = useState(true);
+            const [isSearching, setIsSearching] = useState(false);
+
+            // Load friend requests and friendships
+            useEffect(() => {
+                if (!db || !userId) return;
+
+                // Listen to incoming friend requests
+                const requestsQuery = window.query(
+                    window.collection(db, 'friendRequests'),
+                    window.where('toUserId', '==', userId),
+                    window.where('status', '==', 'pending')
+                );
+
+                const unsubscribeRequests = window.onSnapshot(requestsQuery, async (snapshot) => {
+                    const requests = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                    setFriendRequests(requests);
+                });
+
+                // Listen to friendships
+                const friendshipsQuery1 = window.query(
+                    window.collection(db, 'friendships'),
+                    window.where('user1Id', '==', userId)
+                );
+                const friendshipsQuery2 = window.query(
+                    window.collection(db, 'friendships'),
+                    window.where('user2Id', '==', userId)
+                );
+
+                const fetchFriends = async () => {
+                    try {
+                        const [snap1, snap2] = await Promise.all([
+                            window.getDocs(friendshipsQuery1),
+                            window.getDocs(friendshipsQuery2)
+                        ]);
+
+                        const friendsList = [];
+
+                        // Get friends from both queries
+                        for (const doc of [...snap1.docs, ...snap2.docs]) {
+                            const data = doc.data();
+                            const friendId = data.user1Id === userId ? data.user2Id : data.user1Id;
+
+                            // Fetch friend's user profile
+                            const friendDocRef = window.doc(db, 'users', friendId);
+                            const friendSnapshot = await window.getDocs(window.query(window.collection(db, 'users')));
+                            const friendData = friendSnapshot.docs.find(d => d.id === friendId)?.data();
+
+                            if (friendData) {
+                                friendsList.push({
+                                    id: doc.id,
+                                    friendshipId: doc.id,
+                                    userId: friendId,
+                                    username: data.user1Id === userId ? data.user2Username : data.user1Username,
+                                    ...friendData
+                                });
+                            }
+                        }
+
+                        setFriends(friendsList);
+                        setIsLoading(false);
+                    } catch (error) {
+                        console.error("Error fetching friends:", error);
+                        setIsLoading(false);
+                    }
+                };
+
+                fetchFriends();
+                return () => unsubscribeRequests();
+            }, [db, userId]);
+
+            // Search for user by username
+            const handleSearchUsername = async () => {
+                if (!searchTerm.trim()) return;
+                setIsSearching(true);
+                setSearchResult(null);
+
+                try {
+                    const usersQuery = window.query(
+                        window.collection(db, 'users'),
+                        window.where('username', '==', searchTerm.trim())
+                    );
+                    const snapshot = await window.getDocs(usersQuery);
+
+                    if (!snapshot.empty) {
+                        const userData = { id: snapshot.docs[0].id, ...snapshot.docs[0].data() };
+
+                        if (userData.id === userId) {
+                            setNotification({ type: 'error', message: "You can't add yourself!" });
+                        } else {
+                            setSearchResult(userData);
+                        }
+                    } else {
+                        setNotification({ type: 'error', message: 'User not found.' });
+                    }
+                } catch (error) {
+                    console.error("Error searching user:", error);
+                    setNotification({ type: 'error', message: 'Search failed.' });
+                } finally {
+                    setIsSearching(false);
+                }
+            };
+
+            // Search by friend code
+            const handleSearchByCode = async () => {
+                if (!friendCodeInput.trim()) return;
+                setIsSearching(true);
+                setSearchResult(null);
+
+                try {
+                    const usersQuery = window.query(
+                        window.collection(db, 'users'),
+                        window.where('friendCode', '==', friendCodeInput.trim().toUpperCase())
+                    );
+                    const snapshot = await window.getDocs(usersQuery);
+
+                    if (!snapshot.empty) {
+                        const userData = { id: snapshot.docs[0].id, ...snapshot.docs[0].data() };
+
+                        if (userData.id === userId) {
+                            setNotification({ type: 'error', message: "That's your own code!" });
+                        } else {
+                            setSearchResult(userData);
+                        }
+                    } else {
+                        setNotification({ type: 'error', message: 'Invalid friend code.' });
+                    }
+                } catch (error) {
+                    console.error("Error searching by code:", error);
+                    setNotification({ type: 'error', message: 'Search failed.' });
+                } finally {
+                    setIsSearching(false);
+                }
+            };
+
+            // Send friend request
+            const handleSendRequest = async (toUser) => {
+                try {
+                    // Check if request already exists
+                    const existingQuery = window.query(
+                        window.collection(db, 'friendRequests'),
+                        window.where('fromUserId', '==', userId),
+                        window.where('toUserId', '==', toUser.id)
+                    );
+                    const existing = await window.getDocs(existingQuery);
+
+                    if (!existing.empty) {
+                        setNotification({ type: 'error', message: 'Request already sent!' });
+                        return;
+                    }
+
+                    await window.addDoc(window.collection(db, 'friendRequests'), {
+                        fromUserId: userId,
+                        fromUsername: userProfile?.username || 'Anonymous',
+                        toUserId: toUser.id,
+                        toUsername: toUser.username,
+                        status: 'pending',
+                        createdAt: window.Timestamp.now()
+                    });
+
+                    setNotification({ type: 'success', message: `Friend request sent to @${toUser.username}!` });
+                    setSearchResult(null);
+                    setSearchTerm('');
+                    setFriendCodeInput('');
+                } catch (error) {
+                    console.error("Error sending request:", error);
+                    setNotification({ type: 'error', message: 'Failed to send request.' });
+                }
+            };
+
+            // Accept friend request
+            const handleAcceptRequest = async (request) => {
+                try {
+                    // Update request status
+                    const requestRef = window.doc(db, 'friendRequests', request.id);
+                    await window.setDoc(requestRef, { status: 'accepted' }, { merge: true });
+
+                    // Create friendship
+                    await window.addDoc(window.collection(db, 'friendships'), {
+                        user1Id: request.fromUserId,
+                        user1Username: request.fromUsername,
+                        user2Id: userId,
+                        user2Username: userProfile?.username || 'Anonymous',
+                        createdAt: window.Timestamp.now()
+                    });
+
+                    setNotification({ type: 'success', message: `You're now friends with @${request.fromUsername}!` });
+
+                    // Refresh friends list
+                    setFriendRequests(prev => prev.filter(r => r.id !== request.id));
+                } catch (error) {
+                    console.error("Error accepting request:", error);
+                    setNotification({ type: 'error', message: 'Failed to accept request.' });
+                }
+            };
+
+            // Decline friend request
+            const handleDeclineRequest = async (request) => {
+                try {
+                    const requestRef = window.doc(db, 'friendRequests', request.id);
+                    await window.setDoc(requestRef, { status: 'declined' }, { merge: true });
+                    setFriendRequests(prev => prev.filter(r => r.id !== request.id));
+                    setNotification({ type: 'success', message: 'Request declined.' });
+                } catch (error) {
+                    console.error("Error declining request:", error);
+                    setNotification({ type: 'error', message: 'Failed to decline request.' });
+                }
+            };
+
+            // Unfriend
+            const handleUnfriend = async (friendship) => {
+                if (!window.confirm(`Remove @${friendship.username} from friends?`)) return;
+
+                try {
+                    await window.deleteDoc(window.doc(db, 'friendships', friendship.friendshipId));
+                    setFriends(prev => prev.filter(f => f.friendshipId !== friendship.friendshipId));
+                    setNotification({ type: 'success', message: 'Friend removed.' });
+                } catch (error) {
+                    console.error("Error unfriending:", error);
+                    setNotification({ type: 'error', message: 'Failed to remove friend.' });
+                }
+            };
+
+            // Copy friend code
+            const handleCopyCode = () => {
+                if (userProfile?.friendCode) {
+                    navigator.clipboard.writeText(userProfile.friendCode);
+                    setNotification({ type: 'success', message: 'Friend code copied!' });
+                }
+            };
+
+            if (isLoading) {
+                return React.createElement('div', { className: "flex justify-center items-center p-8" },
+                    React.createElement(LoaderIcon),
+                    React.createElement('span', { className: "ml-2" }, "Loading friends...")
+                );
+            }
+
+            return React.createElement('div', { className: "max-w-4xl mx-auto p-4 sm:p-6 lg:p-8 space-y-6" },
+                // Header
+                React.createElement('h2', { className: "text-3xl text-calm-800 mb-2", style: { fontWeight: 300 } }, "friends"),
+
+                // Friend Code Card
+                React.createElement('div', { className: "bg-white rounded-xl soft-shadow p-6" },
+                    React.createElement('div', { className: "flex justify-between items-center" },
+                        React.createElement('div', null,
+                            React.createElement('h3', { className: "text-sm text-calm-600 mb-1", style: { fontWeight: 300 } }, "my friend code"),
+                            React.createElement('span', { className: "text-2xl font-mono text-calm-800", style: { fontWeight: 400, letterSpacing: '0.1em' } },
+                                userProfile?.friendCode || 'Loading...'
+                            )
+                        ),
+                        React.createElement('button', {
+                            onClick: handleCopyCode,
+                            className: "px-4 py-2 bg-calm-600 text-white rounded-lg hover:bg-calm-700 transition",
+                            style: { fontWeight: 400 }
+                        }, "Copy Code")
+                    )
+                ),
+
+                // Add Friends Card
+                React.createElement('div', { className: "bg-white rounded-xl soft-shadow p-6" },
+                    React.createElement('h3', { className: "text-xl text-calm-800 mb-4", style: { fontWeight: 300 } }, "add friends"),
+
+                    // Search by username
+                    React.createElement('div', { className: "mb-4" },
+                        React.createElement('label', { className: "block text-sm text-calm-600 mb-2", style: { fontWeight: 300 } }, "search by username"),
+                        React.createElement('div', { className: "flex gap-2" },
+                            React.createElement('input', {
+                                type: "text",
+                                value: searchTerm,
+                                onChange: (e) => setSearchTerm(e.target.value),
+                                onKeyPress: (e) => e.key === 'Enter' && handleSearchUsername(),
+                                placeholder: "Enter username...",
+                                className: "flex-grow px-4 py-2 border border-calm-300 rounded-lg focus:ring-2 focus:ring-calm-500 focus:outline-none",
+                                style: { fontWeight: 300 }
+                            }),
+                            React.createElement('button', {
+                                onClick: handleSearchUsername,
+                                disabled: isSearching,
+                                className: "px-4 py-2 bg-calm-600 text-white rounded-lg hover:bg-calm-700 transition disabled:opacity-50",
+                                style: { fontWeight: 400 }
+                            }, React.createElement(SearchIcon))
+                        )
+                    ),
+
+                    // Search by friend code
+                    React.createElement('div', null,
+                        React.createElement('label', { className: "block text-sm text-calm-600 mb-2", style: { fontWeight: 300 } }, "or add by friend code"),
+                        React.createElement('div', { className: "flex gap-2" },
+                            React.createElement('input', {
+                                type: "text",
+                                value: friendCodeInput,
+                                onChange: (e) => setFriendCodeInput(e.target.value.toUpperCase()),
+                                onKeyPress: (e) => e.key === 'Enter' && handleSearchByCode(),
+                                placeholder: "ABC12345",
+                                maxLength: 8,
+                                className: "flex-grow px-4 py-2 border border-calm-300 rounded-lg focus:ring-2 focus:ring-calm-500 focus:outline-none font-mono",
+                                style: { fontWeight: 300, letterSpacing: '0.1em' }
+                            }),
+                            React.createElement('button', {
+                                onClick: handleSearchByCode,
+                                disabled: isSearching,
+                                className: "px-4 py-2 bg-calm-600 text-white rounded-lg hover:bg-calm-700 transition disabled:opacity-50",
+                                style: { fontWeight: 400 }
+                            }, "Add")
+                        )
+                    ),
+
+                    // Search Result
+                    searchResult && React.createElement('div', { className: "mt-4 p-4 bg-calm-50 rounded-lg border border-calm-200" },
+                        React.createElement('div', { className: "flex justify-between items-center" },
+                            React.createElement('div', null,
+                                React.createElement('p', { className: "text-lg text-calm-800", style: { fontWeight: 400 } }, `@${searchResult.username}`),
+                                React.createElement('p', { className: "text-sm text-calm-600", style: { fontWeight: 300 } },
+                                    `${searchResult.stats?.totalHours?.toFixed(1) || 0}h studied`
+                                )
+                            ),
+                            React.createElement('button', {
+                                onClick: () => handleSendRequest(searchResult),
+                                className: "px-4 py-2 bg-accent-blue text-white rounded-lg hover:opacity-90 transition",
+                                style: { fontWeight: 400, backgroundColor: '#6B8DD6' }
+                            }, "Send Request")
+                        )
+                    )
+                ),
+
+                // Friend Requests
+                friendRequests.length > 0 && React.createElement('div', { className: "bg-white rounded-xl soft-shadow p-6" },
+                    React.createElement('h3', { className: "text-xl text-calm-800 mb-4", style: { fontWeight: 300 } },
+                        `friend requests (${friendRequests.length})`
+                    ),
+                    React.createElement('div', { className: "space-y-3" },
+                        friendRequests.map(request =>
+                            React.createElement('div', {
+                                key: request.id,
+                                className: "p-4 bg-calm-50 rounded-lg border border-calm-200 flex justify-between items-center"
+                            },
+                                React.createElement('div', null,
+                                    React.createElement('p', { className: "text-lg text-calm-800", style: { fontWeight: 400 } },
+                                        `@${request.fromUsername}`
+                                    ),
+                                    React.createElement('p', { className: "text-sm text-calm-600", style: { fontWeight: 300 } },
+                                        formatDate(request.createdAt)
+                                    )
+                                ),
+                                React.createElement('div', { className: "flex gap-2" },
+                                    React.createElement('button', {
+                                        onClick: () => handleAcceptRequest(request),
+                                        className: "p-2 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition"
+                                    }, React.createElement(CheckIcon)),
+                                    React.createElement('button', {
+                                        onClick: () => handleDeclineRequest(request),
+                                        className: "p-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition"
+                                    }, React.createElement(XIcon))
+                                )
+                            )
+                        )
+                    )
+                ),
+
+                // My Friends List
+                React.createElement('div', { className: "bg-white rounded-xl soft-shadow p-6" },
+                    React.createElement('h3', { className: "text-xl text-calm-800 mb-4", style: { fontWeight: 300 } },
+                        `my friends (${friends.length})`
+                    ),
+                    friends.length > 0 ?
+                        React.createElement('div', { className: "space-y-3" },
+                            friends.map(friend =>
+                                React.createElement('div', {
+                                    key: friend.friendshipId,
+                                    className: "p-4 bg-calm-50 rounded-lg border border-calm-200 hover:border-calm-300 transition"
+                                },
+                                    React.createElement('div', { className: "flex justify-between items-start" },
+                                        React.createElement('div', { className: "flex-grow" },
+                                            React.createElement('p', { className: "text-lg text-calm-800 mb-1", style: { fontWeight: 400 } },
+                                                `@${friend.username}`
+                                            ),
+                                            React.createElement('div', { className: "flex items-center gap-4 text-sm text-calm-600", style: { fontWeight: 300 } },
+                                                React.createElement('span', null,
+                                                    `${friend.stats?.totalHours?.toFixed(1) || 0}h studied`
+                                                ),
+                                                friend.stats?.currentStreak > 0 && React.createElement('span', null,
+                                                    `${friend.stats.currentStreak} day streak 🔥`
+                                                )
+                                            )
+                                        ),
+                                        React.createElement('button', {
+                                            onClick: () => handleUnfriend(friend),
+                                            className: "text-sm text-calm-500 hover:text-red-600 transition",
+                                            style: { fontWeight: 300 }
+                                        }, "Unfriend")
+                                    )
+                                )
+                            )
+                        ) :
+                        React.createElement('p', { className: "text-center text-calm-500 py-8", style: { fontWeight: 300 } },
+                            "No friends yet. Add some friends to get started!"
+                        )
+                )
+            );
+        };
+
+
+        // --- Leaderboard Page Component ---
+        const Leaderboard = ({ db, userId, setNotification, userProfile }) => {
+            const [friendsData, setFriendsData] = useState([]);
+            const [selectedMetric, setSelectedMetric] = useState('totalHours');
+            const [isLoading, setIsLoading] = useState(true);
+
+            // Load friends and their stats
+            useEffect(() => {
+                if (!db || !userId) return;
+
+                const fetchLeaderboard = async () => {
+                    try {
+                        // Get all friendships
+                        const friendshipsQuery1 = window.query(
+                            window.collection(db, 'friendships'),
+                            window.where('user1Id', '==', userId)
+                        );
+                        const friendshipsQuery2 = window.query(
+                            window.collection(db, 'friendships'),
+                            window.where('user2Id', '==', userId)
+                        );
+
+                        const [snap1, snap2] = await Promise.all([
+                            window.getDocs(friendshipsQuery1),
+                            window.getDocs(friendshipsQuery2)
+                        ]);
+
+                        const allFriendsData = [];
+
+                        // Get stats for each friend
+                        for (const doc of [...snap1.docs, ...snap2.docs]) {
+                            const data = doc.data();
+                            const friendId = data.user1Id === userId ? data.user2Id : data.user1Id;
+
+                            // Fetch friend's profile
+                            const friendSnapshot = await window.getDocs(window.query(window.collection(db, 'users')));
+                            const friendData = friendSnapshot.docs.find(d => d.id === friendId)?.data();
+
+                            if (friendData && friendData.stats) {
+                                allFriendsData.push({
+                                    userId: friendId,
+                                    username: data.user1Id === userId ? data.user2Username : data.user1Username,
+                                    stats: friendData.stats,
+                                    isCurrentUser: false
+                                });
+                            }
+                        }
+
+                        // Add current user to leaderboard
+                        if (userProfile && userProfile.stats) {
+                            allFriendsData.push({
+                                userId: userId,
+                                username: userProfile.username,
+                                stats: userProfile.stats,
+                                isCurrentUser: true
+                            });
+                        }
+
+                        setFriendsData(allFriendsData);
+                        setIsLoading(false);
+                    } catch (error) {
+                        console.error("Error fetching leaderboard:", error);
+                        setIsLoading(false);
+                    }
+                };
+
+                fetchLeaderboard();
+            }, [db, userId, userProfile]);
+
+            // Sort friends by selected metric
+            const sortedFriends = [...friendsData].sort((a, b) => {
+                const aValue = a.stats?.[selectedMetric] || 0;
+                const bValue = b.stats?.[selectedMetric] || 0;
+                return bValue - aValue;
+            });
+
+            // Get current user's rank
+            const currentUserIndex = sortedFriends.findIndex(f => f.isCurrentUser);
+            const currentUserRank = currentUserIndex + 1;
+
+            // Get motivational message
+            const getMotivationalMessage = () => {
+                if (sortedFriends.length === 0) return "Add friends to compete!";
+                if (currentUserRank === 1) return "You're leading the pack! 🎉";
+                if (currentUserRank === 2) return "So close to #1! Keep going! 💪";
+                if (currentUserRank === 3) return "Great work! Push for the podium! 🚀";
+
+                const nextFriend = sortedFriends[currentUserRank - 2];
+                const diff = nextFriend.stats?.[selectedMetric] - (userProfile?.stats?.[selectedMetric] || 0);
+
+                if (selectedMetric === 'totalHours') {
+                    return `${diff.toFixed(1)}h to reach #${currentUserRank - 1} 🚀`;
+                } else if (selectedMetric === 'currentStreak') {
+                    return `${Math.ceil(diff)} days to reach #${currentUserRank - 1} 🚀`;
+                } else {
+                    return `${Math.ceil(diff)} sessions to reach #${currentUserRank - 1} 🚀`;
+                }
+            };
+
+            // Format metric value
+            const formatMetricValue = (value, metric) => {
+                if (metric === 'totalHours') {
+                    return `${value.toFixed(1)} hours`;
+                } else if (metric === 'currentStreak') {
+                    return `${Math.floor(value)} day${value !== 1 ? 's' : ''}`;
+                } else {
+                    return `${Math.floor(value)} session${value !== 1 ? 's' : ''}`;
+                }
+            };
+
+            // Get medal emoji
+            const getMedal = (rank) => {
+                if (rank === 1) return '🥇';
+                if (rank === 2) return '🥈';
+                if (rank === 3) return '🥉';
+                return '';
+            };
+
+            if (isLoading) {
+                return React.createElement('div', { className: "flex justify-center items-center p-8" },
+                    React.createElement(LoaderIcon),
+                    React.createElement('span', { className: "ml-2" }, "Loading leaderboard...")
+                );
+            }
+
+            return React.createElement('div', { className: "max-w-4xl mx-auto p-4 sm:p-6 lg:p-8 space-y-6" },
+                // Header
+                React.createElement('h2', { className: "text-3xl text-calm-800 mb-2", style: { fontWeight: 300 } }, "leaderboard"),
+
+                // Metric Selector
+                React.createElement('div', { className: "bg-white rounded-xl soft-shadow p-6" },
+                    React.createElement('div', { className: "flex flex-wrap gap-2" },
+                        [
+                            { key: 'totalHours', label: 'Total Hours' },
+                            { key: 'currentStreak', label: 'Current Streak' },
+                            { key: 'totalSessions', label: 'Total Sessions' }
+                        ].map(metric =>
+                            React.createElement('button', {
+                                key: metric.key,
+                                onClick: () => setSelectedMetric(metric.key),
+                                className: `px-4 py-2 rounded-lg transition ${
+                                    selectedMetric === metric.key
+                                        ? 'bg-calm-600 text-white'
+                                        : 'bg-calm-100 text-calm-700 hover:bg-calm-200'
+                                }`,
+                                style: { fontWeight: selectedMetric === metric.key ? 400 : 300 }
+                            }, metric.label)
+                        )
+                    )
+                ),
+
+                // Leaderboard List
+                React.createElement('div', { className: "bg-white rounded-xl soft-shadow p-6" },
+                    sortedFriends.length > 0 ?
+                        React.createElement('div', { className: "space-y-2" },
+                            sortedFriends.map((friend, index) => {
+                                const rank = index + 1;
+                                const medal = getMedal(rank);
+                                const value = friend.stats?.[selectedMetric] || 0;
+
+                                return React.createElement('div', {
+                                    key: friend.userId,
+                                    className: `p-4 rounded-lg border-2 transition ${
+                                        friend.isCurrentUser
+                                            ? 'bg-blue-50 border-blue-200'
+                                            : 'bg-calm-50 border-calm-200 hover:border-calm-300'
+                                    }`
+                                },
+                                    React.createElement('div', { className: "flex justify-between items-center" },
+                                        React.createElement('div', { className: "flex items-center gap-3" },
+                                            React.createElement('span', {
+                                                className: "text-2xl w-8 text-center",
+                                                style: { fontWeight: 300 }
+                                            }, medal || rank),
+                                            React.createElement('div', null,
+                                                React.createElement('p', {
+                                                    className: `text-lg ${friend.isCurrentUser ? 'text-blue-800' : 'text-calm-800'}`,
+                                                    style: { fontWeight: 400 }
+                                                }, `@${friend.username}${friend.isCurrentUser ? ' (you)' : ''}`),
+                                                React.createElement('p', {
+                                                    className: "text-sm text-calm-600",
+                                                    style: { fontWeight: 300 }
+                                                }, formatMetricValue(value, selectedMetric))
+                                            )
+                                        ),
+                                        friend.isCurrentUser && React.createElement('div', {
+                                            className: "px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm",
+                                            style: { fontWeight: 400 }
+                                        }, `#${rank}`)
+                                    )
+                                );
+                            })
+                        ) :
+                        React.createElement('p', { className: "text-center text-calm-500 py-8", style: { fontWeight: 300 } },
+                            "Add friends to see the leaderboard!"
+                        )
+                ),
+
+                // User Rank Summary
+                sortedFriends.length > 0 && React.createElement('div', { className: "bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl soft-shadow p-6 text-center" },
+                    React.createElement('p', { className: "text-2xl text-calm-800 mb-2", style: { fontWeight: 300 } },
+                        currentUserRank > 0 ? `Your Rank: #${currentUserRank} of ${sortedFriends.length}` : 'Join the competition!'
+                    ),
+                    React.createElement('p', { className: "text-calm-600", style: { fontWeight: 300 } },
+                        getMotivationalMessage()
+                    )
+                )
+            );
+        };
         // --- Main App Component ---
         function App() {
             // These would be provided by the environment (e.g., Netlify build environment variables)
@@ -1674,6 +2435,7 @@
             const [isAuthReady, setIsAuthReady] = useState(false);
             const [currentPage, setCurrentPage] = useState('dashboard');
             const [notification, setNotification] = useState(null);
+            const [userProfile, setUserProfile] = useState(null);
 
             // Timer state lifted to App level so it persists across page navigation
             const [activeTimers, setActiveTimers] = useState({});
@@ -1718,7 +2480,47 @@
                     setIsAuthReady(true); // Allow UI to render with an error or login state
                 }
             }, [JSON.stringify(firebaseConfig), initialAuthToken]); // Effect depends on config values
-            
+
+            // User profile initialization
+            useEffect(() => {
+                if (!db || !userId || !auth) return;
+
+                const userDocRef = window.doc(db, 'users', userId);
+                const unsubscribe = window.onSnapshot(userDocRef, async (snapshot) => {
+                    if (!snapshot.exists()) {
+                        // Create new user profile
+                        try {
+                            await window.setDoc(userDocRef, {
+                                username: `user_${userId.substring(0, 8)}`,
+                                email: auth.currentUser?.email || '',
+                                friendCode: generateFriendCode(),
+                                createdAt: window.Timestamp.now(),
+                                settings: {
+                                    showStats: true,
+                                    showActivity: true,
+                                    allowFriendRequests: true
+                                },
+                                stats: {
+                                    totalHours: 0,
+                                    currentStreak: 0,
+                                    totalSessions: 0,
+                                    goalsCompleted: 0,
+                                    treeLevel: 0,
+                                    lastUpdated: window.Timestamp.now()
+                                }
+                            });
+                            setNotification({ type: 'success', message: 'Welcome! Set your username in Settings.' });
+                        } catch (error) {
+                            console.error("Error creating user profile:", error);
+                        }
+                    } else {
+                        setUserProfile(snapshot.data());
+                    }
+                });
+
+                return () => unsubscribe();
+            }, [db, userId, auth]);
+
             // Notification timeout
             useEffect(() => {
                 if (notification) {
@@ -1750,8 +2552,10 @@
                         React.createElement('main', null,
                             currentPage === 'dashboard' && React.createElement(Dashboard, { db, userId, setNotification, activeTimers, setActiveTimers, timerIntervals }),
                             currentPage === 'goals' && React.createElement(Goals, { db, userId, setNotification }),
+                            currentPage === 'friends' && React.createElement(Friends, { db, userId, setNotification, userProfile }),
+                            currentPage === 'leaderboard' && React.createElement(Leaderboard, { db, userId, setNotification, userProfile }),
                             currentPage === 'reports' && React.createElement(Reports, { db, userId, setNotification }),
-                            currentPage === 'settings' && React.createElement(Settings, { auth, userId })
+                            currentPage === 'settings' && React.createElement(Settings, { auth, userId, db, userProfile, setNotification })
                         )
                     )
             );
