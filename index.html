@@ -764,6 +764,14 @@
                                 React.createElement(HomeIcon)
                             ),
                             React.createElement('button', {
+                                onClick: () => setCurrentPage('about'),
+                                title: "About Nous",
+                                className: `p-2 rounded-full transition ${currentPage === 'about' ? 'bg-calm-100 text-accent-blue' : 'text-calm-600 hover:bg-calm-50'}`,
+                                style: { color: currentPage === 'about' ? '#6B8DD6' : '#7d8ca8' }
+                            },
+                                React.createElement(InfoIcon)
+                            ),
+                            React.createElement('button', {
                                 onClick: () => setCurrentPage('goals'),
                                 title: "Goals",
                                 className: `p-2 rounded-full transition ${currentPage === 'goals' ? 'bg-calm-100 text-accent-blue' : 'text-calm-600 hover:bg-calm-50'}`,
@@ -794,14 +802,6 @@
                                 style: { color: currentPage === 'reports' ? '#6B8DD6' : '#7d8ca8' }
                             },
                                 React.createElement(ChartIcon)
-                            ),
-                            React.createElement('button', {
-                                onClick: () => setCurrentPage('about'),
-                                title: "About Nous",
-                                className: `p-2 rounded-full transition ${currentPage === 'about' ? 'bg-calm-100 text-accent-blue' : 'text-calm-600 hover:bg-calm-50'}`,
-                                style: { color: currentPage === 'about' ? '#6B8DD6' : '#7d8ca8' }
-                            },
-                                React.createElement(InfoIcon)
                             ),
                             React.createElement('button', {
                                 onClick: () => setCurrentPage('settings'),
