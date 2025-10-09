@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Debug Test</title>
+    <script src="config.js"></script>
+</head>
+<body>
+    <h1>Debug Test</h1>
+    <div id="output"></div>
+    <script>
+        const output = document.getElementById('output');
+        output.innerHTML = `
+            <p>Config loaded: ${typeof window.__firebase_config !== 'undefined'}</p>
+            <p>Config keys: ${window.__firebase_config ? Object.keys(window.__firebase_config).length : 'undefined'}</p>
+            <p>Config data: <pre>${JSON.stringify(window.__firebase_config, null, 2)}</pre></p>
+        `;
+    </script>
+</body>
+</html>

@@ -1408,12 +1408,12 @@
             // Load tree preferences
             useEffect(() => {
                 if (!db || !userId) return;
-                const treeDoc = window.doc(db, `/artifacts/${appId}/users/${userId}/tree`);
-                window.onSnapshot(treeDoc, (snapshot) => {
+                const userDoc = window.doc(db, `artifacts/${appId}/users/${userId}`);
+                window.onSnapshot(userDoc, (snapshot) => {
                     if (snapshot.exists()) {
                         const data = snapshot.data();
-                        if (data.name) setTreeName(data.name);
-                        if (data.type) setSelectedTreeType(data.type);
+                        if (data.treeName) setTreeName(data.treeName);
+                        if (data.treeType) setSelectedTreeType(data.treeType);
                     }
                 });
             }, [db, userId, appId]);
@@ -1422,8 +1422,8 @@
             const handleSaveName = async () => {
                 if (tempName.trim()) {
                     try {
-                        const treeDoc = window.doc(db, `/artifacts/${appId}/users/${userId}/tree`);
-                        await window.setDoc(treeDoc, { name: tempName.trim(), type: selectedTreeType }, { merge: true });
+                        const userDoc = window.doc(db, `artifacts/${appId}/users/${userId}`);
+                        await window.setDoc(userDoc, { treeName: tempName.trim(), treeType: selectedTreeType }, { merge: true });
                         setTreeName(tempName.trim());
                         setIsEditingName(false);
                     } catch (error) {
@@ -1435,8 +1435,8 @@
             // Change tree type
             const handleChangeTree = async (treeId) => {
                 try {
-                    const treeDoc = window.doc(db, `/artifacts/${appId}/users/${userId}/tree`);
-                    await window.setDoc(treeDoc, { name: treeName, type: treeId }, { merge: true });
+                    const userDoc = window.doc(db, `artifacts/${appId}/users/${userId}`);
+                    await window.setDoc(userDoc, { treeName: treeName, treeType: treeId }, { merge: true });
                     setSelectedTreeType(treeId);
                     setNotification({ type: 'success', message: `Changed to ${TREE_TYPES.find(t => t.id === treeId).name}!` });
                 } catch (error) {
