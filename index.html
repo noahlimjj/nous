@@ -179,14 +179,15 @@
             signInWithPopup,
             GoogleAuthProvider
         } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
-        import { 
-            getFirestore, 
-            collection, 
-            addDoc, 
-            doc, 
-            onSnapshot, 
-            query, 
-            where, 
+        import {
+            getFirestore,
+            collection,
+            addDoc,
+            doc,
+            getDoc,
+            onSnapshot,
+            query,
+            where,
             setDoc,
             deleteDoc,
             Timestamp,
@@ -209,6 +210,7 @@
         window.collection = collection;
         window.addDoc = addDoc;
         window.doc = doc;
+        window.getDoc = getDoc;
         window.onSnapshot = onSnapshot;
         window.query = query;
         window.where = where;
