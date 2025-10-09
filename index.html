@@ -164,6 +164,7 @@
 
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
     <!-- Firebase SDK -->
     <script type="module">
@@ -258,8 +259,14 @@
 <body>
     <div id="root"></div>
 
-    <script>
+    <script type="text/babel">
         const { useState, useEffect, useRef, useCallback } = React;
+
+        // --- Configuration Validation ---
+        // Check if Firebase config is loaded properly
+        if (typeof window.__firebase_config === 'undefined' || !window.__firebase_config || !window.__firebase_config.apiKey) {
+            console.error("Firebase configuration is missing. The config.js file may not have been generated properly.");
+        }
 
         // --- Helper Functions & Icons ---
 
@@ -1849,8 +1856,8 @@
 
                             // Fetch friend's user profile
                             const friendDocRef = window.doc(db, 'users', friendId);
-                            const friendSnapshot = await window.getDocs(window.query(window.collection(db, 'users')));
-                            const friendData = friendSnapshot.docs.find(d => d.id === friendId)?.data();
+                            const friendSnapshot = await window.getDoc(friendDocRef);
+                            const friendData = friendSnapshot.data();
 
                             if (friendData) {
                                 friendsList.push({
@@ -1867,13 +1874,14 @@
                         setIsLoading(false);
                     } catch (error) {
                         console.error("Error fetching friends:", error);
+                        setNotification({ type: 'error', message: 'Failed to load friends: ' + error.message });
                         setIsLoading(false);
                     }
                 };
 
                 fetchFriends();
                 return () => unsubscribeRequests();
-            }, [db, userId]);
+            }, [db, userId, setNotification]);
 
             // Search for user by username
             const handleSearchUsername = async () => {
@@ -2242,8 +2250,9 @@
                             const friendId = data.user1Id === userId ? data.user2Id : data.user1Id;
 
                             // Fetch friend's profile
-                            const friendSnapshot = await window.getDocs(window.query(window.collection(db, 'users')));
-                            const friendData = friendSnapshot.docs.find(d => d.id === friendId)?.data();
+                            const friendDocRef = window.doc(db, 'users', friendId);
+                            const friendSnapshot = await window.getDoc(friendDocRef);
+                            const friendData = friendSnapshot.data();
 
                             if (friendData && friendData.stats) {
                                 allFriendsData.push({
@@ -2269,6 +2278,7 @@
                         setIsLoading(false);
                     } catch (error) {
                         console.error("Error fetching leaderboard:", error);
+                        setNotification({ type: 'error', message: 'Failed to load leaderboard: ' + error.message });
                         setIsLoading(false);
                     }
                 };
@@ -2422,7 +2432,7 @@
             // For local testing, you would replace these with your actual Firebase config.
             const firebaseConfig = typeof __firebase_config !== 'undefined' 
                 ? __firebase_config 
-                : { /* YOUR FIREBASE CONFIG HERE FOR LOCAL TESTING */ };
+                : null;
                 
             const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
 
@@ -2435,14 +2445,35 @@
             const [currentPage, setCurrentPage] = useState('dashboard');
             const [notification, setNotification] = useState(null);
             const [userProfile, setUserProfile] = useState(null);
+            const [configError, setConfigError] = useState(null);
 
             // Timer state lifted to App level so it persists across page navigation
             const [activeTimers, setActiveTimers] = useState({});
             const timerIntervals = useRef({});
 
             useEffect(() => {
-                if (firebaseConfig && Object.keys(firebaseConfig).length > 0) {
-                    const app = window.initializeApp(firebaseConfig);
+                // Validate Firebase config
+                if (!firebaseConfig || !firebaseConfig.apiKey || !firebaseConfig.projectId) {
+                    const errorMsg = "Firebase configuration is missing required values. Please check your environment variables.";
+                    console.error(errorMsg);
+                    setConfigError(errorMsg);
+                    setIsAuthReady(true);
+                    return;
+                }
+
+                try {
+                    // Check if Firebase app is already initialized to avoid duplicate initialization
+                    let app;
+                    try {
+                        app = window.initializeApp(firebaseConfig);
+                    } catch (error) {
+                        if (error.code === 'app/duplicate-app' || error.message.includes('already exists')) {
+                            app = window.getApp(); // Get the existing app
+                        } else {
+                            throw error; // Re-throw if it's a different error
+                        }
+                    }
+                    
                     const authInstance = window.getAuth(app);
                     const dbInstance = window.getFirestore(app);
                     
@@ -2474,9 +2505,10 @@
                         setIsAuthReady(true);
                     });
                     return () => unsubscribe();
-                } else {
-                    console.error("Firebase config is not available.");
-                    setIsAuthReady(true); // Allow UI to render with an error or login state
+                } catch (error) {
+                    console.error("Firebase initialization error:", error);
+                    setConfigError(`Firebase initialization failed: ${error.message}`);
+                    setIsAuthReady(true);
                 }
             }, [JSON.stringify(firebaseConfig), initialAuthToken]); // Effect depends on config values
 
@@ -2527,6 +2559,16 @@
                     return () => clearTimeout(timer);
                 }
             }, [notification]);
+
+            if (configError) {
+                return React.createElement('div', { className: "min-h-screen bg-gray-50 flex flex-col justify-center items-center p-4" },
+                    React.createElement('div', { className: "max-w-md w-full bg-white p-8 rounded-xl shadow-lg text-center" },
+                        React.createElement('h2', { className: "text-2xl text-red-600 mb-4", style: { fontWeight: 400 } }, "Configuration Error"),
+                        React.createElement('p', { className: "text-gray-700 mb-4", style: { fontWeight: 300 } }, configError),
+                        React.createElement('p', { className: "text-gray-600 text-sm", style: { fontWeight: 300 } }, "Please contact the administrator to fix the configuration.")
+                    )
+                );
+            }
 
             if (!isAuthReady) {
                 return React.createElement('div', { className: "min-h-screen bg-gray-50 flex justify-center items-center" },

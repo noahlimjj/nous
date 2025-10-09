@@ -1,592 +1,342 @@
-# Friends & Leaderboard System - Implementation Plan
+# Assistant Task: Implement Friends Page & Leaderboard Components
 
-## Overview
-This document outlines the complete architecture for implementing a friends system with leaderboards in the Nous habit tracking app. The system will enable users to connect with friends, compare progress, and stay motivated through friendly competition.
+## Context
+You are helping implement a friend system for the Nous habit tracking app. The main index.html file already has:
+- Firebase imports and configuration
+- React 18 setup with createElement patterns
+- Icon components (UsersIcon, TrophyIcon, SearchIcon, CheckIcon, XIcon)
+- Helper functions (formatTime, formatDate, generateFriendCode, calculateTotalHours)
+- Header navigation with Friends and Leaderboard buttons already added
+- Existing pages: Dashboard, Goals, Reports, Settings
 
-## Core Features
+## Your Task
+Implement TWO major components that will be added to index.html:
 
-### 1. User Profile System
-- **Username**: Unique, user-chosen display name
-- **Display Name**: Optional friendly name
-- **Avatar**: Profile picture (optional)
-- **Privacy Settings**: Control what data is visible to friends
-- **User Stats**: Aggregated statistics visible to friends
+### 1. Friends Page Component
+Location: Add after the Goals component (around line 1667)
 
-### 2. Friend Management
-- **Add Friends**: Search by username or share friend code
-- **Friend Requests**: Send, receive, accept, or decline
-- **Friend List**: View all connected friends
-- **Remove Friends**: Option to unfriend users
-- **Friend Codes**: Shareable unique codes for easy friend discovery
-
-### 3. Leaderboard System
-- **Multiple Timeframes**: Daily, weekly, monthly, all-time
-- **Multiple Metrics**:
-  - Total study hours
-  - Current streak
-  - Sessions completed
-  - Goals achieved
-  - Tree growth level
-- **Privacy**: Only visible among accepted friends
-- **Ranking**: Real-time updates based on activity
-
-### 4. Social Features
-- **Activity Feed**: See friends' recent achievements (optional)
-- **Achievements**: Unlock badges that friends can see
-- **Challenges**: Create group challenges with friends
-
----
-
-## Firestore Data Structure
-
-### Users Collection
-```
-/users/{userId}
-  - username: string (unique)
-  - displayName: string
-  - email: string
-  - avatarUrl: string (optional)
-  - friendCode: string (unique, auto-generated)
-  - createdAt: timestamp
-  - settings: {
-      showStats: boolean
-      showActivity: boolean
-      allowFriendRequests: boolean
-    }
-  - stats: {
-      totalHours: number
-      currentStreak: number
-      totalSessions: number
-      goalsCompleted: number
-      treeLevel: number
-      lastUpdated: timestamp
-    }
-```
-
-### Friend Requests Collection
-```
-/friendRequests/{requestId}
-  - fromUserId: string
-  - fromUsername: string
-  - toUserId: string
-  - toUsername: string
-  - status: string ('pending' | 'accepted' | 'declined')
-  - createdAt: timestamp
-  - respondedAt: timestamp (optional)
-```
-
-### Friendships Collection
-```
-/friendships/{friendshipId}
-  - user1Id: string
-  - user1Username: string
-  - user2Id: string
-  - user2Username: string
-  - createdAt: timestamp
-  - lastInteraction: timestamp
-```
-
-### Leaderboard Aggregations (Cloud Functions)
-```
-/leaderboards/{period}/{metricType}
-  - rankings: [
-      {
-        userId: string
-        username: string
-        value: number
-        rank: number
-        treeType: string
-      }
-    ]
-  - lastUpdated: timestamp
-```
-
----
-
-## Implementation Phases
-
-### Phase 1: User Profile Setup (Week 1)
-**Goal**: Allow users to create a unique username and profile
-
-**Tasks**:
-1. Add username field to user document on signup
-2. Create username uniqueness validation
-3. Add username input to Settings page
-4. Generate unique friend code for each user
-5. Display friend code in Settings
-
-**Components to Create**:
-- `UsernameSetup` component (modal for first-time users)
-- `ProfileSettings` section in Settings page
-
-**Security Rules**:
+**Requirements:**
 ```javascript
-// Ensure usernames are unique
-match /users/{userId} {
-  allow create: if request.auth.uid == userId
-    && !exists(/databases/$(database)/documents/users/$(request.resource.data.username));
-  allow update: if request.auth.uid == userId;
-  allow read: if request.auth != null;
-}
-```
+const Friends = ({ db, userId, setNotification, userProfile }) => {
+    // State needed:
+    // - friendRequests (pending incoming requests)
+    // - friends (accepted friendships)
+    // - searchTerm for username search
+    // - searchResult
+    // - friendCodeInput
+    // - isLoading
 
-### Phase 2: Friend Discovery (Week 2)
-**Goal**: Enable users to find and send friend requests
+    // Features to implement:
+    // A. Friend Request Inbox
+    //    - Query: /friendRequests where toUserId == userId && status == 'pending'
+    //    - Show sender username and profile info
+    //    - Accept button: updates status to 'accepted', creates /friendships doc
+    //    - Decline button: updates status to 'declined'
 
-**Tasks**:
-1. Create "Friends" page with search functionality
-2. Implement friend code lookup
-3. Add username search (with privacy controls)
-4. Create friend request sending functionality
-5. Add friend request notifications
+    // B. Friend Search by Username
+    //    - Input field for username
+    //    - Search button queries /users collection where username == searchTerm
+    //    - Show result with "Send Friend Request" button
+    //    - Creates doc in /friendRequests with fromUserId, toUserId, status: 'pending'
+    //    - Don't allow duplicate requests or requests to self
 
-**Components to Create**:
-- `FriendSearch` component
-- `FriendCodeInput` component
-- `SendRequestButton` component
+    // C. Friend Search by Code
+    //    - Input field for 8-character friend code
+    //    - Search button queries /users where friendCode == input
+    //    - Same as username search after finding user
 
-**Firestore Queries**:
-```javascript
-// Search for username
-const userQuery = query(
-  collection(db, 'users'),
-  where('username', '==', searchTerm),
-  limit(1)
-);
+    // D. My Friends List
+    //    - Query: /friendships where user1Id == userId OR user2Id == userId
+    //    - Show friend's username, total hours, tree type
+    //    - Show their study stats (totalHours, currentStreak)
+    //    - Unfriend button: deletes friendship doc
 
-// Get pending friend requests
-const requestsQuery = query(
-  collection(db, 'friendRequests'),
-  where('toUserId', '==', currentUserId),
-  where('status', '==', 'pending')
-);
-```
-
-### Phase 3: Friend Request Management (Week 2)
-**Goal**: Handle incoming requests and maintain friend list
-
-**Tasks**:
-1. Create friend request inbox UI
-2. Implement accept/decline functionality
-3. Create friendships on acceptance
-4. Show friend list with basic stats
-5. Add unfriend functionality
-
-**Components to Create**:
-- `FriendRequestList` component
-- `FriendCard` component
-- `FriendList` component
-
-**Cloud Functions** (Recommended):
-```javascript
-// Cloud Function: On friend request accepted
-exports.onFriendRequestAccepted = functions.firestore
-  .document('friendRequests/{requestId}')
-  .onUpdate(async (change, context) => {
-    const after = change.after.data();
-    if (after.status === 'accepted') {
-      // Create friendship document
-      await db.collection('friendships').add({
-        user1Id: after.fromUserId,
-        user1Username: after.fromUsername,
-        user2Id: after.toUserId,
-        user2Username: after.toUsername,
-        createdAt: admin.firestore.FieldValue.serverTimestamp()
-      });
-    }
-  });
-```
-
-### Phase 4: Stats Aggregation (Week 3)
-**Goal**: Calculate and store user statistics for leaderboard
-
-**Tasks**:
-1. Create Cloud Function to aggregate user stats daily
-2. Update user stats on session completion
-3. Calculate streak information
-4. Track tree growth level
-5. Store stats in user document
-
-**Cloud Functions**:
-```javascript
-// Cloud Function: Update user stats on new session
-exports.updateUserStats = functions.firestore
-  .document('artifacts/{appId}/users/{userId}/sessions/{sessionId}')
-  .onCreate(async (snap, context) => {
-    const session = snap.data();
-    const userId = context.params.userId;
-
-    // Calculate total hours
-    const sessionsSnapshot = await db
-      .collection(`artifacts/default-app-id/users/${userId}/sessions`)
-      .get();
-
-    const totalMs = sessionsSnapshot.docs.reduce(
-      (sum, doc) => sum + (doc.data().duration || 0),
-      0
-    );
-    const totalHours = totalMs / (1000 * 60 * 60);
-
-    // Update user stats
-    await db.doc(`users/${userId}`).update({
-      'stats.totalHours': totalHours,
-      'stats.totalSessions': sessionsSnapshot.size,
-      'stats.lastUpdated': admin.firestore.FieldValue.serverTimestamp()
-    });
-  });
-```
-
-### Phase 5: Leaderboard Display (Week 3-4)
-**Goal**: Show friend rankings across different metrics
-
-**Tasks**:
-1. Create Leaderboard page
-2. Fetch friend stats in real-time
-3. Calculate rankings client-side
-4. Add metric switcher (hours, streak, etc.)
-5. Add timeframe switcher (daily, weekly, etc.)
-6. Show user's current rank
-
-**Components to Create**:
-- `Leaderboard` component
-- `LeaderboardRow` component
-- `MetricSelector` component
-- `TimeframeSelector` component
-
-**Example Query**:
-```javascript
-// Get all friends for leaderboard
-const getFriendsStats = async (userId) => {
-  // Get friendships
-  const friendshipsQuery = query(
-    collection(db, 'friendships'),
-    where('user1Id', '==', userId)
-  );
-  const friendships = await getDocs(friendshipsQuery);
-
-  // Get stats for each friend
-  const friendStats = [];
-  for (const friendship of friendships.docs) {
-    const friendId = friendship.data().user2Id;
-    const userDoc = await getDoc(doc(db, 'users', friendId));
-    if (userDoc.exists()) {
-      friendStats.push({
-        userId: friendId,
-        username: userDoc.data().username,
-        ...userDoc.data().stats
-      });
-    }
-  }
-
-  // Sort by total hours (descending)
-  return friendStats.sort((a, b) => b.totalHours - a.totalHours);
+    // E. My Friend Code Display
+    //    - Show userProfile.friendCode in a copyable format
+    //    - "Copy Code" button
 };
 ```
 
-### Phase 6: Real-time Updates (Week 4)
-**Goal**: Keep leaderboard data fresh
-
-**Tasks**:
-1. Set up Firestore listeners for friend stats
-2. Implement optimistic UI updates
-3. Add refresh button for manual updates
-4. Show "Last updated" timestamp
-5. Handle offline scenarios gracefully
-
-**Implementation**:
-```javascript
-// Real-time leaderboard listener
-useEffect(() => {
-  if (!friendIds.length) return;
-
-  const unsubscribers = friendIds.map(friendId => {
-    const userDocRef = doc(db, 'users', friendId);
-    return onSnapshot(userDocRef, (snapshot) => {
-      if (snapshot.exists()) {
-        setFriendStats(prev => ({
-          ...prev,
-          [friendId]: snapshot.data().stats
-        }));
-      }
-    });
-  });
-
-  return () => unsubscribers.forEach(unsub => unsub());
-}, [friendIds]);
-```
-
----
-
-## UI/UX Design
-
-### Friends Page Layout
+**UI Layout:**
 ```
 ┌─────────────────────────────────────────┐
 │  Friends                                │
 ├─────────────────────────────────────────┤
-│  [Search friends...]  [Add by code]     │
+│  My Friend Code: ABC12345 [Copy]       │
+├─────────────────────────────────────────┤
+│  Add Friends                            │
+│  [Search username...] [Search]          │
+│  [Friend code...] [Add by code]         │
 ├─────────────────────────────────────────┤
 │  Friend Requests (2)                    │
 │  ┌─────────────────────────────────┐   │
-│  │ @alice wants to connect         │   │
+│  │ @alice • 24h studied            │   │
 │  │ [Accept] [Decline]              │   │
 │  └─────────────────────────────────┘   │
 ├─────────────────────────────────────────┤
 │  My Friends (5)                         │
 │  ┌─────────────────────────────────┐   │
 │  │ @bob                            │   │
-│  │ 🌳 Oak Tree • 24.5h this week   │   │
-│  └─────────────────────────────────┘   │
-│  ┌─────────────────────────────────┐   │
-│  │ @carol                          │   │
-│  │ 🌸 Cherry Blossom • 18h/week    │   │
+│  │ 🌳 Oak Tree • 24.5h • 7 day 🔥  │   │
+│  │ [View] [Unfriend]               │   │
 │  └─────────────────────────────────┘   │
 └─────────────────────────────────────────┘
 ```
 
-### Leaderboard Page Layout
+### 2. Leaderboard Page Component
+Location: Add after Friends component
+
+**Requirements:**
+```javascript
+const Leaderboard = ({ db, userId, setNotification, userProfile }) => {
+    // State needed:
+    // - friendsData (array of friend stats)
+    // - selectedMetric ('totalHours' | 'currentStreak' | 'totalSessions')
+    // - selectedPeriod ('all' | 'week' | 'month')
+    // - isLoading
+
+    // Features to implement:
+    // A. Fetch All Friends' Stats
+    //    - Get all friendships for current user
+    //    - For each friend, fetch their /users doc to get stats
+    //    - Include current user in the leaderboard
+    //    - Sort by selected metric (descending)
+
+    // B. Metric Selector Buttons
+    //    - Total Hours (default)
+    //    - Current Streak
+    //    - Total Sessions
+
+    // C. Period Selector (optional for MVP)
+    //    - All Time (default, easiest)
+    //    - This Week (requires filtering sessions)
+    //    - This Month (requires filtering sessions)
+
+    // D. Leaderboard Display
+    //    - Rank medals: 🥇 🥈 🥉 for top 3
+    //    - Show position, username, metric value
+    //    - Highlight current user's row
+    //    - Show tree emoji based on their selected tree type
+
+    // E. User's Rank Summary
+    //    - "Your Rank: #3 of 12 friends"
+    //    - Motivational message based on position
+};
+```
+
+**UI Layout:**
 ```
 ┌─────────────────────────────────────────┐
 │  Leaderboard                            │
 ├─────────────────────────────────────────┤
-│  [Weekly ▼] [Total Hours ▼]            │
+│  [Total Hours] [Streak] [Sessions]     │
 ├─────────────────────────────────────────┤
 │  🥇 1. @alice - 42.5 hours             │
 │  🥈 2. @bob - 38.2 hours               │
-│  🥉 3. @you - 24.5 hours               │
+│  🥉 3. @you - 24.5 hours  ← highlighted│
 │     4. @carol - 18.0 hours             │
 │     5. @dave - 12.5 hours              │
 ├─────────────────────────────────────────┤
 │  Your Rank: #3 of 5 friends            │
-│  Keep going! Just 13.7h to reach #2    │
+│  Keep going! 13.7h to reach #2 🚀      │
 └─────────────────────────────────────────┘
 ```
 
----
+### 3. User Profile Initialization Hook
+Location: Add to the App component's useEffect (after Firebase initialization)
 
-## Security Considerations
-
-### Firestore Security Rules
+**Requirements:**
 ```javascript
-rules_version = '2';
-service cloud.firestore {
-  match /databases/{database}/documents {
-    // Users can read any user profile (for friend discovery)
-    match /users/{userId} {
-      allow read: if request.auth != null;
-      allow create: if request.auth.uid == userId;
-      allow update: if request.auth.uid == userId;
-      allow delete: if request.auth.uid == userId;
-    }
+// When a user logs in, check if they have a profile in /users collection
+// If not, create one with:
+useEffect(() => {
+    if (!db || !userId) return;
 
-    // Friend requests
-    match /friendRequests/{requestId} {
-      allow create: if request.auth != null
-        && request.resource.data.fromUserId == request.auth.uid;
-      allow read: if request.auth.uid == resource.data.fromUserId
-        || request.auth.uid == resource.data.toUserId;
-      allow update: if request.auth.uid == resource.data.toUserId
-        && request.resource.data.status in ['accepted', 'declined'];
-    }
+    const userDocRef = doc(db, 'users', userId);
+    onSnapshot(userDocRef, async (snapshot) => {
+        if (!snapshot.exists()) {
+            // Create new user profile
+            await setDoc(userDocRef, {
+                username: `user_${userId.substring(0, 8)}`, // temporary username
+                email: auth.currentUser?.email || '',
+                friendCode: generateFriendCode(),
+                createdAt: Timestamp.now(),
+                settings: {
+                    showStats: true,
+                    showActivity: true,
+                    allowFriendRequests: true
+                },
+                stats: {
+                    totalHours: 0,
+                    currentStreak: 0,
+                    totalSessions: 0,
+                    goalsCompleted: 0,
+                    treeLevel: 0,
+                    lastUpdated: Timestamp.now()
+                }
+            });
 
-    // Friendships
-    match /friendships/{friendshipId} {
-      allow read: if request.auth.uid == resource.data.user1Id
-        || request.auth.uid == resource.data.user2Id;
-      allow delete: if request.auth.uid == resource.data.user1Id
-        || request.auth.uid == resource.data.user2Id;
-    }
-  }
-}
+            // Prompt user to set a custom username
+            setNotification({ type: 'success', message: 'Set your username in Settings!' });
+        }
+    });
+}, [db, userId]);
 ```
 
-### Privacy Features
-1. **Opt-in sharing**: Users must explicitly enable stat sharing
-2. **Block list**: Users can block other users from sending requests
-3. **Data visibility controls**: Fine-grained control over what friends can see
-4. **Anonymous mode**: Option to hide from friend search entirely
+### 4. Stats Update Function
+Create a function that updates user stats whenever a session is saved:
 
----
-
-## Performance Optimization
-
-### Pagination
-- Limit friend list to 50 friends initially
-- Lazy load additional friends on scroll
-- Cache friend data locally
-
-### Indexing
-Create composite indexes for common queries:
-```
-friendRequests:
-  - (toUserId, status, createdAt)
-  - (fromUserId, status, createdAt)
-
-friendships:
-  - (user1Id, createdAt)
-  - (user2Id, createdAt)
-```
-
-### Caching Strategy
-- Cache friend list for 5 minutes
-- Cache leaderboard data for 1 minute
-- Use optimistic updates for instant feedback
-
----
-
-## Monitoring & Analytics
-
-### Key Metrics to Track
-1. Friend request acceptance rate
-2. Average number of friends per user
-3. Leaderboard engagement (views, time spent)
-4. Most compared metrics
-5. Feature usage patterns
-
-### Error Handling
-- Graceful fallbacks when friend data unavailable
-- Retry logic for failed requests
-- User-friendly error messages
-- Logging for debugging
-
----
-
-## Testing Strategy
-
-### Unit Tests
-- Username uniqueness validation
-- Friend code generation
-- Stats calculation accuracy
-- Ranking algorithm correctness
-
-### Integration Tests
-- Complete friend request flow
-- Leaderboard data updates
-- Real-time synchronization
-- Security rules enforcement
-
-### E2E Tests
-- Search and add friend
-- Accept friend request
-- View leaderboard
-- Update stats and see ranking change
-
----
-
-## Future Enhancements
-
-### Phase 7+: Advanced Features
-1. **Team Challenges**: Create group study goals
-2. **Streaks Competition**: Compare current streaks
-3. **Activity Feed**: Timeline of friends' achievements
-4. **Achievements/Badges**: Unlock and display badges
-5. **Direct Messaging**: Chat with friends (optional)
-6. **Study Groups**: Form groups with shared goals
-7. **Push Notifications**: Friend request alerts, achievement notifications
-8. **Leaderboard History**: Track rank changes over time
-9. **Custom Challenges**: Set up 1-on-1 or group challenges
-10. **Social Sharing**: Share achievements to external platforms
-
----
-
-## Migration Plan
-
-### For Existing Users
-1. Prompt for username on first app open after update
-2. Auto-generate friend code
-3. Initialize stats from existing session data
-4. No disruption to existing functionality
-
-### Data Migration Script
 ```javascript
-// Cloud Function: Migrate existing users
-exports.migrateUsersToV2 = functions.https.onCall(async (data, context) => {
-  const usersSnapshot = await db.collection('artifacts/default-app-id/users').get();
+const updateUserStats = async (db, userId, sessions) => {
+    const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+    const userDocRef = doc(db, 'users', userId);
 
-  for (const userDoc of usersSnapshot.docs) {
-    const userId = userDoc.id;
+    const totalHours = calculateTotalHours(sessions);
+    const totalSessions = sessions.length;
 
-    // Calculate stats from sessions
-    const sessionsSnapshot = await db
-      .collection(`artifacts/default-app-id/users/${userId}/sessions`)
-      .get();
+    // Calculate current streak
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
 
-    const totalMs = sessionsSnapshot.docs.reduce(
-      (sum, doc) => sum + (doc.data().duration || 0),
-      0
+    let streak = 0;
+    let checkDate = new Date(today);
+
+    const sortedSessions = [...sessions].sort((a, b) =>
+        b.startTime.toMillis() - a.startTime.toMillis()
     );
 
-    // Create user profile
-    await db.doc(`users/${userId}`).set({
-      username: null, // User will set this
-      friendCode: generateUniqueCode(),
-      createdAt: admin.firestore.FieldValue.serverTimestamp(),
-      stats: {
-        totalHours: totalMs / (1000 * 60 * 60),
-        totalSessions: sessionsSnapshot.size,
-        currentStreak: 0, // Calculate separately
-        goalsCompleted: 0,
-        treeLevel: 0,
-        lastUpdated: admin.firestore.FieldValue.serverTimestamp()
-      }
-    });
-  }
-});
+    for (let i = 0; i < 365; i++) { // Check up to 1 year back
+        const dayStart = new Date(checkDate);
+        const dayEnd = new Date(checkDate);
+        dayEnd.setHours(23, 59, 59, 999);
+
+        const hasSessionOnDay = sortedSessions.some(s => {
+            const sessionDate = s.startTime.toDate();
+            return sessionDate >= dayStart && sessionDate <= dayEnd;
+        });
+
+        if (hasSessionOnDay) {
+            streak++;
+            checkDate.setDate(checkDate.getDate() - 1);
+        } else if (i === 0 && checkDate.getTime() === today.getTime()) {
+            // No session today, but check yesterday
+            checkDate.setDate(checkDate.getDate() - 1);
+        } else {
+            break; // Streak broken
+        }
+    }
+
+    await setDoc(userDocRef, {
+        stats: {
+            totalHours,
+            currentStreak: streak,
+            totalSessions,
+            goalsCompleted: 0, // Can be calculated from goals collection
+            treeLevel: Math.floor(totalHours / 10),
+            lastUpdated: Timestamp.now()
+        }
+    }, { merge: true });
+};
 ```
 
----
+Call this function in Dashboard's stopTimer after saving a session.
 
-## Estimated Timeline
+### 5. Settings Page Enhancement
+Add username editing to the Settings page:
 
-- **Phase 1**: User Profile Setup - 1 week
-- **Phase 2**: Friend Discovery - 1 week
-- **Phase 3**: Friend Management - 1 week
-- **Phase 4**: Stats Aggregation - 1 week
-- **Phase 5**: Leaderboard Display - 1-2 weeks
-- **Phase 6**: Real-time Updates - 1 week
+```javascript
+// Add to Settings component state
+const [username, setUsername] = useState('');
+const [isEditingUsername, setIsEditingUsername] = useState(false);
 
-**Total**: 6-7 weeks for full implementation
+// Add username section in Settings UI
+React.createElement('div', { className: "bg-white rounded-lg shadow-sm p-6 mb-6" },
+    React.createElement('h3', { className: "text-xl text-gray-700 mb-4" }, "profile"),
+    React.createElement('div', { className: "space-y-3" },
+        React.createElement('div', { className: "flex justify-between items-center py-2 border-b" },
+            React.createElement('span', { className: "text-gray-600" }, "Username:"),
+            isEditingUsername ?
+                React.createElement('input', {
+                    type: "text",
+                    value: username,
+                    onChange: (e) => setUsername(e.target.value),
+                    onBlur: handleSaveUsername,
+                    className: "border px-2 py-1 rounded"
+                }) :
+                React.createElement('span', {
+                    className: "text-gray-800 cursor-pointer hover:text-blue-600",
+                    onClick: () => setIsEditingUsername(true)
+                }, userProfile?.username || 'Set username')
+        ),
+        React.createElement('div', { className: "flex justify-between items-center py-2" },
+            React.createElement('span', { className: "text-gray-600" }, "Friend Code:"),
+            React.createElement('span', { className: "font-mono text-gray-800" },
+                userProfile?.friendCode || 'Loading...'
+            )
+        )
+    )
+)
+```
 
----
+## Code Style Requirements
+- Use React.createElement() syntax (no JSX)
+- Use Tailwind CSS classes for styling
+- Match existing color scheme: calm colors (#5d6b86, #6B8DD6, etc.)
+- Use fontWeight: 300 or 400 (no bold fonts)
+- Use soft-shadow and soft-shadow-lg classes
+- Follow existing notification patterns
+- Handle loading states with LoaderIcon
+- Use try-catch for all Firebase operations
+- Use setNotification for success/error messages
 
-## Resources Needed
+## Firestore Collection Structure
+```
+/users/{userId}
+  - username: string
+  - email: string
+  - friendCode: string (8 chars, unique)
+  - createdAt: timestamp
+  - settings: { showStats, showActivity, allowFriendRequests }
+  - stats: { totalHours, currentStreak, totalSessions, goalsCompleted, treeLevel, lastUpdated }
 
-### Development
-- Firebase Cloud Functions (for stat aggregation)
-- Additional Firestore indexes
-- Testing devices/accounts
+/friendRequests/{requestId}
+  - fromUserId: string
+  - fromUsername: string
+  - toUserId: string
+  - toUsername: string
+  - status: 'pending' | 'accepted' | 'declined'
+  - createdAt: timestamp
 
-### Design
-- Friend request notification designs
-- Leaderboard UI mockups
-- Achievement badge designs
+/friendships/{friendshipId}
+  - user1Id: string
+  - user1Username: string
+  - user2Id: string
+  - user2Username: string
+  - createdAt: timestamp
+```
 
-### Infrastructure
-- Cloud Functions budget ($5-10/month estimated)
-- Additional Firestore reads/writes (~1M free tier should suffice)
+## Deliverable Format
+Please provide the complete code for:
+1. Friends component (complete implementation)
+2. Leaderboard component (complete implementation)
+3. User profile initialization code snippet
+4. updateUserStats function
+5. Settings page username section
 
----
+Format as JavaScript code blocks that can be directly inserted into index.html.
 
-## Success Criteria
+## Testing Checklist
+After implementation, verify:
+- [ ] Users get a profile and friend code on first login
+- [ ] Can search for friends by username
+- [ ] Can search for friends by code
+- [ ] Can send friend requests
+- [ ] Can accept/decline requests
+- [ ] Friend requests create friendships when accepted
+- [ ] Can see list of friends with their stats
+- [ ] Leaderboard shows all friends sorted by metric
+- [ ] Stats update after completing study sessions
+- [ ] Can edit username in Settings
+- [ ] No crashes when viewing friends/leaderboard with 0 friends
 
-1. **Adoption**: 60% of active users have at least 1 friend
-2. **Engagement**: 40% of users check leaderboard weekly
-3. **Performance**: Leaderboard loads in <2 seconds
-4. **Reliability**: 99.9% uptime for friend features
-5. **User Satisfaction**: Positive feedback on friend functionality
-
----
-
-## Notes
-
-- Start with MVP: friend requests + basic leaderboard
-- Iterate based on user feedback
-- Keep privacy and security as top priorities
-- Ensure mobile responsiveness
-- Consider rate limiting for friend requests (prevent spam)
-
----
-
-**Document Version**: 1.0
-**Last Updated**: 2025-10-09
-**Author**: Nous Development Team
+Good luck! Focus on clean, working code that matches the existing style. Start with the core functionality and keep it simple.
