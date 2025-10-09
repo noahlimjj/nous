@@ -4,8 +4,31 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Nous</title>
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <!-- Using Playfair Display as alternative to Canela (similar elegant serif) -->
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&display=swap" rel="stylesheet">
+
     <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        'title': ['"Canela"', '"Playfair Display"', 'serif'],
+                        'body': ['"Avenir Next"', '-apple-system', 'BlinkMacSystemFont', 'system-ui', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
     <style>
+        /* Set default body font */
+        body {
+            font-family: "Avenir Next", -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+        }
         .timer-display {
             font-family: 'Roboto Mono', 'Courier New', monospace;
             font-size: 3rem;
@@ -273,6 +296,30 @@
             React.createElement('path', { fill: "#1976D2", d: "M43.611,20.083H42V20H24v8h11.303c-0.792,2.237-2.231,4.166-4.087,5.571c0.001-0.001,0.002-0.001,0.003-0.002l6.19,5.238C36.971,39.205,44,34,44,24C44,22.659,43.862,21.35,43.611,20.083z" })
         );
 
+        const SettingsIcon = () => React.createElement('svg', {
+            xmlns: "http://www.w3.org/2000/svg",
+            width: "24",
+            height: "24",
+            viewBox: "0 0 24 24",
+            fill: "none",
+            stroke: "currentColor",
+            strokeWidth: "2",
+            strokeLinecap: "round",
+            strokeLinejoin: "round"
+        }, React.createElement('circle', { cx: "12", cy: "12", r: "3" }), React.createElement('path', { d: "M12 1v6m0 6v6m-6-6h6m6 0h6" }));
+
+        const NotebookIcon = () => React.createElement('svg', {
+            xmlns: "http://www.w3.org/2000/svg",
+            width: "24",
+            height: "24",
+            viewBox: "0 0 24 24",
+            fill: "none",
+            stroke: "currentColor",
+            strokeWidth: "2",
+            strokeLinecap: "round",
+            strokeLinejoin: "round"
+        }, React.createElement('path', { d: "M4 19.5A2.5 2.5 0 0 1 6.5 17H20" }), React.createElement('path', { d: "M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" }));
+
         // Function to format time like Google Timer with milliseconds
         const formatTime = (totalMilliseconds) => {
             const totalSeconds = Math.floor(totalMilliseconds / 1000);
@@ -361,7 +408,7 @@
             return React.createElement('div', { className: "min-h-screen bg-gray-50 flex flex-col justify-center items-center p-4" },
                 React.createElement('div', { className: "max-w-md w-full bg-white rounded-xl shadow-lg p-8 space-y-6" },
                     React.createElement('div', { className: "text-center" },
-                        React.createElement('h1', { className: "text-3xl font-bold text-gray-800" }, "Nous"),
+                        React.createElement('h1', { className: "text-3xl font-bold text-gray-800", style: { fontFamily: '"Canela", "Playfair Display", serif' } }, "Nous"),
                         React.createElement('p', { className: "text-gray-500 mt-2" }, "Log in or sign up to track your progress")
                     ),
                     React.createElement('form', { onSubmit: handleAuthAction, className: "space-y-4" },
@@ -413,28 +460,42 @@
 
         // --- Main App Components ---
 
-        const Header = ({ auth, userId, setCurrentPage }) => {
-            const handleLogout = () => {
-                window.signOut(auth);
-            };
-
+        const Header = ({ setCurrentPage, currentPage }) => {
             return React.createElement('header', { className: "bg-white shadow-md sticky top-0 z-10" },
                 React.createElement('div', { className: "max-w-7xl mx-auto px-4 sm:px-6 lg:px-8" },
                     React.createElement('div', { className: "flex justify-between items-center h-16" },
-                        React.createElement('h1', { className: "text-2xl font-bold text-blue-600" }, "Nous"),
-                        React.createElement('nav', { className: "flex items-center space-x-4" },
-                            React.createElement('button', { onClick: () => setCurrentPage('dashboard'), title: "Dashboard", className: "p-2 rounded-full hover:bg-gray-100 transition" },
+                        React.createElement('h1', { className: "text-2xl font-bold text-blue-600", style: { fontFamily: '"Canela", "Playfair Display", serif' } }, "Nous"),
+                        React.createElement('nav', { className: "flex items-center space-x-2" },
+                            React.createElement('button', {
+                                onClick: () => setCurrentPage('dashboard'),
+                                title: "Dashboard",
+                                className: `p-2 rounded-full transition ${currentPage === 'dashboard' ? 'bg-blue-100 text-blue-600' : 'hover:bg-gray-100'}`
+                            },
                                 React.createElement(HomeIcon)
                             ),
-                            React.createElement('button', { onClick: () => setCurrentPage('reports'), title: "Monthly Reports", className: "p-2 rounded-full hover:bg-gray-100 transition" },
+                            React.createElement('button', {
+                                onClick: () => setCurrentPage('goals'),
+                                title: "Goals",
+                                className: `p-2 rounded-full transition ${currentPage === 'goals' ? 'bg-blue-100 text-blue-600' : 'hover:bg-gray-100'}`
+                            },
+                                React.createElement(NotebookIcon)
+                            ),
+                            React.createElement('button', {
+                                onClick: () => setCurrentPage('reports'),
+                                title: "Monthly Reports",
+                                className: `p-2 rounded-full transition ${currentPage === 'reports' ? 'bg-blue-100 text-blue-600' : 'hover:bg-gray-100'}`
+                            },
                                 React.createElement(ChartIcon)
                             ),
-                            React.createElement('button', { onClick: handleLogout, title: "Logout", className: "p-2 rounded-full hover:bg-gray-100 transition text-red-500" },
-                                React.createElement(LogOutIcon)
+                            React.createElement('button', {
+                                onClick: () => setCurrentPage('settings'),
+                                title: "Settings",
+                                className: `p-2 rounded-full transition ${currentPage === 'settings' ? 'bg-blue-100 text-blue-600' : 'hover:bg-gray-100'}`
+                            },
+                                React.createElement(SettingsIcon)
                             )
                         )
-                    ),
-                    React.createElement('div', { className: "text-xs text-gray-500 pb-2 truncate" }, `User ID: ${userId}`)
+                    )
                 )
             );
         };
@@ -539,7 +600,7 @@
                     
                     // If this is a new user with no habits, create default habits
                     if (habitsData.length === 0) {
-                        const defaultHabits = ['Study', 'Code', 'Read', 'Exercise'];
+                        const defaultHabits = ['Study', 'Exercise'];
                         try {
                             for (const habitName of defaultHabits) {
                                 await window.addDoc(habitsCol, {
@@ -890,6 +951,160 @@
             );
         };
 
+        const Settings = ({ auth, userId }) => {
+            const handleLogout = () => {
+                window.signOut(auth);
+            };
+
+            return React.createElement('div', { className: "max-w-4xl mx-auto p-4 sm:p-6 lg:p-8" },
+                React.createElement('h2', { className: "text-3xl font-bold text-gray-800 mb-6" }, "Settings"),
+
+                // Account Information Section
+                React.createElement('div', { className: "bg-white rounded-lg shadow-sm p-6 mb-6" },
+                    React.createElement('h3', { className: "text-xl font-semibold text-gray-700 mb-4" }, "Account Information"),
+                    React.createElement('div', { className: "space-y-3" },
+                        React.createElement('div', { className: "flex justify-between items-center py-2 border-b" },
+                            React.createElement('span', { className: "text-gray-600" }, "User ID:"),
+                            React.createElement('span', { className: "font-mono text-sm text-gray-800 truncate ml-4" }, userId)
+                        ),
+                        React.createElement('div', { className: "flex justify-between items-center py-2 border-b" },
+                            React.createElement('span', { className: "text-gray-600" }, "Email:"),
+                            React.createElement('span', { className: "text-gray-800" }, auth.currentUser?.email || 'Guest User')
+                        ),
+                        React.createElement('div', { className: "flex justify-between items-center py-2" },
+                            React.createElement('span', { className: "text-gray-600" }, "Account Type:"),
+                            React.createElement('span', { className: "text-gray-800" }, auth.currentUser?.isAnonymous ? 'Guest' : 'Registered')
+                        )
+                    )
+                ),
+
+                // Actions Section
+                React.createElement('div', { className: "bg-white rounded-lg shadow-sm p-6" },
+                    React.createElement('h3', { className: "text-xl font-semibold text-gray-700 mb-4" }, "Actions"),
+                    React.createElement('button', {
+                        onClick: handleLogout,
+                        className: "w-full sm:w-auto bg-red-600 text-white font-semibold py-2 px-6 rounded-lg hover:bg-red-700 transition flex items-center justify-center gap-2"
+                    },
+                        React.createElement(LogOutIcon),
+                        "Sign Out"
+                    )
+                )
+            );
+        };
+
+        const Goals = ({ db, userId, setNotification }) => {
+            const [goals, setGoals] = useState({ weekly: '', monthly: '', yearly: '' });
+            const [isLoading, setIsLoading] = useState(true);
+            const [isSaving, setIsSaving] = useState(false);
+
+            const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+
+            useEffect(() => {
+                if (!db || !userId) return;
+
+                const goalsDocRef = window.doc(db, `/artifacts/${appId}/users/${userId}/goals/current`);
+
+                const unsubscribe = window.onSnapshot(goalsDocRef, (docSnapshot) => {
+                    if (docSnapshot.exists()) {
+                        const data = docSnapshot.data();
+                        setGoals({
+                            weekly: data.weekly || '',
+                            monthly: data.monthly || '',
+                            yearly: data.yearly || ''
+                        });
+                    }
+                    setIsLoading(false);
+                }, (error) => {
+                    console.error("Error fetching goals:", error);
+                    setNotification({ type: 'error', message: "Could not fetch goals." });
+                    setIsLoading(false);
+                });
+
+                return () => unsubscribe();
+            }, [db, userId, appId, setNotification]);
+
+            const handleSave = async () => {
+                setIsSaving(true);
+                try {
+                    const goalsDocRef = window.doc(db, `/artifacts/${appId}/users/${userId}/goals/current`);
+                    await window.setDoc(goalsDocRef, {
+                        weekly: goals.weekly,
+                        monthly: goals.monthly,
+                        yearly: goals.yearly,
+                        lastUpdated: window.Timestamp.now()
+                    });
+                    setNotification({ type: 'success', message: 'Goals saved successfully!' });
+                } catch (error) {
+                    console.error("Error saving goals:", error);
+                    setNotification({ type: 'error', message: 'Failed to save goals.' });
+                } finally {
+                    setIsSaving(false);
+                }
+            };
+
+            if (isLoading) {
+                return React.createElement('div', { className: "flex justify-center items-center p-8" },
+                    React.createElement(LoaderIcon),
+                    React.createElement('span', { className: "ml-2" }, "Loading your goals...")
+                );
+            }
+
+            return React.createElement('div', { className: "max-w-4xl mx-auto p-4 sm:p-6 lg:p-8" },
+                React.createElement('h2', { className: "text-3xl font-bold text-gray-800 mb-6" }, "My Goals"),
+                React.createElement('p', { className: "text-gray-600 mb-6" }, "Set and track your weekly, monthly, and yearly goals."),
+
+                React.createElement('div', { className: "space-y-6" },
+                    // Weekly Goals
+                    React.createElement('div', { className: "bg-white rounded-lg shadow-sm p-6" },
+                        React.createElement('h3', { className: "text-xl font-semibold text-blue-600 mb-3" }, "Weekly Goals"),
+                        React.createElement('textarea', {
+                            value: goals.weekly,
+                            onChange: (e) => setGoals({ ...goals, weekly: e.target.value }),
+                            placeholder: "What do you want to accomplish this week?",
+                            rows: 4,
+                            className: "w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none resize-none"
+                        })
+                    ),
+
+                    // Monthly Goals
+                    React.createElement('div', { className: "bg-white rounded-lg shadow-sm p-6" },
+                        React.createElement('h3', { className: "text-xl font-semibold text-green-600 mb-3" }, "Monthly Goals"),
+                        React.createElement('textarea', {
+                            value: goals.monthly,
+                            onChange: (e) => setGoals({ ...goals, monthly: e.target.value }),
+                            placeholder: "What do you want to accomplish this month?",
+                            rows: 4,
+                            className: "w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:outline-none resize-none"
+                        })
+                    ),
+
+                    // Yearly Goals
+                    React.createElement('div', { className: "bg-white rounded-lg shadow-sm p-6" },
+                        React.createElement('h3', { className: "text-xl font-semibold text-purple-600 mb-3" }, "Yearly Goals"),
+                        React.createElement('textarea', {
+                            value: goals.yearly,
+                            onChange: (e) => setGoals({ ...goals, yearly: e.target.value }),
+                            placeholder: "What do you want to accomplish this year?",
+                            rows: 4,
+                            className: "w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:outline-none resize-none"
+                        })
+                    ),
+
+                    // Save Button
+                    React.createElement('div', { className: "flex justify-end" },
+                        React.createElement('button', {
+                            onClick: handleSave,
+                            disabled: isSaving,
+                            className: "bg-blue-600 text-white font-semibold py-3 px-8 rounded-lg hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                        },
+                            isSaving && React.createElement(LoaderIcon),
+                            isSaving ? 'Saving...' : 'Save Goals'
+                        )
+                    )
+                )
+            );
+        };
+
         // --- Main App Component ---
         function App() {
             // These would be provided by the environment (e.g., Netlify build environment variables)
@@ -965,17 +1180,19 @@
             }
 
             return React.createElement('div', { className: "bg-gray-50 min-h-screen font-sans" },
-                notification && React.createElement('div', { 
+                notification && React.createElement('div', {
                     className: `fixed top-5 right-5 p-4 rounded-lg shadow-lg text-white z-50 ${notification.type === 'success' ? 'bg-green-500' : 'bg-red-500'}`
                 }, notification.message),
-                
-                !user ? 
+
+                !user ?
                     React.createElement(AuthComponent, { auth, setNotification }) :
                     React.createElement(React.Fragment, null,
-                        React.createElement(Header, { auth, userId, setCurrentPage }),
+                        React.createElement(Header, { setCurrentPage, currentPage }),
                         React.createElement('main', null,
                             currentPage === 'dashboard' && React.createElement(Dashboard, { db, userId, setNotification }),
-                            currentPage === 'reports' && React.createElement(Reports, { db, userId, setNotification })
+                            currentPage === 'goals' && React.createElement(Goals, { db, userId, setNotification }),
+                            currentPage === 'reports' && React.createElement(Reports, { db, userId, setNotification }),
+                            currentPage === 'settings' && React.createElement(Settings, { auth, userId })
                         )
                     )
             );
