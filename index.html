@@ -410,6 +410,30 @@
             strokeLinejoin: "round"
         }, React.createElement('path', { d: "M4 19.5A2.5 2.5 0 0 1 6.5 17H20" }), React.createElement('path', { d: "M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" }));
 
+        const UsersIcon = () => React.createElement('svg', {
+            xmlns: "http://www.w3.org/2000/svg",
+            width: "24",
+            height: "24",
+            viewBox: "0 0 24 24",
+            fill: "none",
+            stroke: "currentColor",
+            strokeWidth: "2",
+            strokeLinecap: "round",
+            strokeLinejoin: "round"
+        }, React.createElement('path', { d: "M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" }), React.createElement('circle', { cx: "9", cy: "7", r: "4" }), React.createElement('path', { d: "M23 21v-2a4 4 0 0 0-3-3.87" }), React.createElement('path', { d: "M16 3.13a4 4 0 0 1 0 7.75" }));
+
+        const TrophyIcon = () => React.createElement('svg', {
+            xmlns: "http://www.w3.org/2000/svg",
+            width: "24",
+            height: "24",
+            viewBox: "0 0 24 24",
+            fill: "none",
+            stroke: "currentColor",
+            strokeWidth: "2",
+            strokeLinecap: "round",
+            strokeLinejoin: "round"
+        }, React.createElement('path', { d: "M6 9H4.5a2.5 2.5 0 0 1 0-5H6" }), React.createElement('path', { d: "M18 9h1.5a2.5 2.5 0 0 0 0-5H18" }), React.createElement('path', { d: "M4 22h16" }), React.createElement('path', { d: "M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22" }), React.createElement('path', { d: "M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22" }), React.createElement('path', { d: "M18 2H6v7a6 6 0 0 0 12 0V2Z" }));
+
         // Logo component with circular flow around 'n'
         const NousLogo = ({ size = "medium" }) => {
             const sizes = {
@@ -494,6 +518,32 @@
                 day: 'numeric',
                 year: 'numeric'
             });
+        };
+
+        // Tree types with unlock requirements (total hours studied)
+        const TREE_TYPES = [
+            { id: 'seedling', name: 'Seedling', requiredHours: 0, color: '#86efac' },
+            { id: 'oak', name: 'Oak Tree', requiredHours: 10, color: '#34d399' },
+            { id: 'cherry', name: 'Cherry Blossom', requiredHours: 25, color: '#fda4af' },
+            { id: 'pine', name: 'Pine Tree', requiredHours: 50, color: '#10b981' },
+            { id: 'willow', name: 'Willow Tree', requiredHours: 100, color: '#6ee7b7' },
+            { id: 'sakura', name: 'Ancient Sakura', requiredHours: 200, color: '#f472b6' }
+        ];
+
+        // Calculate total study hours from sessions
+        const calculateTotalHours = (sessions) => {
+            const totalMs = sessions.reduce((sum, s) => sum + (s.duration || 0), 0);
+            return totalMs / (1000 * 60 * 60); // Convert to hours
+        };
+
+        // Get tree growth stage based on hours (0-100%)
+        const getTreeGrowth = (totalHours) => {
+            return Math.min(100, (totalHours / 5) * 100); // Full growth at 5 hours
+        };
+
+        // Get available tree types based on hours
+        const getUnlockedTrees = (totalHours) => {
+            return TREE_TYPES.filter(tree => totalHours >= tree.requiredHours);
         };
 
         // --- Authentication Component ---
@@ -959,20 +1009,26 @@
                     )
                 ),
 
-                // Right/Side Column: Recent Sessions
-                React.createElement('div', { className: "lg:col-span-1" },
-                    React.createElement('h2', { className: "text-2xl text-gray-800 mb-4", style: { fontWeight: 300 } }, "recent sessions"),
-                    React.createElement('div', { className: "bg-white p-4 rounded-lg shadow-sm space-y-3 max-h-[600px] overflow-y-auto" },
-                        sessions.length > 0 ? sessions.slice(0, 15).map(session =>
-                            React.createElement('div', { key: session.id, className: "border-b pb-2 last:border-b-0" },
-                                React.createElement('p', { style: { fontWeight: 400 } }, session.habitName),
-                                React.createElement('div', { className: "flex justify-between text-sm text-gray-600" },
-                                    React.createElement('span', null, formatDate(session.startTime)),
-                                    React.createElement('span', null, formatTime(session.duration))
+                // Right/Side Column: Growth Tree & Recent Sessions
+                React.createElement('div', { className: "lg:col-span-1 space-y-6" },
+                    // Growth Tree
+                    React.createElement(GrowthTree, { sessions, db, userId, setNotification }),
+
+                    // Recent Sessions
+                    React.createElement('div', null,
+                        React.createElement('h2', { className: "text-2xl text-gray-800 mb-4", style: { fontWeight: 300 } }, "recent sessions"),
+                        React.createElement('div', { className: "bg-white p-4 rounded-lg shadow-sm space-y-3 max-h-[600px] overflow-y-auto" },
+                            sessions.length > 0 ? sessions.slice(0, 15).map(session =>
+                                React.createElement('div', { key: session.id, className: "border-b pb-2 last:border-b-0" },
+                                    React.createElement('p', { style: { fontWeight: 400 } }, session.habitName),
+                                    React.createElement('div', { className: "flex justify-between text-sm text-gray-600" },
+                                        React.createElement('span', null, formatDate(session.startTime)),
+                                        React.createElement('span', null, formatTime(session.duration))
+                                    )
                                 )
-                            )
-                        ) :
-                        React.createElement('p', { className: "text-gray-500" }, "No sessions recorded yet.")
+                            ) :
+                            React.createElement('p', { className: "text-gray-500" }, "No sessions recorded yet.")
+                        )
                     )
                 )
             );
@@ -1128,6 +1184,198 @@
                         "sign out"
                     )
                 )
+            );
+        };
+
+        // Growth Tree Component - Aesthetic visualization of study progress
+        const GrowthTree = ({ sessions, db, userId, setNotification }) => {
+            const [treeName, setTreeName] = useState('My Tree');
+            const [selectedTreeType, setSelectedTreeType] = useState('seedling');
+            const [isEditingName, setIsEditingName] = useState(false);
+            const [tempName, setTempName] = useState('');
+
+            const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+
+            // Calculate growth metrics
+            const totalHours = calculateTotalHours(sessions);
+            const growthPercent = getTreeGrowth(totalHours);
+            const unlockedTrees = getUnlockedTrees(totalHours);
+            const currentTree = TREE_TYPES.find(t => t.id === selectedTreeType) || TREE_TYPES[0];
+
+            // Load tree preferences
+            useEffect(() => {
+                if (!db || !userId) return;
+                const treeDoc = window.doc(db, `/artifacts/${appId}/users/${userId}/tree`);
+                window.onSnapshot(treeDoc, (snapshot) => {
+                    if (snapshot.exists()) {
+                        const data = snapshot.data();
+                        if (data.name) setTreeName(data.name);
+                        if (data.type) setSelectedTreeType(data.type);
+                    }
+                });
+            }, [db, userId, appId]);
+
+            // Save tree name
+            const handleSaveName = async () => {
+                if (tempName.trim()) {
+                    try {
+                        const treeDoc = window.doc(db, `/artifacts/${appId}/users/${userId}/tree`);
+                        await window.setDoc(treeDoc, { name: tempName.trim(), type: selectedTreeType }, { merge: true });
+                        setTreeName(tempName.trim());
+                        setIsEditingName(false);
+                    } catch (error) {
+                        console.error("Error saving tree name:", error);
+                    }
+                }
+            };
+
+            // Change tree type
+            const handleChangeTree = async (treeId) => {
+                try {
+                    const treeDoc = window.doc(db, `/artifacts/${appId}/users/${userId}/tree`);
+                    await window.setDoc(treeDoc, { name: treeName, type: treeId }, { merge: true });
+                    setSelectedTreeType(treeId);
+                    setNotification({ type: 'success', message: `Changed to ${TREE_TYPES.find(t => t.id === treeId).name}!` });
+                } catch (error) {
+                    console.error("Error changing tree:", error);
+                }
+            };
+
+            // Tree SVG visualization
+            const TreeSVG = ({ growth, color }) => {
+                const trunkHeight = 60 + (growth / 100) * 40;
+                const canopySize = 30 + (growth / 100) * 50;
+                const opacity = 0.3 + (growth / 100) * 0.7;
+
+                return React.createElement('svg', {
+                    viewBox: "0 0 200 200",
+                    className: "w-full h-full",
+                    style: { transition: 'all 1s ease-in-out' }
+                },
+                    // Ground
+                    React.createElement('line', {
+                        x1: "20", y1: "180", x2: "180", y2: "180",
+                        stroke: "#d1d7e3", strokeWidth: "2", strokeLinecap: "round"
+                    }),
+                    // Trunk
+                    React.createElement('rect', {
+                        x: "90", y: 180 - trunkHeight, width: "20", height: trunkHeight,
+                        fill: "#8B7355", rx: "4",
+                        style: { transition: 'all 1s ease-in-out' }
+                    }),
+                    // Canopy (3 circles for organic look)
+                    React.createElement('circle', {
+                        cx: "100", cy: 180 - trunkHeight - 10, r: canopySize,
+                        fill: color, opacity: opacity,
+                        style: { transition: 'all 1s ease-in-out' }
+                    }),
+                    React.createElement('circle', {
+                        cx: "80", cy: 180 - trunkHeight, r: canopySize * 0.8,
+                        fill: color, opacity: opacity * 0.9,
+                        style: { transition: 'all 1s ease-in-out' }
+                    }),
+                    React.createElement('circle', {
+                        cx: "120", cy: 180 - trunkHeight, r: canopySize * 0.8,
+                        fill: color, opacity: opacity * 0.9,
+                        style: { transition: 'all 1s ease-in-out' }
+                    })
+                );
+            };
+
+            return React.createElement('div', { className: "bg-white rounded-xl soft-shadow p-6" },
+                // Header
+                React.createElement('div', { className: "flex justify-between items-center mb-4" },
+                    isEditingName ?
+                        React.createElement('input', {
+                            type: "text",
+                            value: tempName,
+                            onChange: e => setTempName(e.target.value),
+                            onBlur: handleSaveName,
+                            onKeyPress: e => e.key === 'Enter' && handleSaveName(),
+                            autoFocus: true,
+                            className: "text-xl font-light text-calm-800 border-b-2 border-calm-300 focus:border-calm-600 outline-none",
+                            style: { fontWeight: 300 }
+                        }) :
+                        React.createElement('h3', {
+                            className: "text-xl text-calm-800 cursor-pointer hover:text-calm-600 transition",
+                            style: { fontWeight: 300 },
+                            onClick: () => {
+                                setTempName(treeName);
+                                setIsEditingName(true);
+                            }
+                        }, treeName),
+                    React.createElement('span', {
+                        className: "text-sm text-calm-500",
+                        style: { fontWeight: 300 }
+                    }, `${totalHours.toFixed(1)}h`)
+                ),
+
+                // Tree visualization
+                React.createElement('div', { className: "relative bg-gradient-to-b from-blue-50 to-green-50 rounded-lg p-4 mb-4", style: { height: '240px' } },
+                    React.createElement(TreeSVG, { growth: growthPercent, color: currentTree.color }),
+
+                    // Growth percentage badge
+                    React.createElement('div', {
+                        className: "absolute top-2 right-2 bg-white px-3 py-1 rounded-full text-sm soft-shadow",
+                        style: { fontWeight: 300, color: currentTree.color }
+                    }, `${Math.min(100, Math.round(growthPercent))}% grown`)
+                ),
+
+                // Progress bar
+                React.createElement('div', { className: "mb-4" },
+                    React.createElement('div', { className: "flex justify-between text-xs text-calm-600 mb-1", style: { fontWeight: 300 } },
+                        React.createElement('span', null, currentTree.name),
+                        React.createElement('span', null, `${totalHours.toFixed(1)} / 5.0 hours`)
+                    ),
+                    React.createElement('div', { className: "w-full bg-calm-200 rounded-full h-2" },
+                        React.createElement('div', {
+                            className: "h-2 rounded-full transition-all duration-1000",
+                            style: {
+                                width: `${Math.min(100, growthPercent)}%`,
+                                backgroundColor: currentTree.color
+                            }
+                        })
+                    )
+                ),
+
+                // Unlocked trees
+                React.createElement('div', { className: "border-t border-calm-200 pt-4" },
+                    React.createElement('p', {
+                        className: "text-xs text-calm-600 mb-2",
+                        style: { fontWeight: 300 }
+                    }, `${unlockedTrees.length} of ${TREE_TYPES.length} trees unlocked`),
+
+                    React.createElement('div', { className: "flex flex-wrap gap-2" },
+                        TREE_TYPES.map(tree => {
+                            const isUnlocked = unlockedTrees.some(t => t.id === tree.id);
+                            const isSelected = tree.id === selectedTreeType;
+
+                            return React.createElement('button', {
+                                key: tree.id,
+                                onClick: () => isUnlocked && handleChangeTree(tree.id),
+                                disabled: !isUnlocked,
+                                className: `px-3 py-1 rounded-lg text-xs transition ${
+                                    isSelected ? 'ring-2' : ''
+                                } ${
+                                    !isUnlocked ? 'opacity-30 cursor-not-allowed' : 'hover:opacity-80 cursor-pointer'
+                                }`,
+                                style: {
+                                    backgroundColor: tree.color + '20',
+                                    color: tree.color,
+                                    ringColor: tree.color,
+                                    fontWeight: 300
+                                },
+                                title: isUnlocked ? tree.name : `Unlock at ${tree.requiredHours}h`
+                            }, isUnlocked ? tree.name : '🔒 ' + tree.name.split(' ')[0]);
+                        })
+                    )
+                ),
+
+                // Next unlock message
+                unlockedTrees.length < TREE_TYPES.length && React.createElement('p', {
+                    className: "text-xs text-calm-500 mt-3 text-center",
+                    style: { fontWeight: 300 }
+                }, `Study ${(TREE_TYPES[unlockedTrees.length].requiredHours - totalHours).toFixed(1)} more hours to unlock ${TREE_TYPES[unlockedTrees.length].name}`)
             );
         };
 
