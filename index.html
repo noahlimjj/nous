@@ -1133,26 +1133,20 @@
         };
 
         const Goals = ({ db, userId, setNotification }) => {
-            const [goals, setGoals] = useState({ weekly: '', monthly: '', yearly: '' });
+            const [goals, setGoals] = useState([]);
+            const [newGoalText, setNewGoalText] = useState({ daily: '', weekly: '', monthly: '', yearly: '' });
             const [isLoading, setIsLoading] = useState(true);
-            const [isSaving, setIsSaving] = useState(false);
 
             const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
 
             useEffect(() => {
                 if (!db || !userId) return;
 
-                const goalsDocRef = window.doc(db, `/artifacts/${appId}/users/${userId}/goals/current`);
+                const goalsCol = window.collection(db, `/artifacts/${appId}/users/${userId}/goals`);
 
-                const unsubscribe = window.onSnapshot(goalsDocRef, (docSnapshot) => {
-                    if (docSnapshot.exists()) {
-                        const data = docSnapshot.data();
-                        setGoals({
-                            weekly: data.weekly || '',
-                            monthly: data.monthly || '',
-                            yearly: data.yearly || ''
-                        });
-                    }
+                const unsubscribe = window.onSnapshot(goalsCol, (snapshot) => {
+                    const goalsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                    setGoals(goalsData);
                     setIsLoading(false);
                 }, (error) => {
                     console.error("Error fetching goals:", error);
@@ -1163,23 +1157,106 @@
                 return () => unsubscribe();
             }, [db, userId, appId, setNotification]);
 
-            const handleSave = async () => {
-                setIsSaving(true);
+            const handleAddGoal = async (type) => {
+                const text = newGoalText[type].trim();
+                if (!text) return;
+
                 try {
-                    const goalsDocRef = window.doc(db, `/artifacts/${appId}/users/${userId}/goals/current`);
-                    await window.setDoc(goalsDocRef, {
-                        weekly: goals.weekly,
-                        monthly: goals.monthly,
-                        yearly: goals.yearly,
-                        lastUpdated: window.Timestamp.now()
+                    const goalsCol = window.collection(db, `/artifacts/${appId}/users/${userId}/goals`);
+                    await window.addDoc(goalsCol, {
+                        text,
+                        type,
+                        completed: false,
+                        createdAt: window.Timestamp.now()
                     });
-                    setNotification({ type: 'success', message: 'Goals saved successfully!' });
+                    setNewGoalText({ ...newGoalText, [type]: '' });
+                    setNotification({ type: 'success', message: 'Goal added!' });
                 } catch (error) {
-                    console.error("Error saving goals:", error);
-                    setNotification({ type: 'error', message: 'Failed to save goals.' });
-                } finally {
-                    setIsSaving(false);
+                    console.error("Error adding goal:", error);
+                    setNotification({ type: 'error', message: 'Failed to add goal.' });
                 }
+            };
+
+            const handleToggleGoal = async (goal) => {
+                try {
+                    const goalDocRef = window.doc(db, `/artifacts/${appId}/users/${userId}/goals/${goal.id}`);
+                    await window.setDoc(goalDocRef, {
+                        ...goal,
+                        completed: !goal.completed,
+                        completedAt: !goal.completed ? window.Timestamp.now() : null
+                    }, { merge: true });
+                } catch (error) {
+                    console.error("Error toggling goal:", error);
+                    setNotification({ type: 'error', message: 'Failed to update goal.' });
+                }
+            };
+
+            const handleDeleteGoal = async (goalId) => {
+                try {
+                    const goalDocRef = window.doc(db, `/artifacts/${appId}/users/${userId}/goals/${goalId}`);
+                    await window.deleteDoc(goalDocRef);
+                    setNotification({ type: 'success', message: 'Goal deleted!' });
+                } catch (error) {
+                    console.error("Error deleting goal:", error);
+                    setNotification({ type: 'error', message: 'Failed to delete goal.' });
+                }
+            };
+
+            const activeGoals = goals.filter(g => !g.completed);
+            const completedGoals = goals.filter(g => g.completed).sort((a, b) =>
+                (b.completedAt?.toMillis() || 0) - (a.completedAt?.toMillis() || 0)
+            );
+
+            const GoalSection = ({ type, title, color, placeholder }) => {
+                const sectionGoals = activeGoals.filter(g => g.type === type);
+
+                return React.createElement('div', { className: "bg-white rounded-xl soft-shadow p-6" },
+                    React.createElement('h3', { className: "text-xl font-light mb-4", style: { color, fontWeight: 300 } }, title),
+
+                    // Goal input
+                    React.createElement('div', { className: "flex gap-2 mb-4" },
+                        React.createElement('input', {
+                            type: "text",
+                            value: newGoalText[type],
+                            onChange: (e) => setNewGoalText({ ...newGoalText, [type]: e.target.value }),
+                            onKeyPress: (e) => e.key === 'Enter' && handleAddGoal(type),
+                            placeholder,
+                            className: "flex-grow px-4 py-2 border border-calm-300 rounded-xl focus:ring-2 focus:outline-none transition",
+                            style: { borderColor: '#d1d7e3', fontWeight: 300 }
+                        }),
+                        React.createElement('button', {
+                            onClick: () => handleAddGoal(type),
+                            className: "px-4 py-2 rounded-xl soft-shadow hover:opacity-90 transition text-white",
+                            style: { backgroundColor: color, fontWeight: 400 }
+                        }, "+")
+                    ),
+
+                    // Goal list
+                    React.createElement('div', { className: "space-y-2" },
+                        sectionGoals.map(goal =>
+                            React.createElement('div', {
+                                key: goal.id,
+                                className: "flex items-center gap-3 p-2 rounded-lg hover:bg-calm-50 transition group"
+                            },
+                                React.createElement('input', {
+                                    type: "checkbox",
+                                    checked: false,
+                                    onChange: () => handleToggleGoal(goal),
+                                    className: "w-5 h-5 rounded border-calm-400 cursor-pointer"
+                                }),
+                                React.createElement('span', {
+                                    className: "flex-grow text-calm-800",
+                                    style: { fontWeight: 300 }
+                                }, goal.text),
+                                React.createElement('button', {
+                                    onClick: () => handleDeleteGoal(goal.id),
+                                    className: "opacity-0 group-hover:opacity-100 text-calm-400 hover:text-red-500 transition",
+                                    style: { fontSize: '0.9rem' }
+                                }, "×")
+                            )
+                        )
+                    )
+                );
             };
 
             if (isLoading) {
@@ -1190,55 +1267,65 @@
             }
 
             return React.createElement('div', { className: "max-w-4xl mx-auto p-4 sm:p-6 lg:p-8" },
-                React.createElement('h2', { className: "text-3xl font-bold text-gray-800 mb-6" }, "My Goals"),
-                React.createElement('p', { className: "text-gray-600 mb-6" }, "Set and track your weekly, monthly, and yearly goals."),
+                React.createElement('h2', { className: "text-3xl text-calm-800 mb-2", style: { fontWeight: 300 } }, "my goals"),
+                React.createElement('p', { className: "text-calm-600 mb-6", style: { fontWeight: 300 } }, "set and track your goals"),
 
                 React.createElement('div', { className: "space-y-6" },
-                    // Weekly Goals
-                    React.createElement('div', { className: "bg-white rounded-lg shadow-sm p-6" },
-                        React.createElement('h3', { className: "text-xl font-semibold text-blue-600 mb-3" }, "Weekly Goals"),
-                        React.createElement('textarea', {
-                            value: goals.weekly,
-                            onChange: (e) => setGoals({ ...goals, weekly: e.target.value }),
-                            placeholder: "What do you want to accomplish this week?",
-                            rows: 4,
-                            className: "w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none resize-none"
-                        })
-                    ),
+                    React.createElement(GoalSection, {
+                        type: 'daily',
+                        title: 'daily goals',
+                        color: '#5FA8A3',
+                        placeholder: "what do you want to accomplish today?"
+                    }),
+                    React.createElement(GoalSection, {
+                        type: 'weekly',
+                        title: 'weekly goals',
+                        color: '#6B8DD6',
+                        placeholder: "what do you want to accomplish this week?"
+                    }),
+                    React.createElement(GoalSection, {
+                        type: 'monthly',
+                        title: 'monthly goals',
+                        color: '#8B7FB8',
+                        placeholder: "what do you want to accomplish this month?"
+                    }),
+                    React.createElement(GoalSection, {
+                        type: 'yearly',
+                        title: 'yearly goals',
+                        color: '#7d8ca8',
+                        placeholder: "what do you want to accomplish this year?"
+                    }),
 
-                    // Monthly Goals
-                    React.createElement('div', { className: "bg-white rounded-lg shadow-sm p-6" },
-                        React.createElement('h3', { className: "text-xl font-semibold text-green-600 mb-3" }, "Monthly Goals"),
-                        React.createElement('textarea', {
-                            value: goals.monthly,
-                            onChange: (e) => setGoals({ ...goals, monthly: e.target.value }),
-                            placeholder: "What do you want to accomplish this month?",
-                            rows: 4,
-                            className: "w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:outline-none resize-none"
-                        })
-                    ),
-
-                    // Yearly Goals
-                    React.createElement('div', { className: "bg-white rounded-lg shadow-sm p-6" },
-                        React.createElement('h3', { className: "text-xl font-semibold text-purple-600 mb-3" }, "Yearly Goals"),
-                        React.createElement('textarea', {
-                            value: goals.yearly,
-                            onChange: (e) => setGoals({ ...goals, yearly: e.target.value }),
-                            placeholder: "What do you want to accomplish this year?",
-                            rows: 4,
-                            className: "w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:outline-none resize-none"
-                        })
-                    ),
-
-                    // Save Button
-                    React.createElement('div', { className: "flex justify-end" },
-                        React.createElement('button', {
-                            onClick: handleSave,
-                            disabled: isSaving,
-                            className: "bg-blue-600 text-white font-semibold py-3 px-8 rounded-lg hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-                        },
-                            isSaving && React.createElement(LoaderIcon),
-                            isSaving ? 'Saving...' : 'Save Goals'
+                    // Completed Goals Section
+                    completedGoals.length > 0 && React.createElement('div', { className: "bg-white rounded-xl soft-shadow p-6 mt-8" },
+                        React.createElement('h3', { className: "text-xl text-calm-600 mb-4", style: { fontWeight: 300 } }, "completed goals"),
+                        React.createElement('div', { className: "space-y-2" },
+                            completedGoals.map(goal =>
+                                React.createElement('div', {
+                                    key: goal.id,
+                                    className: "flex items-center gap-3 p-2 rounded-lg hover:bg-calm-50 transition group"
+                                },
+                                    React.createElement('input', {
+                                        type: "checkbox",
+                                        checked: true,
+                                        onChange: () => handleToggleGoal(goal),
+                                        className: "w-5 h-5 rounded border-calm-400 cursor-pointer"
+                                    }),
+                                    React.createElement('span', {
+                                        className: "flex-grow text-calm-500 line-through",
+                                        style: { fontWeight: 300 }
+                                    }, goal.text),
+                                    React.createElement('span', {
+                                        className: "text-xs text-calm-400",
+                                        style: { fontWeight: 300 }
+                                    }, goal.completedAt ? formatDate(goal.completedAt) : ''),
+                                    React.createElement('button', {
+                                        onClick: () => handleDeleteGoal(goal.id),
+                                        className: "opacity-0 group-hover:opacity-100 text-calm-400 hover:text-red-500 transition",
+                                        style: { fontSize: '0.9rem' }
+                                    }, "×")
+                                )
+                            )
                         )
                     )
                 )
