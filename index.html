@@ -218,6 +218,10 @@
         window.getDocs = getDocs;
         window.writeBatch = writeBatch;
 
+        // Signal that Firebase SDK is ready
+        window.firebaseSDKReady = true;
+        window.dispatchEvent(new Event('firebaseReady'));
+
         // Firebase configuration is loaded from config.js
         // If config.js is not found, the app will show an error
     </script>
@@ -2445,12 +2449,26 @@
             const [notification, setNotification] = useState(null);
             const [userProfile, setUserProfile] = useState(null);
             const [configError, setConfigError] = useState(null);
+            const [firebaseReady, setFirebaseReady] = useState(window.firebaseSDKReady || false);
 
             // Timer state lifted to App level so it persists across page navigation
             const [activeTimers, setActiveTimers] = useState({});
             const timerIntervals = useRef({});
 
+            // Listen for Firebase SDK ready event
             useEffect(() => {
+                if (window.firebaseSDKReady) {
+                    setFirebaseReady(true);
+                } else {
+                    const handleFirebaseReady = () => setFirebaseReady(true);
+                    window.addEventListener('firebaseReady', handleFirebaseReady, { once: true });
+                    return () => window.removeEventListener('firebaseReady', handleFirebaseReady);
+                }
+            }, []);
+
+            useEffect(() => {
+                if (!firebaseReady) return;
+
                 // Validate Firebase config
                 if (!firebaseConfig || !firebaseConfig.apiKey || !firebaseConfig.projectId) {
                     const errorMsg = "Firebase configuration is missing required values. Please check your environment variables.";
@@ -2509,7 +2527,7 @@
                     setConfigError(`Firebase initialization failed: ${error.message}`);
                     setIsAuthReady(true);
                 }
-            }, [JSON.stringify(firebaseConfig), initialAuthToken]); // Effect depends on config values
+            }, [firebaseReady, JSON.stringify(firebaseConfig), initialAuthToken]); // Effect depends on config values and Firebase SDK being ready
 
             // User profile initialization
             useEffect(() => {
