@@ -6,7 +6,7 @@
     <title>Nous</title>
 
     <!-- Favicon -->
-    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cstyle%3Etext%7Bfont-family:Satoshi,sans-serif;font-weight:300;font-size:60px;fill:%235d6b86%7D%3C/style%3E%3Ccircle cx='50' cy='50' r='35' fill='none' stroke='%236B8DD6' stroke-width='2' opacity='0.4'/%3E%3Ctext x='50' y='70' text-anchor='middle' letter-spacing='1.5'%3En%3C/text%3E%3C/svg%3E">
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cstyle%3Etext%7Bfont-family:Satoshi,sans-serif;font-weight:300;font-size:72px;fill:%235d6b86%7D%3C/style%3E%3Ccircle cx='50' cy='50' r='35' fill='none' stroke='%23000000' stroke-width='3'/%3E%3Ctext x='50' y='72' text-anchor='middle' letter-spacing='1.5'%3En%3C/text%3E%3C/svg%3E">
 
     <!-- Satoshi font -->
     <link href="https://api.fontshare.com/v2/css?f[]=satoshi@300,400,500,700&display=swap" rel="stylesheet">
@@ -718,13 +718,11 @@
             );
         };
 
-        const Dashboard = ({ db, userId, setNotification }) => {
+        const Dashboard = ({ db, userId, setNotification, activeTimers, setActiveTimers, timerIntervals }) => {
             const [habits, setHabits] = useState([]);
             const [sessions, setSessions] = useState([]);
             const [newHabitName, setNewHabitName] = useState('');
             const [isLoading, setIsLoading] = useState(true);
-            const [activeTimers, setActiveTimers] = useState({});
-            const timerIntervals = useRef({});
             const [modalHabit, setModalHabit] = useState(null);
 
             const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
@@ -778,8 +776,7 @@
                 return () => {
                     unsubscribeHabits();
                     unsubscribeSessions();
-                    // Clear all intervals on component unmount
-                    Object.values(timerIntervals.current).forEach(clearInterval);
+                    // Don't clear intervals - they persist at App level
                 };
             }, [db, userId, appId, setNotification]);
 
@@ -1378,6 +1375,10 @@
             const [currentPage, setCurrentPage] = useState('dashboard');
             const [notification, setNotification] = useState(null);
 
+            // Timer state lifted to App level so it persists across page navigation
+            const [activeTimers, setActiveTimers] = useState({});
+            const timerIntervals = useRef({});
+
             useEffect(() => {
                 if (firebaseConfig && Object.keys(firebaseConfig).length > 0) {
                     const app = window.initializeApp(firebaseConfig);
@@ -1447,7 +1448,7 @@
                     React.createElement(React.Fragment, null,
                         React.createElement(Header, { setCurrentPage, currentPage }),
                         React.createElement('main', null,
-                            currentPage === 'dashboard' && React.createElement(Dashboard, { db, userId, setNotification }),
+                            currentPage === 'dashboard' && React.createElement(Dashboard, { db, userId, setNotification, activeTimers, setActiveTimers, timerIntervals }),
                             currentPage === 'goals' && React.createElement(Goals, { db, userId, setNotification }),
                             currentPage === 'reports' && React.createElement(Reports, { db, userId, setNotification }),
                             currentPage === 'settings' && React.createElement(Settings, { auth, userId })
