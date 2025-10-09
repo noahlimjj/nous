@@ -9,7 +9,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <!-- Using Playfair Display as alternative to Canela (similar elegant serif) -->
-    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@300;400;500&display=swap" rel="stylesheet">
 
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -19,6 +19,25 @@
                     fontFamily: {
                         'title': ['"Canela"', '"Playfair Display"', 'serif'],
                         'body': ['"Avenir Next"', '-apple-system', 'BlinkMacSystemFont', 'system-ui', 'sans-serif']
+                    },
+                    colors: {
+                        'calm': {
+                            50: '#f8f9fb',
+                            100: '#f1f3f7',
+                            200: '#e4e8ee',
+                            300: '#d1d7e3',
+                            400: '#a8b3c7',
+                            500: '#7d8ca8',
+                            600: '#5d6b86',
+                            700: '#4a5568',
+                            800: '#363f51',
+                            900: '#252d3d',
+                        },
+                        'accent': {
+                            blue: '#6B8DD6',
+                            purple: '#8B7FB8',
+                            teal: '#5FA8A3',
+                        }
                     }
                 }
             }
@@ -28,6 +47,74 @@
         /* Set default body font */
         body {
             font-family: "Avenir Next", -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+            font-weight: 400;
+            background-color: #f8f9fb;
+        }
+
+        /* Title styling with letter spacing */
+        .nous-title {
+            font-family: "Canela", "Playfair Display", serif;
+            font-weight: 300;
+            letter-spacing: 0.025em; /* 2.5% letter spacing */
+        }
+
+        /* Light weight for headers */
+        h1, h2, h3, h4, h5, h6 {
+            font-weight: 300;
+        }
+
+        /* Soft shadows */
+        .soft-shadow {
+            box-shadow: 0 2px 12px rgba(99, 110, 129, 0.08), 0 1px 4px rgba(99, 110, 129, 0.04);
+        }
+
+        .soft-shadow-lg {
+            box-shadow: 0 8px 24px rgba(99, 110, 129, 0.12), 0 2px 8px rgba(99, 110, 129, 0.06);
+        }
+
+        /* Pulse animation for success */
+        @keyframes neuron-pulse {
+            0%, 100% {
+                opacity: 1;
+                transform: scale(1);
+            }
+            50% {
+                opacity: 0.8;
+                transform: scale(1.05);
+            }
+        }
+
+        .neuron-pulse {
+            animation: neuron-pulse 1.5s ease-in-out;
+        }
+
+        /* Glow effect for streaks */
+        @keyframes soft-glow {
+            0%, 100% {
+                box-shadow: 0 0 8px rgba(107, 141, 214, 0.3), 0 0 16px rgba(107, 141, 214, 0.1);
+            }
+            50% {
+                box-shadow: 0 0 12px rgba(107, 141, 214, 0.5), 0 0 24px rgba(107, 141, 214, 0.2);
+            }
+        }
+
+        .soft-glow {
+            animation: soft-glow 2s ease-in-out infinite;
+        }
+
+        /* Circular logo animation */
+        @keyframes circle-flow {
+            0% {
+                stroke-dashoffset: 0;
+            }
+            100% {
+                stroke-dashoffset: -200;
+            }
+        }
+
+        .circle-flow {
+            stroke-dasharray: 100;
+            animation: circle-flow 8s linear infinite;
         }
         .timer-display {
             font-family: 'Roboto Mono', 'Courier New', monospace;
@@ -320,6 +407,50 @@
             strokeLinejoin: "round"
         }, React.createElement('path', { d: "M4 19.5A2.5 2.5 0 0 1 6.5 17H20" }), React.createElement('path', { d: "M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" }));
 
+        // Logo component with circular flow around 'n'
+        const NousLogo = ({ size = "medium" }) => {
+            const sizes = {
+                small: { width: 60, fontSize: "1.25rem" },
+                medium: { width: 80, fontSize: "1.75rem" },
+                large: { width: 120, fontSize: "2.5rem" }
+            };
+            const { width, fontSize } = sizes[size];
+
+            return React.createElement('div', {
+                className: "flex items-center gap-2",
+                style: { position: 'relative' }
+            },
+                // SVG circular flow
+                React.createElement('svg', {
+                    width: width,
+                    height: width * 0.5,
+                    viewBox: "0 0 100 50",
+                    style: { position: 'absolute', left: -8, top: '50%', transform: 'translateY(-50%)', zIndex: 0, opacity: 0.6 }
+                },
+                    React.createElement('circle', {
+                        cx: "20",
+                        cy: "25",
+                        r: "18",
+                        fill: "none",
+                        stroke: "#6B8DD6",
+                        strokeWidth: "1.5",
+                        className: "circle-flow",
+                        opacity: "0.4"
+                    })
+                ),
+                // Text
+                React.createElement('span', {
+                    className: "nous-title",
+                    style: {
+                        fontSize,
+                        color: '#5d6b86',
+                        position: 'relative',
+                        zIndex: 1
+                    }
+                }, "nous")
+            );
+        };
+
         // Function to format time like Google Timer with milliseconds
         const formatTime = (totalMilliseconds) => {
             const totalSeconds = Math.floor(totalMilliseconds / 1000);
@@ -405,11 +536,11 @@
                 }
             };
 
-            return React.createElement('div', { className: "min-h-screen bg-gray-50 flex flex-col justify-center items-center p-4" },
-                React.createElement('div', { className: "max-w-md w-full bg-white rounded-xl shadow-lg p-8 space-y-6" },
-                    React.createElement('div', { className: "text-center" },
-                        React.createElement('h1', { className: "text-3xl font-bold text-gray-800", style: { fontFamily: '"Canela", "Playfair Display", serif' } }, "Nous"),
-                        React.createElement('p', { className: "text-gray-500 mt-2" }, "Log in or sign up to track your progress")
+            return React.createElement('div', { className: "min-h-screen flex flex-col justify-center items-center p-4", style: { backgroundColor: '#f8f9fb' } },
+                React.createElement('div', { className: "max-w-md w-full bg-white soft-shadow-lg p-8 space-y-6", style: { borderRadius: '20px' } },
+                    React.createElement('div', { className: "flex flex-col items-center" },
+                        React.createElement(NousLogo, { size: "large" }),
+                        React.createElement('p', { className: "text-calm-600 mt-4", style: { fontWeight: 300 } }, "log in or sign up to track your progress")
                     ),
                     React.createElement('form', { onSubmit: handleAuthAction, className: "space-y-4" },
                         React.createElement('input', {
@@ -430,8 +561,9 @@
                         }),
                         React.createElement('button', {
                             type: "submit",
-                            className: "w-full bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 transition transform hover:scale-105"
-                        }, isSignUp ? 'Sign Up' : 'Log In')
+                            className: "w-full text-white py-3 px-4 rounded-xl soft-shadow hover:opacity-90 focus:outline-none transition",
+                            style: { backgroundColor: '#6B8DD6', fontWeight: 400 }
+                        }, isSignUp ? 'sign up' : 'log in')
                     ),
                     React.createElement('div', { className: "text-center" },
                         React.createElement('button', { onClick: () => setIsSignUp(!isSignUp), className: "text-sm text-blue-600 hover:underline" },
@@ -445,15 +577,17 @@
                     ),
                     React.createElement('button', {
                         onClick: handleGoogleSignIn,
-                        className: "w-full bg-white border-2 border-gray-300 text-gray-700 font-semibold py-2 px-4 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 transition flex items-center justify-center gap-3"
+                        className: "w-full bg-white soft-shadow text-calm-700 py-3 px-4 rounded-xl hover:bg-calm-50 focus:outline-none transition flex items-center justify-center gap-3",
+                        style: { fontWeight: 400 }
                     },
                         React.createElement(GoogleIcon),
-                        "Continue with Google"
+                        "continue with Google"
                     ),
                     React.createElement('button', {
                         onClick: handleAnonymousSignIn,
-                        className: "w-full bg-gray-200 text-gray-700 font-semibold py-2 px-4 rounded-lg hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-opacity-50 transition"
-                    }, "Continue as Guest")
+                        className: "w-full bg-calm-100 text-calm-700 py-3 px-4 rounded-xl hover:bg-calm-200 focus:outline-none transition",
+                        style: { fontWeight: 400 }
+                    }, "continue as guest")
                 )
             );
         };
@@ -461,36 +595,40 @@
         // --- Main App Components ---
 
         const Header = ({ setCurrentPage, currentPage }) => {
-            return React.createElement('header', { className: "bg-white shadow-md sticky top-0 z-10" },
+            return React.createElement('header', { className: "bg-white sticky top-0 z-10 soft-shadow" },
                 React.createElement('div', { className: "max-w-7xl mx-auto px-4 sm:px-6 lg:px-8" },
                     React.createElement('div', { className: "flex justify-between items-center h-16" },
-                        React.createElement('h1', { className: "text-2xl font-bold text-blue-600", style: { fontFamily: '"Canela", "Playfair Display", serif' } }, "Nous"),
+                        React.createElement(NousLogo, { size: "medium" }),
                         React.createElement('nav', { className: "flex items-center space-x-2" },
                             React.createElement('button', {
                                 onClick: () => setCurrentPage('dashboard'),
                                 title: "Dashboard",
-                                className: `p-2 rounded-full transition ${currentPage === 'dashboard' ? 'bg-blue-100 text-blue-600' : 'hover:bg-gray-100'}`
+                                className: `p-2 rounded-full transition ${currentPage === 'dashboard' ? 'bg-calm-100 text-accent-blue' : 'text-calm-600 hover:bg-calm-50'}`,
+                                style: { color: currentPage === 'dashboard' ? '#6B8DD6' : '#7d8ca8' }
                             },
                                 React.createElement(HomeIcon)
                             ),
                             React.createElement('button', {
                                 onClick: () => setCurrentPage('goals'),
                                 title: "Goals",
-                                className: `p-2 rounded-full transition ${currentPage === 'goals' ? 'bg-blue-100 text-blue-600' : 'hover:bg-gray-100'}`
+                                className: `p-2 rounded-full transition ${currentPage === 'goals' ? 'bg-calm-100 text-accent-blue' : 'text-calm-600 hover:bg-calm-50'}`,
+                                style: { color: currentPage === 'goals' ? '#6B8DD6' : '#7d8ca8' }
                             },
                                 React.createElement(NotebookIcon)
                             ),
                             React.createElement('button', {
                                 onClick: () => setCurrentPage('reports'),
                                 title: "Monthly Reports",
-                                className: `p-2 rounded-full transition ${currentPage === 'reports' ? 'bg-blue-100 text-blue-600' : 'hover:bg-gray-100'}`
+                                className: `p-2 rounded-full transition ${currentPage === 'reports' ? 'bg-calm-100 text-accent-blue' : 'text-calm-600 hover:bg-calm-50'}`,
+                                style: { color: currentPage === 'reports' ? '#6B8DD6' : '#7d8ca8' }
                             },
                                 React.createElement(ChartIcon)
                             ),
                             React.createElement('button', {
                                 onClick: () => setCurrentPage('settings'),
                                 title: "Settings",
-                                className: `p-2 rounded-full transition ${currentPage === 'settings' ? 'bg-blue-100 text-blue-600' : 'hover:bg-gray-100'}`
+                                className: `p-2 rounded-full transition ${currentPage === 'settings' ? 'bg-calm-100 text-accent-blue' : 'text-calm-600 hover:bg-calm-50'}`,
+                                style: { color: currentPage === 'settings' ? '#6B8DD6' : '#7d8ca8' }
                             },
                                 React.createElement(SettingsIcon)
                             )
@@ -1179,9 +1317,13 @@
                 );
             }
 
-            return React.createElement('div', { className: "bg-gray-50 min-h-screen font-sans" },
+            return React.createElement('div', { className: "min-h-screen font-sans", style: { backgroundColor: '#f8f9fb' } },
                 notification && React.createElement('div', {
-                    className: `fixed top-5 right-5 p-4 rounded-lg shadow-lg text-white z-50 ${notification.type === 'success' ? 'bg-green-500' : 'bg-red-500'}`
+                    className: `fixed top-5 right-5 p-4 rounded-2xl soft-shadow-lg text-white z-50 ${notification.type === 'success' ? 'neuron-pulse' : ''}`,
+                    style: {
+                        backgroundColor: notification.type === 'success' ? '#6B8DD6' : '#a8b3c7',
+                        fontWeight: 300
+                    }
                 }, notification.message),
 
                 !user ?
