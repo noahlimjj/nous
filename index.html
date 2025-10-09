@@ -481,6 +481,18 @@
             strokeLinejoin: "round"
         }, React.createElement('line', { x1: "18", y1: "6", x2: "6", y2: "18" }), React.createElement('line', { x1: "6", y1: "6", x2: "18", y2: "18" }));
 
+        const InfoIcon = () => React.createElement('svg', {
+            xmlns: "http://www.w3.org/2000/svg",
+            width: "24",
+            height: "24",
+            viewBox: "0 0 24 24",
+            fill: "none",
+            stroke: "currentColor",
+            strokeWidth: "2",
+            strokeLinecap: "round",
+            strokeLinejoin: "round"
+        }, React.createElement('circle', { cx: "12", cy: "12", r: "10" }), React.createElement('line', { x1: "12", y1: "16", x2: "12", y2: "12" }), React.createElement('line', { x1: "12", y1: "8", x2: "12.01", y2: "8" }));
+
         // Logo component with circular flow around 'n'
         const NousLogo = ({ size = "medium" }) => {
             const sizes = {
@@ -749,6 +761,14 @@
                                 style: { color: currentPage === 'reports' ? '#6B8DD6' : '#7d8ca8' }
                             },
                                 React.createElement(ChartIcon)
+                            ),
+                            React.createElement('button', {
+                                onClick: () => setCurrentPage('about'),
+                                title: "About Nous",
+                                className: `p-2 rounded-full transition ${currentPage === 'about' ? 'bg-calm-100 text-accent-blue' : 'text-calm-600 hover:bg-calm-50'}`,
+                                style: { color: currentPage === 'about' ? '#6B8DD6' : '#7d8ca8' }
+                            },
+                                React.createElement(InfoIcon)
                             ),
                             React.createElement('button', {
                                 onClick: () => setCurrentPage('settings'),
@@ -1280,6 +1300,8 @@
         const Settings = ({ auth, userId, db, userProfile, setNotification }) => {
             const [username, setUsername] = useState('');
             const [isEditingUsername, setIsEditingUsername] = useState(false);
+            const [showResetConfirm, setShowResetConfirm] = useState(false);
+            const [isResetting, setIsResetting] = useState(false);
 
             useEffect(() => {
                 if (userProfile?.username) {
@@ -1323,6 +1345,77 @@
 
             const handleLogout = () => {
                 window.signOut(auth);
+            };
+
+            const handleResetProgress = async () => {
+                setIsResetting(true);
+                try {
+                    const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+                    const batch = window.writeBatch(db);
+
+                    // Delete all sessions
+                    const sessionsQuery = window.query(
+                        window.collection(db, `artifacts/${appId}/users/${userId}/sessions`)
+                    );
+                    const sessionsSnapshot = await window.getDocs(sessionsQuery);
+                    sessionsSnapshot.forEach(doc => {
+                        batch.delete(doc.ref);
+                    });
+
+                    // Delete all habits
+                    const habitsQuery = window.query(
+                        window.collection(db, `artifacts/${appId}/users/${userId}/habits`)
+                    );
+                    const habitsSnapshot = await window.getDocs(habitsQuery);
+                    habitsSnapshot.forEach(doc => {
+                        batch.delete(doc.ref);
+                    });
+
+                    // Delete all goals
+                    const goalsQuery = window.query(
+                        window.collection(db, `artifacts/${appId}/users/${userId}/goals`)
+                    );
+                    const goalsSnapshot = await window.getDocs(goalsQuery);
+                    goalsSnapshot.forEach(doc => {
+                        batch.delete(doc.ref);
+                    });
+
+                    // Reset user document stats
+                    const userDocRef = window.doc(db, `artifacts/${appId}/users/${userId}`);
+                    batch.set(userDocRef, {
+                        treeName: '',
+                        treeType: 'seedling',
+                        updatedAt: window.Timestamp.now()
+                    }, { merge: true });
+
+                    // Reset user profile stats
+                    const userProfileRef = window.doc(db, 'users', userId);
+                    batch.set(userProfileRef, {
+                        stats: {
+                            totalHours: 0,
+                            currentStreak: 0,
+                            totalSessions: 0,
+                            goalsCompleted: 0,
+                            treeLevel: 0,
+                            lastUpdated: window.Timestamp.now()
+                        }
+                    }, { merge: true });
+
+                    await batch.commit();
+
+                    setNotification({ type: 'success', message: 'All progress has been reset!' });
+                    setShowResetConfirm(false);
+
+                    // Reload page after 1 second to show fresh state
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 1000);
+                } catch (error) {
+                    console.error("Error resetting progress:", error);
+                    setNotification({ type: 'error', message: 'Failed to reset progress: ' + error.message });
+                } finally {
+                    setIsResetting(false);
+                }
             };
 
             return React.createElement('div', { className: "max-w-4xl mx-auto p-4 sm:p-6 lg:p-8" },
@@ -1380,14 +1473,187 @@
                 // Actions Section
                 React.createElement('div', { className: "bg-white rounded-lg shadow-sm p-6" },
                     React.createElement('h3', { className: "text-xl text-gray-700 mb-4", style: { fontWeight: 400 } }, "actions"),
-                    React.createElement('button', {
-                        onClick: handleLogout,
-                        className: "w-full sm:w-auto bg-red-600 text-white py-2 px-6 rounded-lg hover:bg-red-700 transition flex items-center justify-center gap-2",
-                        style: { fontWeight: 400 }
-                    },
-                        React.createElement(LogOutIcon),
-                        "sign out"
+                    React.createElement('div', { className: "space-y-3" },
+                        React.createElement('button', {
+                            onClick: handleLogout,
+                            className: "w-full sm:w-auto bg-red-600 text-white py-2 px-6 rounded-lg hover:bg-red-700 transition flex items-center justify-center gap-2",
+                            style: { fontWeight: 400 }
+                        },
+                            React.createElement(LogOutIcon),
+                            "sign out"
+                        ),
+                        React.createElement('button', {
+                            onClick: () => setShowResetConfirm(true),
+                            className: "w-full sm:w-auto bg-gray-700 text-white py-2 px-6 rounded-lg hover:bg-gray-800 transition flex items-center justify-center gap-2",
+                            style: { fontWeight: 400 }
+                        },
+                            React.createElement(XIcon),
+                            "reset all progress"
+                        )
                     )
+                ),
+
+                // Reset Confirmation Modal
+                showResetConfirm && React.createElement('div', {
+                    className: "fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50",
+                    onClick: () => !isResetting && setShowResetConfirm(false)
+                },
+                    React.createElement('div', {
+                        className: "bg-white rounded-xl p-8 max-w-md m-4 soft-shadow-lg",
+                        onClick: (e) => e.stopPropagation()
+                    },
+                        React.createElement('h3', {
+                            className: "text-2xl text-gray-800 mb-4",
+                            style: { fontWeight: 400 }
+                        }, "are you sure?"),
+                        React.createElement('p', {
+                            className: "text-gray-600 mb-6",
+                            style: { fontWeight: 300 }
+                        }, "This will permanently delete all your habits, sessions, goals, and reset your tree progress. This action cannot be undone."),
+                        React.createElement('div', { className: "flex gap-3 justify-end" },
+                            React.createElement('button', {
+                                onClick: () => setShowResetConfirm(false),
+                                disabled: isResetting,
+                                className: "px-6 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition disabled:opacity-50",
+                                style: { fontWeight: 400 }
+                            }, "cancel"),
+                            React.createElement('button', {
+                                onClick: handleResetProgress,
+                                disabled: isResetting,
+                                className: "px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition disabled:opacity-50 flex items-center gap-2",
+                                style: { fontWeight: 400 }
+                            },
+                                isResetting && React.createElement(LoaderIcon),
+                                isResetting ? "resetting..." : "yes, reset everything"
+                            )
+                        )
+                    )
+                )
+            );
+        };
+
+        // About Component - Information about Nous philosophy and the app
+        const About = () => {
+            return React.createElement('div', { className: "max-w-4xl mx-auto p-4 sm:p-6 lg:p-8" },
+                React.createElement('div', { className: "text-center mb-8" },
+                    React.createElement(NousLogo, { size: "large" }),
+                    React.createElement('h1', { className: "text-4xl text-calm-800 mt-4", style: { fontWeight: 300, letterSpacing: '0.05em' } }, "nous")
+                ),
+
+                // Philosophy Section
+                React.createElement('div', { className: "bg-white rounded-xl soft-shadow p-8 mb-6" },
+                    React.createElement('h2', { className: "text-2xl text-calm-800 mb-4", style: { fontWeight: 400 } }, "what is nous?"),
+                    React.createElement('div', { className: "space-y-4 text-calm-700", style: { lineHeight: '1.8' } },
+                        React.createElement('p', { style: { fontWeight: 300 } },
+                            "In ancient Greek philosophy, ",
+                            React.createElement('span', { className: "italic text-accent-blue", style: { fontWeight: 400 } }, "nous"),
+                            " (νοῦς) represents the highest form of intellect—the faculty of intuitive understanding and contemplative reason. It is the part of us that grasps fundamental truths, sees patterns, and comprehends the essence of things."
+                        ),
+                        React.createElement('p', { style: { fontWeight: 300 } },
+                            "Aristotle described nous as the aspect of mind that allows us to understand first principles. Plato saw it as the eye of the soul, perceiving eternal forms. It's not mere knowledge, but ",
+                            React.createElement('span', { style: { fontWeight: 400 } }, "wisdom"),
+                            "—the capacity for deep insight and clear thinking."
+                        ),
+                        React.createElement('p', { style: { fontWeight: 300 } },
+                            "Nous is the mindful awareness that transforms ordinary actions into purposeful living."
+                        )
+                    )
+                ),
+
+                // How Nous Helps Section
+                React.createElement('div', { className: "bg-white rounded-xl soft-shadow p-8 mb-6" },
+                    React.createElement('h2', { className: "text-2xl text-calm-800 mb-4", style: { fontWeight: 400 } }, "cultivating your nous"),
+                    React.createElement('div', { className: "space-y-6" },
+                        React.createElement('div', null,
+                            React.createElement('h3', { className: "text-lg text-accent-blue mb-2", style: { fontWeight: 400 } }, "mindful habit building"),
+                            React.createElement('p', { className: "text-calm-700", style: { fontWeight: 300, lineHeight: '1.8' } },
+                                "Nous helps you build habits with intention and awareness. By tracking your time and progress, you develop a clearer understanding of how you spend your days—the foundation of a well-lived life."
+                            )
+                        ),
+                        React.createElement('div', null,
+                            React.createElement('h3', { className: "text-lg text-accent-blue mb-2", style: { fontWeight: 400 } }, "growth through reflection"),
+                            React.createElement('p', { className: "text-calm-700", style: { fontWeight: 300, lineHeight: '1.8' } },
+                                "Like a tree growing from consistent nourishment, your skills and character develop through steady, deliberate practice. Nous visualizes this growth, helping you see the cumulative power of small, daily actions."
+                            )
+                        ),
+                        React.createElement('div', null,
+                            React.createElement('h3', { className: "text-lg text-accent-blue mb-2", style: { fontWeight: 400 } }, "purposeful living"),
+                            React.createElement('p', { className: "text-calm-700", style: { fontWeight: 300, lineHeight: '1.8' } },
+                                "By setting goals and tracking progress, you align your daily actions with your deeper aspirations. This is nous in action—bringing wisdom and intentionality to the practical details of life."
+                            )
+                        ),
+                        React.createElement('div', null,
+                            React.createElement('h3', { className: "text-lg text-accent-blue mb-2", style: { fontWeight: 400 } }, "community and connection"),
+                            React.createElement('p', { className: "text-calm-700", style: { fontWeight: 300, lineHeight: '1.8' } },
+                                "Growth happens in community. Connect with friends, share your journey, and inspire each other toward excellence. Together, we cultivate wisdom and support each other's flourishing."
+                            )
+                        )
+                    )
+                ),
+
+                // Quote Section
+                React.createElement('div', { className: "bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl p-8 mb-6 border-l-4", style: { borderColor: '#6B8DD6' } },
+                    React.createElement('blockquote', { className: "text-center" },
+                        React.createElement('p', { className: "text-xl text-calm-800 italic mb-3", style: { fontWeight: 300, lineHeight: '1.8' } },
+                            '"We are what we repeatedly do. Excellence, then, is not an act, but a habit."'
+                        ),
+                        React.createElement('cite', { className: "text-calm-600", style: { fontWeight: 300 } }, "— Aristotle")
+                    )
+                ),
+
+                // App Features Section
+                React.createElement('div', { className: "bg-white rounded-xl soft-shadow p-8" },
+                    React.createElement('h2', { className: "text-2xl text-calm-800 mb-4", style: { fontWeight: 400 } }, "features"),
+                    React.createElement('div', { className: "grid grid-cols-1 md:grid-cols-2 gap-4" },
+                        React.createElement('div', { className: "flex items-start gap-3" },
+                            React.createElement('div', { className: "text-2xl" }, "⏱️"),
+                            React.createElement('div', null,
+                                React.createElement('h4', { className: "text-calm-800", style: { fontWeight: 400 } }, "Time Tracking"),
+                                React.createElement('p', { className: "text-sm text-calm-600", style: { fontWeight: 300 } }, "Track habits with precision")
+                            )
+                        ),
+                        React.createElement('div', { className: "flex items-start gap-3" },
+                            React.createElement('div', { className: "text-2xl" }, "🌳"),
+                            React.createElement('div', null,
+                                React.createElement('h4', { className: "text-calm-800", style: { fontWeight: 400 } }, "Growth Visualization"),
+                                React.createElement('p', { className: "text-sm text-calm-600", style: { fontWeight: 300 } }, "Watch your tree grow")
+                            )
+                        ),
+                        React.createElement('div', { className: "flex items-start gap-3" },
+                            React.createElement('div', { className: "text-2xl" }, "🎯"),
+                            React.createElement('div', null,
+                                React.createElement('h4', { className: "text-calm-800", style: { fontWeight: 400 } }, "Goal Setting"),
+                                React.createElement('p', { className: "text-sm text-calm-600", style: { fontWeight: 300 } }, "Daily, weekly, monthly goals")
+                            )
+                        ),
+                        React.createElement('div', { className: "flex items-start gap-3" },
+                            React.createElement('div', { className: "text-2xl" }, "👥"),
+                            React.createElement('div', null,
+                                React.createElement('h4', { className: "text-calm-800", style: { fontWeight: 400 } }, "Friends & Leaderboards"),
+                                React.createElement('p', { className: "text-sm text-calm-600", style: { fontWeight: 300 } }, "Grow together with friends")
+                            )
+                        ),
+                        React.createElement('div', { className: "flex items-start gap-3" },
+                            React.createElement('div', { className: "text-2xl" }, "📊"),
+                            React.createElement('div', null,
+                                React.createElement('h4', { className: "text-calm-800", style: { fontWeight: 400 } }, "Progress Reports"),
+                                React.createElement('p', { className: "text-sm text-calm-600", style: { fontWeight: 300 } }, "Monthly insights and analytics")
+                            )
+                        ),
+                        React.createElement('div', { className: "flex items-start gap-3" },
+                            React.createElement('div', { className: "text-2xl" }, "🔥"),
+                            React.createElement('div', null,
+                                React.createElement('h4', { className: "text-calm-800", style: { fontWeight: 400 } }, "Streak Tracking"),
+                                React.createElement('p', { className: "text-sm text-calm-600", style: { fontWeight: 300 } }, "Build consistency day by day")
+                            )
+                        )
+                    )
+                ),
+
+                // Footer
+                React.createElement('div', { className: "text-center mt-8 text-calm-600", style: { fontWeight: 300 } },
+                    React.createElement('p', null, "Start your journey toward a more intentional life."),
+                    React.createElement('p', { className: "mt-2 text-sm" }, "Built with mindfulness. Powered by nous.")
                 )
             );
         };
@@ -2615,6 +2881,7 @@
                             currentPage === 'friends' && React.createElement(Friends, { db, userId, setNotification, userProfile }),
                             currentPage === 'leaderboard' && React.createElement(Leaderboard, { db, userId, setNotification, userProfile }),
                             currentPage === 'reports' && React.createElement(Reports, { db, userId, setNotification }),
+                            currentPage === 'about' && React.createElement(About),
                             currentPage === 'settings' && React.createElement(Settings, { auth, userId, db, userProfile, setNotification })
                         )
                     )
