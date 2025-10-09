@@ -589,6 +589,39 @@
             return code;
         };
 
+        // Generate unique friend code with collision check
+        const generateUniqueFriendCode = async (db) => {
+            let attempts = 0;
+            const maxAttempts = 10;
+
+            while (attempts < maxAttempts) {
+                const code = generateFriendCode();
+
+                // Check if this code already exists
+                try {
+                    const usersQuery = window.query(
+                        window.collection(db, 'users'),
+                        window.where('friendCode', '==', code)
+                    );
+                    const snapshot = await window.getDocs(usersQuery);
+
+                    if (snapshot.empty) {
+                        // Code is unique!
+                        return code;
+                    }
+                    attempts++;
+                } catch (error) {
+                    console.error("Error checking friend code uniqueness:", error);
+                    // If query fails, just return the code
+                    return code;
+                }
+            }
+
+            // If we somehow can't find a unique code after 10 attempts,
+            // add a timestamp to make it unique
+            return generateFriendCode() + Date.now().toString(36).slice(-2);
+        };
+
         // Tree types with unlock requirements (total hours studied)
         const TREE_TYPES = [
             { id: 'seedling', name: 'Seedling', requiredHours: 0, color: '#86efac' },
@@ -1536,9 +1569,7 @@
         const About = () => {
             return React.createElement('div', { className: "max-w-4xl mx-auto p-4 sm:p-6 lg:p-8" },
                 React.createElement('div', { className: "text-center mb-8" },
-                    React.createElement(NousLogo, { size: "large" }),
-                    React.createElement('h1', { className: "text-4xl text-calm-800 mt-4 mb-2", style: { fontWeight: 300, letterSpacing: '0.05em' } }, "nous"),
-                    React.createElement('p', { className: "text-calm-600", style: { fontWeight: 300 } }, "about")
+                    React.createElement('h1', { className: "text-4xl text-calm-800", style: { fontWeight: 300, letterSpacing: '0.05em' } }, "about")
                 ),
 
                 // Philosophy Section
@@ -1594,55 +1625,6 @@
                             '"We are what we repeatedly do. Excellence, then, is not an act, but a habit."'
                         ),
                         React.createElement('cite', { className: "text-calm-600", style: { fontWeight: 300 } }, "— Aristotle")
-                    )
-                ),
-
-                // App Features Section
-                React.createElement('div', { className: "bg-white rounded-xl soft-shadow p-8" },
-                    React.createElement('h2', { className: "text-2xl text-calm-800 mb-4", style: { fontWeight: 400 } }, "features"),
-                    React.createElement('div', { className: "grid grid-cols-1 md:grid-cols-2 gap-4" },
-                        React.createElement('div', { className: "flex items-start gap-3" },
-                            React.createElement('div', { className: "text-2xl" }, "⏱️"),
-                            React.createElement('div', null,
-                                React.createElement('h4', { className: "text-calm-800", style: { fontWeight: 400 } }, "Time Tracking"),
-                                React.createElement('p', { className: "text-sm text-calm-600", style: { fontWeight: 300 } }, "Track habits with precision")
-                            )
-                        ),
-                        React.createElement('div', { className: "flex items-start gap-3" },
-                            React.createElement('div', { className: "text-2xl" }, "🌳"),
-                            React.createElement('div', null,
-                                React.createElement('h4', { className: "text-calm-800", style: { fontWeight: 400 } }, "Growth Visualization"),
-                                React.createElement('p', { className: "text-sm text-calm-600", style: { fontWeight: 300 } }, "Watch your tree grow")
-                            )
-                        ),
-                        React.createElement('div', { className: "flex items-start gap-3" },
-                            React.createElement('div', { className: "text-2xl" }, "🎯"),
-                            React.createElement('div', null,
-                                React.createElement('h4', { className: "text-calm-800", style: { fontWeight: 400 } }, "Goal Setting"),
-                                React.createElement('p', { className: "text-sm text-calm-600", style: { fontWeight: 300 } }, "Daily, weekly, monthly goals")
-                            )
-                        ),
-                        React.createElement('div', { className: "flex items-start gap-3" },
-                            React.createElement('div', { className: "text-2xl" }, "👥"),
-                            React.createElement('div', null,
-                                React.createElement('h4', { className: "text-calm-800", style: { fontWeight: 400 } }, "Friends & Leaderboards"),
-                                React.createElement('p', { className: "text-sm text-calm-600", style: { fontWeight: 300 } }, "Grow together with friends")
-                            )
-                        ),
-                        React.createElement('div', { className: "flex items-start gap-3" },
-                            React.createElement('div', { className: "text-2xl" }, "📊"),
-                            React.createElement('div', null,
-                                React.createElement('h4', { className: "text-calm-800", style: { fontWeight: 400 } }, "Progress Reports"),
-                                React.createElement('p', { className: "text-sm text-calm-600", style: { fontWeight: 300 } }, "Monthly insights and analytics")
-                            )
-                        ),
-                        React.createElement('div', { className: "flex items-start gap-3" },
-                            React.createElement('div', { className: "text-2xl" }, "🔥"),
-                            React.createElement('div', null,
-                                React.createElement('h4', { className: "text-calm-800", style: { fontWeight: 400 } }, "Streak Tracking"),
-                                React.createElement('p', { className: "text-sm text-calm-600", style: { fontWeight: 300 } }, "Build consistency day by day")
-                            )
-                        )
                     )
                 ),
 
@@ -2714,6 +2696,10 @@
             const [userProfile, setUserProfile] = useState(null);
             const [configError, setConfigError] = useState(null);
             const [firebaseReady, setFirebaseReady] = useState(window.firebaseSDKReady || false);
+            const [showUsernameSetup, setShowUsernameSetup] = useState(false);
+            const [newUsername, setNewUsername] = useState('');
+            const [usernameError, setUsernameError] = useState('');
+            const [isSettingUsername, setIsSettingUsername] = useState(false);
 
             // Timer state lifted to App level so it persists across page navigation
             const [activeTimers, setActiveTimers] = useState({});
@@ -2800,12 +2786,13 @@
                 const userDocRef = window.doc(db, 'users', userId);
                 const unsubscribe = window.onSnapshot(userDocRef, async (snapshot) => {
                     if (!snapshot.exists()) {
-                        // Create new user profile
+                        // Create new user profile with unique friend code, but no username yet
                         try {
+                            const uniqueCode = await generateUniqueFriendCode(db);
                             await window.setDoc(userDocRef, {
-                                username: `user_${userId.substring(0, 8)}`,
+                                username: '', // Empty username - user must set it
                                 email: auth.currentUser?.email || '',
-                                friendCode: generateFriendCode(),
+                                friendCode: uniqueCode,
                                 createdAt: window.Timestamp.now(),
                                 settings: {
                                     showStats: true,
@@ -2821,17 +2808,100 @@
                                     lastUpdated: window.Timestamp.now()
                                 }
                             });
-                            setNotification({ type: 'success', message: 'Welcome! Set your username in Settings.' });
+                            // Show username setup modal for new users
+                            setShowUsernameSetup(true);
                         } catch (error) {
                             console.error("Error creating user profile:", error);
                         }
                     } else {
-                        setUserProfile(snapshot.data());
+                        const data = snapshot.data();
+
+                        // Check if user needs to set a username
+                        if (!data.username || data.username.startsWith('user_') || data.username === '') {
+                            setShowUsernameSetup(true);
+                            setUserProfile(data);
+                        } else {
+                            setShowUsernameSetup(false);
+                        }
+
+                        // Backfill friend code for existing users who don't have one
+                        if (!data.friendCode) {
+                            try {
+                                const newFriendCode = await generateUniqueFriendCode(db);
+                                await window.setDoc(userDocRef, {
+                                    friendCode: newFriendCode
+                                }, { merge: true });
+                                // Update local state with the new friend code
+                                setUserProfile({ ...data, friendCode: newFriendCode });
+                            } catch (error) {
+                                console.error("Error generating friend code:", error);
+                                setUserProfile(data);
+                            }
+                        } else {
+                            setUserProfile(data);
+                        }
                     }
                 });
 
                 return () => unsubscribe();
             }, [db, userId, auth]);
+
+            // Handle username submission
+            const handleUsernameSubmit = async (e) => {
+                e.preventDefault();
+                if (!newUsername.trim()) {
+                    setUsernameError('Username cannot be empty');
+                    return;
+                }
+
+                if (newUsername.length < 3) {
+                    setUsernameError('Username must be at least 3 characters');
+                    return;
+                }
+
+                if (newUsername.length > 20) {
+                    setUsernameError('Username must be less than 20 characters');
+                    return;
+                }
+
+                if (!/^[a-zA-Z0-9_]+$/.test(newUsername)) {
+                    setUsernameError('Username can only contain letters, numbers, and underscores');
+                    return;
+                }
+
+                setIsSettingUsername(true);
+                setUsernameError('');
+
+                try {
+                    // Check if username is unique
+                    const usersQuery = window.query(
+                        window.collection(db, 'users'),
+                        window.where('username', '==', newUsername.trim())
+                    );
+                    const snapshot = await window.getDocs(usersQuery);
+
+                    if (!snapshot.empty && snapshot.docs[0].id !== userId) {
+                        setUsernameError('Username already taken');
+                        setIsSettingUsername(false);
+                        return;
+                    }
+
+                    // Save username
+                    const userDocRef = window.doc(db, 'users', userId);
+                    await window.setDoc(userDocRef, {
+                        username: newUsername.trim()
+                    }, { merge: true });
+
+                    setShowUsernameSetup(false);
+                    setNewUsername('');
+                    setNotification({ type: 'success', message: `Welcome, @${newUsername}!` });
+                } catch (error) {
+                    console.error("Error setting username:", error);
+                    setUsernameError('Failed to set username. Please try again.');
+                } finally {
+                    setIsSettingUsername(false);
+                }
+            };
 
             // Notification timeout
             useEffect(() => {
@@ -2859,6 +2929,79 @@
             }
 
             return React.createElement('div', { className: "min-h-screen font-sans", style: { backgroundColor: '#f8f9fb' } },
+                // Username Setup Modal
+                showUsernameSetup && React.createElement('div', {
+                    className: "fixed inset-0 bg-black bg-opacity-60 flex justify-center items-center z-50",
+                    style: { backdropFilter: 'blur(4px)' }
+                },
+                    React.createElement('div', {
+                        className: "bg-white rounded-2xl p-8 max-w-md w-full m-4 soft-shadow-lg",
+                        onClick: (e) => e.stopPropagation()
+                    },
+                        React.createElement('div', { className: "text-center mb-6" },
+                            React.createElement('h2', {
+                                className: "text-3xl text-calm-800 mb-2",
+                                style: { fontWeight: 300 }
+                            }, "welcome to nous"),
+                            React.createElement('p', {
+                                className: "text-calm-600",
+                                style: { fontWeight: 300 }
+                            }, "choose a unique username to get started")
+                        ),
+                        React.createElement('form', { onSubmit: handleUsernameSubmit, className: "space-y-4" },
+                            React.createElement('div', null,
+                                React.createElement('label', {
+                                    htmlFor: "username",
+                                    className: "block text-sm text-calm-600 mb-2",
+                                    style: { fontWeight: 300 }
+                                }, "username"),
+                                React.createElement('input', {
+                                    id: "username",
+                                    type: "text",
+                                    value: newUsername,
+                                    onChange: (e) => {
+                                        setNewUsername(e.target.value);
+                                        setUsernameError('');
+                                    },
+                                    placeholder: "your_username",
+                                    autoFocus: true,
+                                    disabled: isSettingUsername,
+                                    className: "w-full px-4 py-3 border-2 border-calm-300 rounded-lg focus:ring-2 focus:ring-calm-500 focus:border-transparent focus:outline-none transition disabled:opacity-50",
+                                    style: { fontWeight: 300 }
+                                }),
+                                usernameError && React.createElement('p', {
+                                    className: "text-red-500 text-sm mt-2",
+                                    style: { fontWeight: 300 }
+                                }, usernameError)
+                            ),
+                            React.createElement('div', { className: "text-sm text-calm-600 space-y-1", style: { fontWeight: 300 } },
+                                React.createElement('p', null, "• 3-20 characters"),
+                                React.createElement('p', null, "• letters, numbers, and underscores only"),
+                                React.createElement('p', null, "• must be unique")
+                            ),
+                            userProfile?.friendCode && React.createElement('div', { className: "bg-calm-50 p-4 rounded-lg" },
+                                React.createElement('p', {
+                                    className: "text-sm text-calm-600 mb-1",
+                                    style: { fontWeight: 300 }
+                                }, "your friend code:"),
+                                React.createElement('p', {
+                                    className: "font-mono text-xl text-calm-800",
+                                    style: { fontWeight: 400, letterSpacing: '0.1em' }
+                                }, userProfile.friendCode)
+                            ),
+                            React.createElement('button', {
+                                type: "submit",
+                                disabled: isSettingUsername || !newUsername.trim(),
+                                className: "w-full py-3 bg-calm-600 text-white rounded-lg hover:bg-calm-700 transition disabled:opacity-50 flex items-center justify-center gap-2",
+                                style: { fontWeight: 400 }
+                            },
+                                isSettingUsername && React.createElement(LoaderIcon),
+                                isSettingUsername ? "creating..." : "continue"
+                            )
+                        )
+                    )
+                ),
+
                 notification && React.createElement('div', {
                     className: `fixed top-5 right-5 p-4 rounded-2xl soft-shadow-lg text-white z-50 ${notification.type === 'success' ? 'neuron-pulse' : ''}`,
                     style: {
