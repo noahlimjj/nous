@@ -14,6 +14,7 @@
             theme: {
                 extend: {
                     fontFamily: {
+                        'sans': ['"Satoshi"', '-apple-system', 'BlinkMacSystemFont', 'system-ui', 'sans-serif'],
                         'title': ['"Satoshi"', '-apple-system', 'BlinkMacSystemFont', 'system-ui', 'sans-serif'],
                         'body': ['"Satoshi"', '-apple-system', 'BlinkMacSystemFont', 'system-ui', 'sans-serif']
                     },
@@ -1129,6 +1130,59 @@
             );
         };
 
+        // GoalSection component - moved outside Goals to prevent re-creation on each render
+        const GoalSection = ({ type, title, color, placeholder, activeGoals, newGoalText, setNewGoalText, handleAddGoal, handleToggleGoal, handleDeleteGoal }) => {
+            const sectionGoals = activeGoals.filter(g => g.type === type);
+
+            return React.createElement('div', { className: "bg-white rounded-xl soft-shadow p-6" },
+                React.createElement('h3', { className: "text-xl font-light mb-4", style: { color, fontWeight: 300 } }, title),
+
+                // Goal input
+                React.createElement('div', { className: "flex gap-2 mb-4" },
+                    React.createElement('input', {
+                        type: "text",
+                        value: newGoalText[type],
+                        onChange: (e) => setNewGoalText({ ...newGoalText, [type]: e.target.value }),
+                        onKeyPress: (e) => e.key === 'Enter' && handleAddGoal(type),
+                        placeholder,
+                        className: "flex-grow px-4 py-2 border border-calm-300 rounded-xl focus:ring-2 focus:outline-none transition",
+                        style: { borderColor: '#d1d7e3', fontWeight: 300 }
+                    }),
+                    React.createElement('button', {
+                        onClick: () => handleAddGoal(type),
+                        className: "px-4 py-2 rounded-xl soft-shadow hover:opacity-90 transition text-white",
+                        style: { backgroundColor: color, fontWeight: 400 }
+                    }, "+")
+                ),
+
+                // Goal list
+                React.createElement('div', { className: "space-y-2" },
+                    sectionGoals.map(goal =>
+                        React.createElement('div', {
+                            key: goal.id,
+                            className: "flex items-center gap-3 p-2 rounded-lg hover:bg-calm-50 transition group"
+                        },
+                            React.createElement('input', {
+                                type: "checkbox",
+                                checked: false,
+                                onChange: () => handleToggleGoal(goal),
+                                className: "w-5 h-5 rounded border-calm-400 cursor-pointer"
+                            }),
+                            React.createElement('span', {
+                                className: "flex-grow text-calm-800",
+                                style: { fontWeight: 300 }
+                            }, goal.text),
+                            React.createElement('button', {
+                                onClick: () => handleDeleteGoal(goal.id),
+                                className: "opacity-0 group-hover:opacity-100 text-calm-400 hover:text-red-500 transition",
+                                style: { fontSize: '0.9rem' }
+                            }, "×")
+                        )
+                    )
+                )
+            );
+        };
+
         const Goals = ({ db, userId, setNotification }) => {
             const [goals, setGoals] = useState([]);
             const [newGoalText, setNewGoalText] = useState({ daily: '', weekly: '', monthly: '', yearly: '' });
@@ -1204,58 +1258,6 @@
                 (b.completedAt?.toMillis() || 0) - (a.completedAt?.toMillis() || 0)
             );
 
-            const GoalSection = ({ type, title, color, placeholder }) => {
-                const sectionGoals = activeGoals.filter(g => g.type === type);
-
-                return React.createElement('div', { className: "bg-white rounded-xl soft-shadow p-6" },
-                    React.createElement('h3', { className: "text-xl font-light mb-4", style: { color, fontWeight: 300 } }, title),
-
-                    // Goal input
-                    React.createElement('div', { className: "flex gap-2 mb-4" },
-                        React.createElement('input', {
-                            type: "text",
-                            value: newGoalText[type],
-                            onChange: (e) => setNewGoalText({ ...newGoalText, [type]: e.target.value }),
-                            onKeyPress: (e) => e.key === 'Enter' && handleAddGoal(type),
-                            placeholder,
-                            className: "flex-grow px-4 py-2 border border-calm-300 rounded-xl focus:ring-2 focus:outline-none transition",
-                            style: { borderColor: '#d1d7e3', fontWeight: 300 }
-                        }),
-                        React.createElement('button', {
-                            onClick: () => handleAddGoal(type),
-                            className: "px-4 py-2 rounded-xl soft-shadow hover:opacity-90 transition text-white",
-                            style: { backgroundColor: color, fontWeight: 400 }
-                        }, "+")
-                    ),
-
-                    // Goal list
-                    React.createElement('div', { className: "space-y-2" },
-                        sectionGoals.map(goal =>
-                            React.createElement('div', {
-                                key: goal.id,
-                                className: "flex items-center gap-3 p-2 rounded-lg hover:bg-calm-50 transition group"
-                            },
-                                React.createElement('input', {
-                                    type: "checkbox",
-                                    checked: false,
-                                    onChange: () => handleToggleGoal(goal),
-                                    className: "w-5 h-5 rounded border-calm-400 cursor-pointer"
-                                }),
-                                React.createElement('span', {
-                                    className: "flex-grow text-calm-800",
-                                    style: { fontWeight: 300 }
-                                }, goal.text),
-                                React.createElement('button', {
-                                    onClick: () => handleDeleteGoal(goal.id),
-                                    className: "opacity-0 group-hover:opacity-100 text-calm-400 hover:text-red-500 transition",
-                                    style: { fontSize: '0.9rem' }
-                                }, "×")
-                            )
-                        )
-                    )
-                );
-            };
-
             if (isLoading) {
                 return React.createElement('div', { className: "flex justify-center items-center p-8" },
                     React.createElement(LoaderIcon),
@@ -1272,25 +1274,49 @@
                         type: 'daily',
                         title: 'daily goals',
                         color: '#5FA8A3',
-                        placeholder: "what do you want to accomplish today?"
+                        placeholder: "what do you want to accomplish today?",
+                        activeGoals,
+                        newGoalText,
+                        setNewGoalText,
+                        handleAddGoal,
+                        handleToggleGoal,
+                        handleDeleteGoal
                     }),
                     React.createElement(GoalSection, {
                         type: 'weekly',
                         title: 'weekly goals',
                         color: '#6B8DD6',
-                        placeholder: "what do you want to accomplish this week?"
+                        placeholder: "what do you want to accomplish this week?",
+                        activeGoals,
+                        newGoalText,
+                        setNewGoalText,
+                        handleAddGoal,
+                        handleToggleGoal,
+                        handleDeleteGoal
                     }),
                     React.createElement(GoalSection, {
                         type: 'monthly',
                         title: 'monthly goals',
                         color: '#8B7FB8',
-                        placeholder: "what do you want to accomplish this month?"
+                        placeholder: "what do you want to accomplish this month?",
+                        activeGoals,
+                        newGoalText,
+                        setNewGoalText,
+                        handleAddGoal,
+                        handleToggleGoal,
+                        handleDeleteGoal
                     }),
                     React.createElement(GoalSection, {
                         type: 'yearly',
                         title: 'yearly goals',
                         color: '#7d8ca8',
-                        placeholder: "what do you want to accomplish this year?"
+                        placeholder: "what do you want to accomplish this year?",
+                        activeGoals,
+                        newGoalText,
+                        setNewGoalText,
+                        handleAddGoal,
+                        handleToggleGoal,
+                        handleDeleteGoal
                     }),
 
                     // Completed Goals Section
