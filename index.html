@@ -2074,8 +2074,8 @@
                     { x: 106, y: 68, size: 9, color: leafColors[2], delay: 0.84, visible: leafGrowth > 0.96 },
                 ];
 
-                // Minecraft-style fruits (apples, sweet berries, glow berries) - hidden for seedlings
-                const fruits = (fruitGrowth > 0 && treeType !== 'seedling') ? [
+                // Minecraft-style fruits (apples, sweet berries, glow berries) - hidden for seedlings and pine
+                const fruits = (fruitGrowth > 0 && treeType !== 'seedling' && treeType !== 'pine') ? [
                     { x: 100, y: 55, size: 4, color: fruitColors[0], delay: 0 },      // Apple (red)
                     { x: 88, y: 62, size: 3.5, color: fruitColors[1], delay: 0.1 },   // Sweet berry (orange-red)
                     { x: 112, y: 62, size: 3.5, color: fruitColors[2], delay: 0.15 }, // Glow berry (golden)
