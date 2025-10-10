@@ -189,6 +189,7 @@
             query,
             where,
             setDoc,
+            updateDoc,
             deleteDoc,
             Timestamp,
             getDocs,
@@ -215,6 +216,7 @@
         window.query = query;
         window.where = where;
         window.setDoc = setDoc;
+        window.updateDoc = updateDoc;
         window.deleteDoc = deleteDoc;
         window.Timestamp = Timestamp;
         window.getDocs = getDocs;
@@ -492,6 +494,61 @@
             strokeLinecap: "round",
             strokeLinejoin: "round"
         }, React.createElement('circle', { cx: "12", cy: "12", r: "10" }), React.createElement('line', { x1: "12", y1: "16", x2: "12", y2: "12" }), React.createElement('line', { x1: "12", y1: "8", x2: "12.01", y2: "8" }));
+
+        const PencilIcon = () => React.createElement('svg', {
+            xmlns: "http://www.w3.org/2000/svg",
+            width: "20",
+            height: "20",
+            viewBox: "0 0 24 24",
+            fill: "none",
+            stroke: "currentColor",
+            strokeWidth: "2",
+            strokeLinecap: "round",
+            strokeLinejoin: "round"
+        }, React.createElement('path', { d: "M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z" }));
+
+        const ArrowUpIcon = () => React.createElement('svg', {
+            xmlns: "http://www.w3.org/2000/svg",
+            width: "20",
+            height: "20",
+            viewBox: "0 0 24 24",
+            fill: "none",
+            stroke: "currentColor",
+            strokeWidth: "2",
+            strokeLinecap: "round",
+            strokeLinejoin: "round"
+        }, React.createElement('line', { x1: "12", y1: "19", x2: "12", y2: "5" }), React.createElement('polyline', { points: "5 12 12 5 19 12" }));
+
+        const ArrowDownIcon = () => React.createElement('svg', {
+            xmlns: "http://www.w3.org/2000/svg",
+            width: "20",
+            height: "20",
+            viewBox: "0 0 24 24",
+            fill: "none",
+            stroke: "currentColor",
+            strokeWidth: "2",
+            strokeLinecap: "round",
+            strokeLinejoin: "round"
+        }, React.createElement('line', { x1: "12", y1: "5", x2: "12", y2: "19" }), React.createElement('polyline', { points: "19 12 12 19 5 12" }));
+
+        const GripIcon = () => React.createElement('svg', {
+            xmlns: "http://www.w3.org/2000/svg",
+            width: "20",
+            height: "20",
+            viewBox: "0 0 24 24",
+            fill: "none",
+            stroke: "currentColor",
+            strokeWidth: "2",
+            strokeLinecap: "round",
+            strokeLinejoin: "round"
+        },
+            React.createElement('circle', { cx: "9", cy: "5", r: "1" }),
+            React.createElement('circle', { cx: "9", cy: "12", r: "1" }),
+            React.createElement('circle', { cx: "9", cy: "19", r: "1" }),
+            React.createElement('circle', { cx: "15", cy: "5", r: "1" }),
+            React.createElement('circle', { cx: "15", cy: "12", r: "1" }),
+            React.createElement('circle', { cx: "15", cy: "19", r: "1" })
+        );
 
         // Logo component with circular flow around 'n'
         const NousLogo = ({ size = "medium" }) => {
@@ -954,6 +1011,10 @@
             const [newHabitName, setNewHabitName] = useState('');
             const [isLoading, setIsLoading] = useState(true);
             const [modalHabit, setModalHabit] = useState(null);
+            const [editingHabitId, setEditingHabitId] = useState(null);
+            const [tempHabitName, setTempHabitName] = useState('');
+            const [draggedHabitId, setDraggedHabitId] = useState(null);
+            const [dragOverIndex, setDragOverIndex] = useState(null);
 
             const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
 
@@ -966,16 +1027,17 @@
 
                 const unsubscribeHabits = window.onSnapshot(habitsCol, async (snapshot) => {
                     const habitsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                    
+
                     // If this is a new user with no habits, create default habits
                     if (habitsData.length === 0) {
                         const defaultHabits = ['Study', 'Exercise'];
                         try {
-                            for (const habitName of defaultHabits) {
+                            for (let i = 0; i < defaultHabits.length; i++) {
                                 await window.addDoc(habitsCol, {
-                                    name: habitName,
+                                    name: defaultHabits[i],
                                     createdAt: window.Timestamp.now(),
-                                    isDefault: true
+                                    isDefault: true,
+                                    order: i
                                 });
                             }
                             setNotification({ type: 'success', message: 'Welcome! Default habits created for you.' });
@@ -984,7 +1046,24 @@
                             setNotification({ type: 'error', message: 'Failed to create default habits.' });
                         }
                     }
-                    
+
+                    // Initialize order field for existing habits that don't have it
+                    const habitsNeedingOrder = habitsData.filter(h => h.order === undefined);
+                    if (habitsNeedingOrder.length > 0) {
+                        try {
+                            const batch = window.writeBatch(db);
+                            habitsNeedingOrder.forEach((habit, index) => {
+                                const habitRef = window.doc(db, `/artifacts/${appId}/users/${userId}/habits/${habit.id}`);
+                                batch.update(habitRef, { order: index });
+                            });
+                            await batch.commit();
+                        } catch (error) {
+                            console.error("Error initializing habit order:", error);
+                        }
+                    }
+
+                    // Sort habits by order field
+                    habitsData.sort((a, b) => (a.order || 0) - (b.order || 0));
                     setHabits(habitsData);
                     setIsLoading(false);
                 }, (error) => {
@@ -1020,9 +1099,12 @@
                 if (newHabitName.trim() === '') return;
                 try {
                     const habitsCol = window.collection(db, `/artifacts/${appId}/users/${userId}/habits`);
+                    // New habits go to the end
+                    const maxOrder = habits.length > 0 ? Math.max(...habits.map(h => h.order || 0)) : -1;
                     await window.addDoc(habitsCol, {
                         name: newHabitName,
-                        createdAt: window.Timestamp.now()
+                        createdAt: window.Timestamp.now(),
+                        order: maxOrder + 1
                     });
                     setNewHabitName('');
                     setNotification({ type: 'success', message: 'Habit added!' });
@@ -1057,7 +1139,103 @@
                     }
                 }
             };
-            
+
+            const handleRenameHabit = async (habitId, newName) => {
+                console.log('handleRenameHabit called:', { habitId, newName });
+
+                if (!newName || newName.trim() === '') {
+                    console.log('Empty name, rejecting');
+                    setNotification({ type: 'error', message: 'Habit name cannot be empty.' });
+                    return;
+                }
+
+                try {
+                    console.log('Updating habit in Firestore...');
+                    const habitDocRef = window.doc(db, `/artifacts/${appId}/users/${userId}/habits/${habitId}`);
+                    await window.updateDoc(habitDocRef, { name: newName.trim() });
+                    console.log('Habit document updated');
+
+                    // Also update all sessions with this habit
+                    console.log('Updating sessions...');
+                    const sessionsQuery = window.query(
+                        window.collection(db, `/artifacts/${appId}/users/${userId}/sessions`),
+                        window.where("habitId", "==", habitId)
+                    );
+                    const sessionsSnapshot = await window.getDocs(sessionsQuery);
+                    console.log(`Found ${sessionsSnapshot.size} sessions to update`);
+
+                    const batch = window.writeBatch(db);
+                    sessionsSnapshot.forEach(doc => {
+                        batch.update(doc.ref, { habitName: newName.trim() });
+                    });
+                    await batch.commit();
+                    console.log('Sessions updated');
+
+                    setEditingHabitId(null);
+                    setTempHabitName('');
+                    setNotification({ type: 'success', message: 'Habit renamed!' });
+                    console.log('Rename complete!');
+                } catch (error) {
+                    console.error("Error renaming habit:", error);
+                    setNotification({ type: 'error', message: 'Failed to rename habit.' });
+                }
+            };
+
+            const handleDragStart = (e, habitId) => {
+                setDraggedHabitId(habitId);
+                e.dataTransfer.effectAllowed = 'move';
+                e.dataTransfer.setData('text/html', e.currentTarget);
+            };
+
+            const handleDragOver = (e, index) => {
+                e.preventDefault();
+                e.dataTransfer.dropEffect = 'move';
+                setDragOverIndex(index);
+            };
+
+            const handleDragLeave = () => {
+                setDragOverIndex(null);
+            };
+
+            const handleDrop = async (e, targetIndex) => {
+                e.preventDefault();
+                setDragOverIndex(null);
+
+                if (!draggedHabitId) return;
+
+                const draggedIndex = habits.findIndex(h => h.id === draggedHabitId);
+                if (draggedIndex === -1 || draggedIndex === targetIndex) {
+                    setDraggedHabitId(null);
+                    return;
+                }
+
+                try {
+                    // Reorder the habits array
+                    const reorderedHabits = [...habits];
+                    const [draggedItem] = reorderedHabits.splice(draggedIndex, 1);
+                    reorderedHabits.splice(targetIndex, 0, draggedItem);
+
+                    // Update order field for all habits in batch
+                    const batch = window.writeBatch(db);
+                    reorderedHabits.forEach((habit, index) => {
+                        const habitRef = window.doc(db, `/artifacts/${appId}/users/${userId}/habits/${habit.id}`);
+                        batch.update(habitRef, { order: index });
+                    });
+
+                    await batch.commit();
+                } catch (error) {
+                    console.error("Error reordering habit:", error);
+                    setNotification({ type: 'error', message: 'Failed to reorder habit.' });
+                }
+
+                setDraggedHabitId(null);
+            };
+
+            const handleDragEnd = () => {
+                setDraggedHabitId(null);
+                setDragOverIndex(null);
+            };
+
             const startTimer = useCallback((habitId) => {
                 clearInterval(timerIntervals.current[habitId]);
                 
@@ -1154,24 +1332,90 @@
 
                     // Habits List
                     React.createElement('div', { className: "space-y-4" },
-                        habits.length > 0 ? habits.map(habit => {
+                        habits.length > 0 ? habits.map((habit, index) => {
                             const timer = activeTimers[habit.id];
                             const isRunning = timer && !timer.isPaused;
-                            
-                            return React.createElement('div', { key: habit.id, className: "bg-white p-4 rounded-lg shadow-sm flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4" },
+                            const isEditing = editingHabitId === habit.id;
+                            const isDragging = draggedHabitId === habit.id;
+                            const isDropTarget = dragOverIndex === index;
+
+                            return React.createElement('div', {
+                                key: habit.id,
+                                draggable: !isEditing,
+                                onDragStart: (e) => handleDragStart(e, habit.id),
+                                onDragOver: (e) => handleDragOver(e, index),
+                                onDragLeave: handleDragLeave,
+                                onDrop: (e) => handleDrop(e, index),
+                                onDragEnd: handleDragEnd,
+                                className: `bg-white p-4 rounded-lg shadow-sm flex flex-col sm:flex-row sm:items-center gap-4 transition-all ${isDragging ? 'opacity-50 scale-95' : ''} ${isDropTarget ? 'border-2 border-blue-400 border-dashed' : ''}`
+                            },
+                                // Drag handle (left side)
+                                React.createElement('div', {
+                                    className: `p-2 text-gray-400 transition ${isEditing ? 'cursor-default opacity-30' : 'cursor-move hover:text-gray-600'}`,
+                                    title: isEditing ? "" : "Drag to reorder",
+                                    onMouseDown: (e) => {
+                                        if (isEditing) e.preventDefault();
+                                    }
+                                },
+                                    React.createElement(GripIcon)
+                                ),
+
+                                // Habit name and timer (middle)
                                 React.createElement('div', { className: "flex-grow" },
-                                    React.createElement('h3', { className: "text-xl text-gray-700 mb-4", style: { fontWeight: 400 } }, habit.name),
-                                    React.createElement('div', { 
-                                        className: `timer-display ${isRunning ? 'running' : (timer ? 'paused' : '')}` 
+                                    isEditing ?
+                                        React.createElement('div', { className: "flex items-center gap-2 mb-4" },
+                                            React.createElement('input', {
+                                                type: "text",
+                                                value: tempHabitName,
+                                                onChange: (e) => setTempHabitName(e.target.value),
+                                                onKeyDown: (e) => {
+                                                    if (e.key === 'Enter') handleRenameHabit(habit.id, tempHabitName);
+                                                    if (e.key === 'Escape') { setEditingHabitId(null); setTempHabitName(''); }
+                                                },
+                                                className: "flex-grow px-3 py-1 border border-blue-400 rounded focus:ring-2 focus:ring-blue-500 focus:outline-none",
+                                                autoFocus: true
+                                            }),
+                                            React.createElement('button', {
+                                                onClick: () => {
+                                                    console.log('Save button clicked');
+                                                    handleRenameHabit(habit.id, tempHabitName);
+                                                },
+                                                className: "p-2 bg-green-100 text-green-600 rounded hover:bg-green-200 transition",
+                                                title: "Save"
+                                            },
+                                                React.createElement(CheckIcon)
+                                            ),
+                                            React.createElement('button', {
+                                                onClick: () => { setEditingHabitId(null); setTempHabitName(''); },
+                                                className: "p-2 bg-red-100 text-red-600 rounded hover:bg-red-200 transition",
+                                                title: "Cancel"
+                                            },
+                                                React.createElement(XIcon)
+                                            )
+                                        ) :
+                                        React.createElement('div', { className: "flex items-center gap-2 mb-4" },
+                                            React.createElement('h3', { className: "text-xl text-gray-700", style: { fontWeight: 400 } }, habit.name),
+                                            React.createElement('button', {
+                                                onClick: () => { setEditingHabitId(habit.id); setTempHabitName(habit.name); },
+                                                className: "p-1 text-gray-400 hover:text-gray-600 transition",
+                                                title: "Rename habit"
+                                            },
+                                                React.createElement(PencilIcon)
+                                            )
+                                        ),
+                                    React.createElement('div', {
+                                        className: `timer-display ${isRunning ? 'running' : (timer ? 'paused' : '')}`
                                     },
                                         React.createElement('span', null, formatTimeDisplay(timer?.elapsedMilliseconds || 0)),
-                                        React.createElement('span', { className: "milliseconds" }, 
+                                        React.createElement('span', { className: "milliseconds" },
                                             `.${String(getMilliseconds(timer?.elapsedMilliseconds || 0)).padStart(2, '0')}`
                                         )
                                     )
                                 ),
+
+                                // Action buttons (right side)
                                 React.createElement('div', { className: "flex items-center gap-2 flex-wrap" },
-                                    isRunning ? 
+                                    isRunning ?
                                         React.createElement('button', { onClick: () => pauseTimer(habit.id), className: "p-3 bg-yellow-100 text-yellow-600 rounded-full hover:bg-yellow-200 transition" },
                                             React.createElement(PauseIcon)
                                         ) :
@@ -1691,7 +1935,7 @@
             };
 
             // Beautiful Tree SVG with crisp animations
-            const TreeSVG = ({ growth, color }) => {
+            const TreeSVG = ({ growth, color, treeType }) => {
                 const [animationKey, setAnimationKey] = useState(0);
                 const prevGrowthRef = useRef(growth);
 
@@ -1710,41 +1954,135 @@
                 const leafGrowth = Math.max(0, Math.min((normalizedGrowth - 0.6) / 0.35, 1)); // 60-95%
                 const fruitGrowth = normalizedGrowth >= 0.95 ? 1 : 0;
 
-                // Colors with warm, natural palette
-                const trunkColor = "#8B7355";
-                const leafColor = color || "#86efac";
-                const fruitColor = "#fbbf24";
+                // Enhanced colors with depth and variety - Minecraft-inspired
+                // Trunk colors with more variety (browns, greys, reddish tones)
+                const trunkDark = "#6B5947";    // Dark brown
+                const trunkMid = "#8B7355";      // Medium brown
+                const trunkLight = "#A0826D";    // Light brown
+                const trunkGrey = "#736B5E";     // Grey-brown (birch-inspired)
+                const trunkRed = "#A85C4A";      // Reddish brown (jungle-inspired)
+                const trunkOrange = "#C97A3D";   // Orange-brown (acacia-inspired)
 
-                // Branch paths with organic curves
+                // Dynamic leaf colors based on tree type (specific to each tree)
+                let leafColors;
+                if (treeType === 'sakura') {
+                    // Ancient Sakura: Pink and bright purple
+                    leafColors = ["#fda4af", "#fb7185", "#f472b6", "#c084fc", "#e879f9"];
+                } else if (treeType === 'cherry') {
+                    // Cherry Blossom: Pink shades
+                    leafColors = ["#fda4af", "#fb7185", "#f472b6", "#fbbf24", "#fce7f3"];
+                } else if (treeType === 'willow') {
+                    // Willow: Grey tones
+                    leafColors = ["#9ca3af", "#6b7280", "#d1d5db", "#9ca3af", "#6b7280"];
+                } else if (treeType === 'pine') {
+                    // Pine: Dark green tones
+                    leafColors = ["#14532d", "#166534", "#15803d", "#16a34a", "#22c55e"];
+                } else {
+                    // Oak, Seedling, and others: Minecraft oak/jungle leaf greens
+                    leafColors = ["#48b518", "#5ec920", "#3fa014", "#6ed528", "#58b61c"];
+                }
+
+                // Minecraft-inspired fruit colors (apples, berries, cocoa)
+                const fruitColors = [
+                    "#DC143C", // Apple red (drops from oak trees)
+                    "#E74C3C", // Sweet berry red-orange
+                    "#F9CA24", // Glow berry golden/amber
+                ];
+
+                // Enhanced branch paths with Minecraft-inspired color variety
                 const branches = [
-                    { d: "M100,120 Q85,100 75,80", delay: 0, visible: branchGrowth > 0 },
-                    { d: "M100,120 Q115,100 125,80", delay: 0.1, visible: branchGrowth > 0.2 },
-                    { d: "M100,110 Q80,95 70,75", delay: 0.15, visible: branchGrowth > 0.4 },
-                    { d: "M100,110 Q120,95 130,75", delay: 0.2, visible: branchGrowth > 0.4 },
-                    { d: "M100,100 Q90,85 82,65", delay: 0.25, visible: branchGrowth > 0.6 },
-                    { d: "M100,100 Q110,85 118,65", delay: 0.3, visible: branchGrowth > 0.6 },
+                    // Main branches - larger, thicker with varied colors
+                    { d: "M100,120 Q85,105 75,85 Q70,75 68,65", width: 5, color: trunkDark, delay: 0, visible: branchGrowth > 0 },
+                    { d: "M100,120 Q115,105 125,85 Q130,75 132,65", width: 5, color: trunkRed, delay: 0.05, visible: branchGrowth > 0.1 },
+                    { d: "M100,115 Q80,100 70,80 Q65,70 62,60", width: 4, color: trunkMid, delay: 0.1, visible: branchGrowth > 0.2 },
+                    { d: "M100,115 Q120,100 130,80 Q135,70 138,60", width: 4, color: trunkOrange, delay: 0.15, visible: branchGrowth > 0.3 },
+
+                    // Secondary branches - medium with more color variety
+                    { d: "M100,105 Q88,92 78,75 Q75,68 72,58", width: 3, color: trunkMid, delay: 0.2, visible: branchGrowth > 0.4 },
+                    { d: "M100,105 Q112,92 122,75 Q125,68 128,58", width: 3, color: trunkGrey, delay: 0.25, visible: branchGrowth > 0.5 },
+                    { d: "M100,100 Q92,88 85,72 Q82,65 80,55", width: 3, color: trunkLight, delay: 0.3, visible: branchGrowth > 0.6 },
+                    { d: "M100,100 Q108,88 115,72 Q118,65 120,55", width: 3, color: trunkRed, delay: 0.35, visible: branchGrowth > 0.65 },
+
+                    // Tertiary branches - smaller with varied tones
+                    { d: "M75,85 Q70,78 65,68", width: 2, color: trunkLight, delay: 0.4, visible: branchGrowth > 0.7 },
+                    { d: "M125,85 Q130,78 135,68", width: 2, color: trunkOrange, delay: 0.42, visible: branchGrowth > 0.7 },
+                    { d: "M78,75 Q74,68 70,58", width: 2, color: trunkGrey, delay: 0.45, visible: branchGrowth > 0.75 },
+                    { d: "M122,75 Q126,68 130,58", width: 2, color: trunkLight, delay: 0.47, visible: branchGrowth > 0.75 },
+
+                    // Quaternary branches - extra fine detail for fuller canopy
+                    { d: "M68,65 Q64,58 60,50", width: 1.5, color: trunkGrey, delay: 0.5, visible: branchGrowth > 0.8 },
+                    { d: "M132,65 Q136,58 140,50", width: 1.5, color: trunkLight, delay: 0.52, visible: branchGrowth > 0.8 },
+                    { d: "M70,58 Q67,52 64,45", width: 1.5, color: trunkOrange, delay: 0.54, visible: branchGrowth > 0.85 },
+                    { d: "M130,58 Q133,52 136,45", width: 1.5, color: trunkGrey, delay: 0.56, visible: branchGrowth > 0.85 },
                 ];
 
-                // Leaf positions with natural clustering
+                // Enhanced leaf positions with size and color variety
                 const leaves = [
-                    { x: 75, y: 75, delay: 0, visible: leafGrowth > 0 },
-                    { x: 125, y: 75, delay: 0.05, visible: leafGrowth > 0.1 },
-                    { x: 70, y: 70, delay: 0.1, visible: leafGrowth > 0.2 },
-                    { x: 130, y: 70, delay: 0.15, visible: leafGrowth > 0.3 },
-                    { x: 82, y: 60, delay: 0.2, visible: leafGrowth > 0.4 },
-                    { x: 118, y: 60, delay: 0.25, visible: leafGrowth > 0.5 },
-                    { x: 100, y: 55, delay: 0.3, visible: leafGrowth > 0.6 },
-                    { x: 90, y: 65, delay: 0.35, visible: leafGrowth > 0.7 },
-                    { x: 110, y: 65, delay: 0.4, visible: leafGrowth > 0.8 },
-                    { x: 85, y: 80, delay: 0.45, visible: leafGrowth > 0.9 },
-                    { x: 115, y: 80, delay: 0.5, visible: leafGrowth > 0.9 },
+                    // Top cluster
+                    { x: 100, y: 48, size: 14, color: leafColors[0], delay: 0, visible: leafGrowth > 0 },
+                    { x: 95, y: 52, size: 12, color: leafColors[1], delay: 0.02, visible: leafGrowth > 0.05 },
+                    { x: 105, y: 52, size: 12, color: leafColors[2], delay: 0.04, visible: leafGrowth > 0.1 },
+                    { x: 90, y: 56, size: 10, color: leafColors[3], delay: 0.06, visible: leafGrowth > 0.15 },
+                    { x: 110, y: 56, size: 10, color: leafColors[4], delay: 0.08, visible: leafGrowth > 0.2 },
+
+                    // Upper-middle clusters
+                    { x: 82, y: 60, size: 13, color: leafColors[0], delay: 0.1, visible: leafGrowth > 0.25 },
+                    { x: 118, y: 60, size: 13, color: leafColors[1], delay: 0.12, visible: leafGrowth > 0.3 },
+                    { x: 75, y: 64, size: 11, color: leafColors[2], delay: 0.14, visible: leafGrowth > 0.35 },
+                    { x: 125, y: 64, size: 11, color: leafColors[3], delay: 0.16, visible: leafGrowth > 0.4 },
+                    { x: 88, y: 65, size: 10, color: leafColors[4], delay: 0.18, visible: leafGrowth > 0.42 },
+                    { x: 112, y: 65, size: 10, color: leafColors[0], delay: 0.2, visible: leafGrowth > 0.44 },
+
+                    // Middle section - denser
+                    { x: 70, y: 68, size: 12, color: leafColors[1], delay: 0.22, visible: leafGrowth > 0.46 },
+                    { x: 130, y: 68, size: 12, color: leafColors[2], delay: 0.24, visible: leafGrowth > 0.48 },
+                    { x: 80, y: 70, size: 14, color: leafColors[3], delay: 0.26, visible: leafGrowth > 0.5 },
+                    { x: 120, y: 70, size: 14, color: leafColors[4], delay: 0.28, visible: leafGrowth > 0.52 },
+                    { x: 92, y: 72, size: 11, color: leafColors[0], delay: 0.3, visible: leafGrowth > 0.54 },
+                    { x: 108, y: 72, size: 11, color: leafColors[1], delay: 0.32, visible: leafGrowth > 0.56 },
+                    { x: 65, y: 75, size: 10, color: leafColors[2], delay: 0.34, visible: leafGrowth > 0.58 },
+                    { x: 135, y: 75, size: 10, color: leafColors[3], delay: 0.36, visible: leafGrowth > 0.6 },
+
+                    // Lower-middle clusters
+                    { x: 75, y: 78, size: 13, color: leafColors[4], delay: 0.38, visible: leafGrowth > 0.62 },
+                    { x: 125, y: 78, size: 13, color: leafColors[0], delay: 0.4, visible: leafGrowth > 0.64 },
+                    { x: 85, y: 80, size: 12, color: leafColors[1], delay: 0.42, visible: leafGrowth > 0.66 },
+                    { x: 115, y: 80, size: 12, color: leafColors[2], delay: 0.44, visible: leafGrowth > 0.68 },
+                    { x: 78, y: 83, size: 10, color: leafColors[3], delay: 0.46, visible: leafGrowth > 0.7 },
+                    { x: 122, y: 83, size: 10, color: leafColors[4], delay: 0.48, visible: leafGrowth > 0.72 },
+
+                    // Lower outer leaves
+                    { x: 68, y: 85, size: 11, color: leafColors[0], delay: 0.5, visible: leafGrowth > 0.74 },
+                    { x: 132, y: 85, size: 11, color: leafColors[1], delay: 0.52, visible: leafGrowth > 0.76 },
+                    { x: 72, y: 88, size: 9, color: leafColors[2], delay: 0.54, visible: leafGrowth > 0.78 },
+                    { x: 128, y: 88, size: 9, color: leafColors[3], delay: 0.56, visible: leafGrowth > 0.8 },
+                    { x: 90, y: 86, size: 10, color: leafColors[4], delay: 0.58, visible: leafGrowth > 0.85 },
+                    { x: 110, y: 86, size: 10, color: leafColors[0], delay: 0.6, visible: leafGrowth > 0.9 },
+
+                    // Additional outer leaves for fuller canopy
+                    { x: 60, y: 78, size: 10, color: leafColors[1], delay: 0.62, visible: leafGrowth > 0.82 },
+                    { x: 140, y: 78, size: 10, color: leafColors[2], delay: 0.64, visible: leafGrowth > 0.84 },
+                    { x: 63, y: 70, size: 9, color: leafColors[3], delay: 0.66, visible: leafGrowth > 0.86 },
+                    { x: 137, y: 70, size: 9, color: leafColors[4], delay: 0.68, visible: leafGrowth > 0.88 },
+                    { x: 98, y: 58, size: 11, color: leafColors[0], delay: 0.7, visible: leafGrowth > 0.87 },
+                    { x: 102, y: 58, size: 11, color: leafColors[1], delay: 0.72, visible: leafGrowth > 0.89 },
+                    { x: 76, y: 82, size: 12, color: leafColors[2], delay: 0.74, visible: leafGrowth > 0.91 },
+                    { x: 124, y: 82, size: 12, color: leafColors[3], delay: 0.76, visible: leafGrowth > 0.92 },
+                    { x: 86, y: 76, size: 10, color: leafColors[4], delay: 0.78, visible: leafGrowth > 0.93 },
+                    { x: 114, y: 76, size: 10, color: leafColors[0], delay: 0.8, visible: leafGrowth > 0.94 },
+                    { x: 94, y: 68, size: 9, color: leafColors[1], delay: 0.82, visible: leafGrowth > 0.95 },
+                    { x: 106, y: 68, size: 9, color: leafColors[2], delay: 0.84, visible: leafGrowth > 0.96 },
                 ];
 
-                // Fruits for milestones
-                const fruits = fruitGrowth > 0 ? [
-                    { x: 100, y: 58, delay: 0 },
-                    { x: 90, y: 68, delay: 0.1 },
-                    { x: 110, y: 68, delay: 0.1 },
+                // Minecraft-style fruits (apples, sweet berries, glow berries) - hidden for seedlings
+                const fruits = (fruitGrowth > 0 && treeType !== 'seedling') ? [
+                    { x: 100, y: 55, size: 4, color: fruitColors[0], delay: 0 },      // Apple (red)
+                    { x: 88, y: 62, size: 3.5, color: fruitColors[1], delay: 0.1 },   // Sweet berry (orange-red)
+                    { x: 112, y: 62, size: 3.5, color: fruitColors[2], delay: 0.15 }, // Glow berry (golden)
+                    { x: 78, y: 68, size: 3, color: fruitColors[0], delay: 0.2 },     // Apple
+                    { x: 122, y: 68, size: 3, color: fruitColors[1], delay: 0.25 },   // Sweet berry
+                    { x: 95, y: 70, size: 3.5, color: fruitColors[2], delay: 0.3 },   // Glow berry
+                    { x: 105, y: 70, size: 3.5, color: fruitColors[0], delay: 0.35 }, // Apple
                 ] : [];
 
                 return React.createElement('svg', {
@@ -1759,7 +2097,7 @@
                         React.createElement('symbol', { id: 'leaf', viewBox: '0 0 10 10' },
                             React.createElement('ellipse', {
                                 cx: "5", cy: "5", rx: "4", ry: "6",
-                                fill: leafColor,
+                                fill: leafColors[0],
                                 transform: "rotate(-20 5 5)"
                             })
                         ),
@@ -1767,7 +2105,7 @@
                         React.createElement('symbol', { id: 'sparkle', viewBox: '0 0 10 10' },
                             React.createElement('path', {
                                 d: "M5,0 L6,4 L10,5 L6,6 L5,10 L4,6 L0,5 L4,4 Z",
-                                fill: fruitColor,
+                                fill: "#fbbf24",
                                 opacity: "0.6"
                             })
                         ),
@@ -1812,28 +2150,46 @@
                             willChange: "transform"
                         }
                     },
-                        // Trunk with stroke-dash reveal
-                        React.createElement('path', {
-                            d: "M100,180 Q98,150 97,120 Q96,90 100,80",
-                            stroke: trunkColor,
-                            strokeWidth: "8",
-                            strokeLinecap: "round",
-                            fill: "none",
-                            strokeDasharray: trunkGrowth > 0 ? "100" : "0",
-                            strokeDashoffset: trunkGrowth > 0 ? `${100 - (trunkGrowth * 100)}` : "100",
-                            style: {
-                                transition: "stroke-dashoffset 0.8s cubic-bezier(0.4, 0, 0.2, 1)",
-                                willChange: "stroke-dashoffset"
-                            }
-                        }),
+                        // Enhanced trunk with multiple colors for depth
+                        React.createElement('g', null,
+                            // Base trunk (darkest)
+                            React.createElement('path', {
+                                d: "M100,180 Q98,150 97,120 Q96,90 100,80",
+                                stroke: trunkDark,
+                                strokeWidth: "8",
+                                strokeLinecap: "round",
+                                fill: "none",
+                                strokeDasharray: trunkGrowth > 0 ? "100" : "0",
+                                strokeDashoffset: trunkGrowth > 0 ? `${100 - (trunkGrowth * 100)}` : "100",
+                                style: {
+                                    transition: "stroke-dashoffset 0.8s cubic-bezier(0.4, 0, 0.2, 1)",
+                                    willChange: "stroke-dashoffset"
+                                }
+                            }),
+                            // Highlight on left side
+                            React.createElement('path', {
+                                d: "M98,180 Q96,150 95.5,120 Q95,90 98.5,80",
+                                stroke: trunkLight,
+                                strokeWidth: "2",
+                                strokeLinecap: "round",
+                                fill: "none",
+                                strokeDasharray: trunkGrowth > 0 ? "100" : "0",
+                                strokeDashoffset: trunkGrowth > 0 ? `${100 - (trunkGrowth * 100)}` : "100",
+                                opacity: "0.6",
+                                style: {
+                                    transition: "stroke-dashoffset 0.8s cubic-bezier(0.4, 0, 0.2, 1)",
+                                    willChange: "stroke-dashoffset"
+                                }
+                            })
+                        ),
 
-                        // Branches with staggered stroke-dash animations
+                        // Enhanced branches with varied widths and colors
                         ...branches.map((branch, i) =>
                             branch.visible ? React.createElement('path', {
                                 key: `branch-${i}`,
                                 d: branch.d,
-                                stroke: trunkColor,
-                                strokeWidth: "4",
+                                stroke: branch.color,
+                                strokeWidth: branch.width.toString(),
                                 strokeLinecap: "round",
                                 fill: "none",
                                 strokeDasharray: "50",
@@ -1848,15 +2204,16 @@
                             }) : null
                         ),
 
-                        // Leaves with pop-in animation
+                        // Enhanced leaves with varied colors and sizes
                         ...leaves.map((leaf, i) =>
-                            leaf.visible ? React.createElement('use', {
+                            leaf.visible ? React.createElement('ellipse', {
                                 key: `leaf-${i}`,
-                                href: "#leaf",
-                                x: leaf.x - 5,
-                                y: leaf.y - 5,
-                                width: "10",
-                                height: "10",
+                                cx: leaf.x,
+                                cy: leaf.y,
+                                rx: leaf.size * 0.35,
+                                ry: leaf.size * 0.5,
+                                fill: leaf.color,
+                                transform: `rotate(-20 ${leaf.x} ${leaf.y})`,
                                 className: "leaf-pop",
                                 style: {
                                     animation: `leafPop 0.22s cubic-bezier(0.68, -0.55, 0.27, 1.55) ${leaf.delay}s both`,
@@ -1867,38 +2224,60 @@
                             }) : null
                         ),
 
-                        // Fruits with glow
+                        // Enhanced fruits with varied colors, sizes, and details
                         ...fruits.map((fruit, i) =>
                             React.createElement('g', { key: `fruit-${i}` },
                                 // Glow effect
                                 React.createElement('circle', {
                                     cx: fruit.x,
                                     cy: fruit.y,
-                                    r: "6",
-                                    fill: fruitColor,
+                                    r: fruit.size * 1.5,
+                                    fill: fruit.color,
                                     opacity: "0.3",
                                     style: {
                                         filter: "blur(4px)",
                                         animation: "fruitGlow 2s ease-in-out infinite"
                                     }
                                 }),
-                                // Fruit
+                                // Main fruit
                                 React.createElement('circle', {
                                     cx: fruit.x,
                                     cy: fruit.y,
-                                    r: "4",
-                                    fill: fruitColor,
+                                    r: fruit.size,
+                                    fill: fruit.color,
                                     style: {
                                         animation: `leafPop 0.3s cubic-bezier(0.68, -0.55, 0.27, 1.55) ${fruit.delay}s both`
                                     }
                                 }),
+                                // Highlight on fruit
+                                React.createElement('circle', {
+                                    cx: fruit.x - fruit.size * 0.3,
+                                    cy: fruit.y - fruit.size * 0.3,
+                                    r: fruit.size * 0.35,
+                                    fill: "#ffffff",
+                                    opacity: "0.5",
+                                    style: {
+                                        animation: `leafPop 0.3s cubic-bezier(0.68, -0.55, 0.27, 1.55) ${fruit.delay}s both`
+                                    }
+                                }),
+                                // Stem
+                                React.createElement('line', {
+                                    x1: fruit.x,
+                                    y1: fruit.y - fruit.size,
+                                    x2: fruit.x,
+                                    y2: fruit.y - fruit.size - 2,
+                                    stroke: trunkMid,
+                                    strokeWidth: "1",
+                                    strokeLinecap: "round",
+                                    style: {
+                                        animation: `leafPop 0.3s cubic-bezier(0.68, -0.55, 0.27, 1.55) ${fruit.delay + 0.05}s both`
+                                    }
+                                }),
                                 // Sparkle
-                                React.createElement('use', {
-                                    href: "#sparkle",
-                                    x: fruit.x - 5,
-                                    y: fruit.y - 8,
-                                    width: "10",
-                                    height: "10",
+                                React.createElement('path', {
+                                    d: `M${fruit.x},${fruit.y - fruit.size - 4} L${fruit.x + 1},${fruit.y - fruit.size - 2} L${fruit.x + 2.5},${fruit.y - fruit.size - 2.5} L${fruit.x + 1},${fruit.y - fruit.size - 3} L${fruit.x},${fruit.y - fruit.size - 5.5} L${fruit.x - 1},${fruit.y - fruit.size - 3} L${fruit.x - 2.5},${fruit.y - fruit.size - 2.5} L${fruit.x - 1},${fruit.y - fruit.size - 2} Z`,
+                                    fill: "#fbbf24",
+                                    opacity: "0.6",
                                     style: {
                                         animation: `leafPop 0.3s cubic-bezier(0.68, -0.55, 0.27, 1.55) ${fruit.delay + 0.1}s both, fruitGlow 1.5s ease-in-out infinite`
                                     }
@@ -1939,7 +2318,7 @@
 
                 // Tree visualization
                 React.createElement('div', { className: "relative bg-gradient-to-b from-blue-50 to-green-50 rounded-lg p-4 mb-4", style: { height: '240px' } },
-                    React.createElement(TreeSVG, { growth: growthPercent, color: currentTree.color }),
+                    React.createElement(TreeSVG, { growth: growthPercent, color: currentTree.color, treeType: currentTree.id }),
 
                     // Growth percentage badge
                     React.createElement('div', {
