@@ -1690,44 +1690,222 @@
                 }
             };
 
-            // Tree SVG visualization
+            // Beautiful Tree SVG with crisp animations
             const TreeSVG = ({ growth, color }) => {
-                const trunkHeight = 60 + (growth / 100) * 40;
-                const canopySize = 30 + (growth / 100) * 50;
-                const opacity = 0.3 + (growth / 100) * 0.7;
+                const [animationKey, setAnimationKey] = useState(0);
+                const prevGrowthRef = useRef(growth);
+
+                // Trigger re-animation when growth increases significantly
+                useEffect(() => {
+                    if (growth > prevGrowthRef.current + 5) {
+                        setAnimationKey(prev => prev + 1);
+                    }
+                    prevGrowthRef.current = growth;
+                }, [growth]);
+
+                // Calculate growth stages (0-1 normalized)
+                const normalizedGrowth = Math.min(growth / 100, 1);
+                const trunkGrowth = Math.min(normalizedGrowth / 0.2, 1); // 0-20%
+                const branchGrowth = Math.max(0, Math.min((normalizedGrowth - 0.2) / 0.4, 1)); // 20-60%
+                const leafGrowth = Math.max(0, Math.min((normalizedGrowth - 0.6) / 0.35, 1)); // 60-95%
+                const fruitGrowth = normalizedGrowth >= 0.95 ? 1 : 0;
+
+                // Colors with warm, natural palette
+                const trunkColor = "#8B7355";
+                const leafColor = color || "#86efac";
+                const fruitColor = "#fbbf24";
+
+                // Branch paths with organic curves
+                const branches = [
+                    { d: "M100,120 Q85,100 75,80", delay: 0, visible: branchGrowth > 0 },
+                    { d: "M100,120 Q115,100 125,80", delay: 0.1, visible: branchGrowth > 0.2 },
+                    { d: "M100,110 Q80,95 70,75", delay: 0.15, visible: branchGrowth > 0.4 },
+                    { d: "M100,110 Q120,95 130,75", delay: 0.2, visible: branchGrowth > 0.4 },
+                    { d: "M100,100 Q90,85 82,65", delay: 0.25, visible: branchGrowth > 0.6 },
+                    { d: "M100,100 Q110,85 118,65", delay: 0.3, visible: branchGrowth > 0.6 },
+                ];
+
+                // Leaf positions with natural clustering
+                const leaves = [
+                    { x: 75, y: 75, delay: 0, visible: leafGrowth > 0 },
+                    { x: 125, y: 75, delay: 0.05, visible: leafGrowth > 0.1 },
+                    { x: 70, y: 70, delay: 0.1, visible: leafGrowth > 0.2 },
+                    { x: 130, y: 70, delay: 0.15, visible: leafGrowth > 0.3 },
+                    { x: 82, y: 60, delay: 0.2, visible: leafGrowth > 0.4 },
+                    { x: 118, y: 60, delay: 0.25, visible: leafGrowth > 0.5 },
+                    { x: 100, y: 55, delay: 0.3, visible: leafGrowth > 0.6 },
+                    { x: 90, y: 65, delay: 0.35, visible: leafGrowth > 0.7 },
+                    { x: 110, y: 65, delay: 0.4, visible: leafGrowth > 0.8 },
+                    { x: 85, y: 80, delay: 0.45, visible: leafGrowth > 0.9 },
+                    { x: 115, y: 80, delay: 0.5, visible: leafGrowth > 0.9 },
+                ];
+
+                // Fruits for milestones
+                const fruits = fruitGrowth > 0 ? [
+                    { x: 100, y: 58, delay: 0 },
+                    { x: 90, y: 68, delay: 0.1 },
+                    { x: 110, y: 68, delay: 0.1 },
+                ] : [];
 
                 return React.createElement('svg', {
                     viewBox: "0 0 200 200",
                     className: "w-full h-full",
-                    style: { transition: 'all 1s ease-in-out' }
+                    key: animationKey,
+                    style: { overflow: 'visible' }
                 },
-                    // Ground
+                    // Define reusable symbols for performance
+                    React.createElement('defs', null,
+                        // Leaf symbol
+                        React.createElement('symbol', { id: 'leaf', viewBox: '0 0 10 10' },
+                            React.createElement('ellipse', {
+                                cx: "5", cy: "5", rx: "4", ry: "6",
+                                fill: leafColor,
+                                transform: "rotate(-20 5 5)"
+                            })
+                        ),
+                        // Sparkle symbol
+                        React.createElement('symbol', { id: 'sparkle', viewBox: '0 0 10 10' },
+                            React.createElement('path', {
+                                d: "M5,0 L6,4 L10,5 L6,6 L5,10 L4,6 L0,5 L4,4 Z",
+                                fill: fruitColor,
+                                opacity: "0.6"
+                            })
+                        ),
+                        // Animation keyframes via CSS
+                        React.createElement('style', null, `
+                            @keyframes sway {
+                                0%, 100% { transform: rotate(-2deg); }
+                                50% { transform: rotate(2deg); }
+                            }
+                            @keyframes leafPop {
+                                0% { transform: scale(0); opacity: 0; }
+                                70% { transform: scale(1.15); opacity: 1; }
+                                100% { transform: scale(1); opacity: 1; }
+                            }
+                            @keyframes fruitGlow {
+                                0%, 100% { opacity: 0.8; }
+                                50% { opacity: 1; }
+                            }
+                            @media (prefers-reduced-motion: reduce) {
+                                .tree-sway { animation: none !important; }
+                                .leaf-pop { animation: none !important; opacity: 1 !important; transform: scale(1) !important; }
+                                .branch-draw { animation: none !important; stroke-dashoffset: 0 !important; }
+                            }
+                        `)
+                    ),
+
+                    // Ground line
                     React.createElement('line', {
-                        x1: "20", y1: "180", x2: "180", y2: "180",
-                        stroke: "#d1d7e3", strokeWidth: "2", strokeLinecap: "round"
+                        x1: "30", y1: "180", x2: "170", y2: "180",
+                        stroke: "#e5e7eb",
+                        strokeWidth: "3",
+                        strokeLinecap: "round",
+                        opacity: "0.5"
                     }),
-                    // Trunk
-                    React.createElement('rect', {
-                        x: "90", y: 180 - trunkHeight, width: "20", height: trunkHeight,
-                        fill: "#8B7355", rx: "4",
-                        style: { transition: 'all 1s ease-in-out' }
-                    }),
-                    // Canopy (3 circles for organic look)
-                    React.createElement('circle', {
-                        cx: "100", cy: 180 - trunkHeight - 10, r: canopySize,
-                        fill: color, opacity: opacity,
-                        style: { transition: 'all 1s ease-in-out' }
-                    }),
-                    React.createElement('circle', {
-                        cx: "80", cy: 180 - trunkHeight, r: canopySize * 0.8,
-                        fill: color, opacity: opacity * 0.9,
-                        style: { transition: 'all 1s ease-in-out' }
-                    }),
-                    React.createElement('circle', {
-                        cx: "120", cy: 180 - trunkHeight, r: canopySize * 0.8,
-                        fill: color, opacity: opacity * 0.9,
-                        style: { transition: 'all 1s ease-in-out' }
-                    })
+
+                    // Main tree group with idle sway
+                    React.createElement('g', {
+                        className: trunkGrowth > 0.5 ? "tree-sway" : "",
+                        style: {
+                            transformOrigin: "100px 180px",
+                            animation: trunkGrowth > 0.5 ? "sway 8s ease-in-out infinite" : "none",
+                            willChange: "transform"
+                        }
+                    },
+                        // Trunk with stroke-dash reveal
+                        React.createElement('path', {
+                            d: "M100,180 Q98,150 97,120 Q96,90 100,80",
+                            stroke: trunkColor,
+                            strokeWidth: "8",
+                            strokeLinecap: "round",
+                            fill: "none",
+                            strokeDasharray: trunkGrowth > 0 ? "100" : "0",
+                            strokeDashoffset: trunkGrowth > 0 ? `${100 - (trunkGrowth * 100)}` : "100",
+                            style: {
+                                transition: "stroke-dashoffset 0.8s cubic-bezier(0.4, 0, 0.2, 1)",
+                                willChange: "stroke-dashoffset"
+                            }
+                        }),
+
+                        // Branches with staggered stroke-dash animations
+                        ...branches.map((branch, i) =>
+                            branch.visible ? React.createElement('path', {
+                                key: `branch-${i}`,
+                                d: branch.d,
+                                stroke: trunkColor,
+                                strokeWidth: "4",
+                                strokeLinecap: "round",
+                                fill: "none",
+                                strokeDasharray: "50",
+                                strokeDashoffset: "0",
+                                className: "branch-draw",
+                                style: {
+                                    strokeDashoffset: `${50 - (branchGrowth * 50)}`,
+                                    transition: `stroke-dashoffset 0.6s cubic-bezier(0.4, 0, 0.2, 1) ${branch.delay}s`,
+                                    willChange: "stroke-dashoffset",
+                                    opacity: 0.9
+                                }
+                            }) : null
+                        ),
+
+                        // Leaves with pop-in animation
+                        ...leaves.map((leaf, i) =>
+                            leaf.visible ? React.createElement('use', {
+                                key: `leaf-${i}`,
+                                href: "#leaf",
+                                x: leaf.x - 5,
+                                y: leaf.y - 5,
+                                width: "10",
+                                height: "10",
+                                className: "leaf-pop",
+                                style: {
+                                    animation: `leafPop 0.22s cubic-bezier(0.68, -0.55, 0.27, 1.55) ${leaf.delay}s both`,
+                                    transformOrigin: `${leaf.x}px ${leaf.y}px`,
+                                    willChange: "transform, opacity",
+                                    opacity: 0.85
+                                }
+                            }) : null
+                        ),
+
+                        // Fruits with glow
+                        ...fruits.map((fruit, i) =>
+                            React.createElement('g', { key: `fruit-${i}` },
+                                // Glow effect
+                                React.createElement('circle', {
+                                    cx: fruit.x,
+                                    cy: fruit.y,
+                                    r: "6",
+                                    fill: fruitColor,
+                                    opacity: "0.3",
+                                    style: {
+                                        filter: "blur(4px)",
+                                        animation: "fruitGlow 2s ease-in-out infinite"
+                                    }
+                                }),
+                                // Fruit
+                                React.createElement('circle', {
+                                    cx: fruit.x,
+                                    cy: fruit.y,
+                                    r: "4",
+                                    fill: fruitColor,
+                                    style: {
+                                        animation: `leafPop 0.3s cubic-bezier(0.68, -0.55, 0.27, 1.55) ${fruit.delay}s both`
+                                    }
+                                }),
+                                // Sparkle
+                                React.createElement('use', {
+                                    href: "#sparkle",
+                                    x: fruit.x - 5,
+                                    y: fruit.y - 8,
+                                    width: "10",
+                                    height: "10",
+                                    style: {
+                                        animation: `leafPop 0.3s cubic-bezier(0.68, -0.55, 0.27, 1.55) ${fruit.delay + 0.1}s both, fruitGlow 1.5s ease-in-out infinite`
+                                    }
+                                })
+                            )
+                        )
+                    )
                 );
             };
 
