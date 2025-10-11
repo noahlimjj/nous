@@ -193,7 +193,8 @@
             deleteDoc,
             Timestamp,
             getDocs,
-            writeBatch
+            writeBatch,
+            serverTimestamp
         } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
 
         // Make Firebase functions globally available
@@ -221,6 +222,7 @@
         window.Timestamp = Timestamp;
         window.getDocs = getDocs;
         window.writeBatch = writeBatch;
+        window.serverTimestamp = serverTimestamp;
 
         // Signal that Firebase SDK is ready
         window.firebaseSDKReady = true;
@@ -1094,6 +1096,55 @@
                 };
             }, [db, userId, appId, setNotification]);
 
+            // Listen for active timer changes from Firebase
+            useEffect(() => {
+                if (!db || !userId) return;
+
+                const activeTimersCol = window.collection(db, `/artifacts/${appId}/users/${userId}/activeTimers`);
+                const unsubscribeTimers = window.onSnapshot(activeTimersCol, (snapshot) => {
+                    const timersData = {};
+                    snapshot.docs.forEach(doc => {
+                        const data = doc.data();
+                        timersData[doc.id] = {
+                            habitId: data.habitId,
+                            habitName: data.habitName,
+                            startTime: data.startTime,
+                            elapsedBeforePause: data.elapsedBeforePause || 0,
+                            isPaused: data.isPaused,
+                            originalStartTime: data.originalStartTime || data.startTime
+                        };
+                    });
+                    setActiveTimers(timersData);
+                }, (error) => {
+                    console.error("Error fetching active timers:", error);
+                });
+
+                return () => unsubscribeTimers();
+            }, [db, userId, appId]);
+
+            // Update timer display every 10ms for running timers
+            useEffect(() => {
+                const interval = setInterval(() => {
+                    setActiveTimers(prev => {
+                        const updated = { ...prev };
+                        let hasChanges = false;
+
+                        Object.keys(updated).forEach(habitId => {
+                            const timer = updated[habitId];
+                            if (!timer.isPaused && timer.startTime) {
+                                // Force re-render to update display
+                                hasChanges = true;
+                            }
+                        });
+
+                        // Only trigger re-render if there are running timers
+                        return hasChanges ? { ...updated } : prev;
+                    });
+                }, 10);
+
+                return () => clearInterval(interval);
+            }, []);
+
             const handleAddHabit = async (e) => {
                 e.preventDefault();
                 if (newHabitName.trim() === '') return;
@@ -1249,72 +1300,100 @@
                 setDragOverIndex(null);
             };
 
-            const startTimer = useCallback((habitId) => {
-                clearInterval(timerIntervals.current[habitId]);
-                
-                const now = Date.now();
-                setActiveTimers(prev => ({
-                    ...prev,
-                    [habitId]: {
-                        startTime: now,
-                        lastTick: now,
-                        elapsedMilliseconds: prev[habitId]?.elapsedMilliseconds || 0,
-                        isPaused: false
-                    }
-                }));
+            // Helper function to calculate current elapsed time for a timer
+            const getTimerElapsedTime = useCallback((timer) => {
+                if (!timer) return 0;
+                if (timer.isPaused) {
+                    return timer.elapsedBeforePause || 0;
+                }
+                // Timer is running - calculate elapsed time from start
+                const elapsedBeforePause = timer.elapsedBeforePause || 0;
+                const sessionElapsed = timer.startTime ? Date.now() - timer.startTime.toMillis() : 0;
+                return elapsedBeforePause + sessionElapsed;
+            }, []);
 
-                timerIntervals.current[habitId] = setInterval(() => {
-                    setActiveTimers(prev => {
-                        if (!prev[habitId] || prev[habitId].isPaused) {
-                            return prev;
-                        }
-                        const now = Date.now();
-                        const delta = now - prev[habitId].lastTick;
-                        const newElapsed = prev[habitId].elapsedMilliseconds + delta;
-                        return {
-                            ...prev,
-                            [habitId]: { ...prev[habitId], elapsedMilliseconds: newElapsed, lastTick: now }
-                        };
+            const startTimer = useCallback(async (habitId) => {
+                const habit = habits.find(h => h.id === habitId);
+                if (!habit) return;
+
+                try {
+                    const timerDocRef = window.doc(db, `/artifacts/${appId}/users/${userId}/activeTimers/${habitId}`);
+                    const existingTimer = activeTimers[habitId];
+
+                    // Save timer to Firebase with server timestamp
+                    await window.setDoc(timerDocRef, {
+                        habitId,
+                        habitName: habit.name,
+                        startTime: window.serverTimestamp(),
+                        elapsedBeforePause: existingTimer?.elapsedBeforePause || 0,
+                        isPaused: false,
+                        // Keep track of original start time for session recording
+                        originalStartTime: existingTimer?.originalStartTime || window.serverTimestamp()
                     });
-                }, 10);
-            }, []);
+                } catch (error) {
+                    console.error("Error starting timer:", error);
+                    setNotification({ type: 'error', message: 'Failed to start timer.' });
+                }
+            }, [db, userId, appId, habits, activeTimers, setNotification]);
 
-            const pauseTimer = useCallback((habitId) => {
-                setActiveTimers(prev => ({
-                    ...prev,
-                    [habitId]: { ...prev[habitId], isPaused: true }
-                }));
-                clearInterval(timerIntervals.current[habitId]);
-            }, []);
+            const pauseTimer = useCallback(async (habitId) => {
+                const timer = activeTimers[habitId];
+                if (!timer) return;
+
+                try {
+                    const timerDocRef = window.doc(db, `/artifacts/${appId}/users/${userId}/activeTimers/${habitId}`);
+
+                    // Calculate total elapsed time including current session
+                    const currentElapsed = timer.elapsedBeforePause || 0;
+                    const sessionElapsed = timer.startTime ? Date.now() - timer.startTime.toMillis() : 0;
+                    const totalElapsed = currentElapsed + sessionElapsed;
+
+                    await window.updateDoc(timerDocRef, {
+                        isPaused: true,
+                        elapsedBeforePause: totalElapsed,
+                        lastPauseTime: window.serverTimestamp()
+                    });
+                } catch (error) {
+                    console.error("Error pausing timer:", error);
+                    setNotification({ type: 'error', message: 'Failed to pause timer.' });
+                }
+            }, [db, userId, appId, activeTimers, setNotification]);
 
             const stopTimer = useCallback(async (habitId, habitName) => {
-                clearInterval(timerIntervals.current[habitId]);
                 const timerData = activeTimers[habitId];
 
-                if (timerData && timerData.elapsedMilliseconds > 0) {
+                if (timerData) {
                     try {
-                        const sessionsCol = window.collection(db, `/artifacts/${appId}/users/${userId}/sessions`);
-                        await window.addDoc(sessionsCol, {
-                            habitId,
-                            habitName,
-                            startTime: window.Timestamp.fromMillis(timerData.startTime),
-                            endTime: window.Timestamp.now(),
-                            duration: Math.round(timerData.elapsedMilliseconds) // Store in milliseconds
-                        });
-                        setNotification({ type: 'success', message: `Session for ${habitName} saved.` });
+                        // Calculate total elapsed time
+                        const currentElapsed = timerData.elapsedBeforePause || 0;
+                        const sessionElapsed = (!timerData.isPaused && timerData.startTime)
+                            ? Date.now() - timerData.startTime.toMillis()
+                            : 0;
+                        const totalElapsed = currentElapsed + sessionElapsed;
+
+                        if (totalElapsed > 0) {
+                            // Save session to Firebase
+                            const sessionsCol = window.collection(db, `/artifacts/${appId}/users/${userId}/sessions`);
+                            const originalStartTime = timerData.originalStartTime || timerData.startTime;
+
+                            await window.addDoc(sessionsCol, {
+                                habitId,
+                                habitName,
+                                startTime: originalStartTime,
+                                endTime: window.Timestamp.now(),
+                                duration: Math.round(totalElapsed)
+                            });
+                            setNotification({ type: 'success', message: `Session for ${habitName} saved.` });
+                        }
+
+                        // Delete from activeTimers collection
+                        const timerDocRef = window.doc(db, `/artifacts/${appId}/users/${userId}/activeTimers/${habitId}`);
+                        await window.deleteDoc(timerDocRef);
                     } catch(error) {
-                        console.error("Error saving session:", error);
-                        setNotification({ type: 'error', message: 'Failed to save session.' });
+                        console.error("Error stopping timer:", error);
+                        setNotification({ type: 'error', message: 'Failed to stop timer.' });
                     }
                 }
-                
-                setActiveTimers(prev => {
-                    const newTimers = { ...prev };
-                    delete newTimers[habitId];
-                    return newTimers;
-                });
-                delete timerIntervals.current[habitId];
-
             }, [activeTimers, db, userId, appId, setNotification]);
 
             if (isLoading) {
@@ -1419,9 +1498,9 @@
                                     React.createElement('div', {
                                         className: `timer-display ${isRunning ? 'running' : (timer ? 'paused' : '')}`
                                     },
-                                        React.createElement('span', null, formatTimeDisplay(timer?.elapsedMilliseconds || 0)),
+                                        React.createElement('span', null, formatTimeDisplay(getTimerElapsedTime(timer))),
                                         React.createElement('span', { className: "milliseconds" },
-                                            `.${String(getMilliseconds(timer?.elapsedMilliseconds || 0)).padStart(2, '0')}`
+                                            `.${String(getMilliseconds(getTimerElapsedTime(timer))).padStart(2, '0')}`
                                         )
                                     )
                                 ),
