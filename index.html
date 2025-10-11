@@ -1140,6 +1140,19 @@
                 }
             };
 
+            const handleDeleteSession = async (sessionId) => {
+                if (window.confirm("Are you sure you want to delete this session? This cannot be undone.")) {
+                    try {
+                        const sessionDocRef = window.doc(db, `/artifacts/${appId}/users/${userId}/sessions/${sessionId}`);
+                        await window.deleteDoc(sessionDocRef);
+                        setNotification({ type: 'success', message: 'Session deleted successfully.' });
+                    } catch (error) {
+                        console.error("Error deleting session:", error);
+                        setNotification({ type: 'error', message: 'Failed to delete session.' });
+                    }
+                }
+            };
+
             const handleRenameHabit = async (habitId, newName) => {
                 console.log('handleRenameHabit called:', { habitId, newName });
 
@@ -1448,11 +1461,20 @@
                         React.createElement('h2', { className: "text-2xl text-gray-800 mb-4", style: { fontWeight: 300 } }, "recent sessions"),
                         React.createElement('div', { className: "bg-white p-4 rounded-lg shadow-sm space-y-3 max-h-[600px] overflow-y-auto" },
                             sessions.length > 0 ? sessions.slice(0, 15).map(session =>
-                                React.createElement('div', { key: session.id, className: "border-b pb-2 last:border-b-0" },
-                                    React.createElement('p', { style: { fontWeight: 400 } }, session.habitName),
-                                    React.createElement('div', { className: "flex justify-between text-sm text-gray-600" },
-                                        React.createElement('span', null, formatDate(session.startTime)),
-                                        React.createElement('span', null, formatTime(session.duration))
+                                React.createElement('div', { key: session.id, className: "border-b pb-2 last:border-b-0 flex items-center justify-between gap-2" },
+                                    React.createElement('div', { className: "flex-grow" },
+                                        React.createElement('p', { style: { fontWeight: 400 } }, session.habitName),
+                                        React.createElement('div', { className: "flex justify-between text-sm text-gray-600" },
+                                            React.createElement('span', null, formatDate(session.startTime)),
+                                            React.createElement('span', null, formatTime(session.duration))
+                                        )
+                                    ),
+                                    React.createElement('button', {
+                                        onClick: () => handleDeleteSession(session.id),
+                                        className: "p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition flex-shrink-0",
+                                        title: "Delete session"
+                                    },
+                                        React.createElement(TrashIcon)
                                     )
                                 )
                             ) :
@@ -1510,7 +1532,39 @@
 
                 fetchReportData();
             }, [db, userId, month, appId, setNotification]);
-            
+
+            const handleDeleteSession = async (sessionId) => {
+                if (window.confirm("Are you sure you want to delete this session? This cannot be undone.")) {
+                    try {
+                        const sessionDocRef = window.doc(db, `/artifacts/${appId}/users/${userId}/sessions/${sessionId}`);
+                        await window.deleteDoc(sessionDocRef);
+                        setNotification({ type: 'success', message: 'Session deleted successfully.' });
+                        // Refresh data after deletion
+                        const [year, monthNum] = month.split('-').map(Number);
+                        const startDate = new Date(year, monthNum - 1, 1);
+                        const endDate = new Date(year, monthNum, 0, 23, 59, 59);
+                        const sessionsQuery = window.query(
+                            window.collection(db, `/artifacts/${appId}/users/${userId}/sessions`),
+                            window.where('startTime', '>=', window.Timestamp.fromDate(startDate)),
+                            window.where('startTime', '<=', window.Timestamp.fromDate(endDate))
+                        );
+                        const snapshot = await window.getDocs(sessionsQuery);
+                        const monthlySessions = snapshot.docs.map(doc => ({id: doc.id, ...doc.data()}));
+                        monthlySessions.sort((a,b) => b.startTime.toMillis() - a.startTime.toMillis());
+                        setSessions(monthlySessions);
+                        const data = monthlySessions.reduce((acc, session) => {
+                            acc[session.habitName] = (acc[session.habitName] || 0) + session.duration;
+                            return acc;
+                        }, {});
+                        const formattedData = Object.entries(data).map(([name, duration]) => ({ name, duration }));
+                        setReportData(formattedData);
+                    } catch (error) {
+                        console.error("Error deleting session:", error);
+                        setNotification({ type: 'error', message: 'Failed to delete session.' });
+                    }
+                }
+            };
+
             const maxDuration = Math.max(...reportData.map(d => d.duration), 0);
             const colors = ['bg-blue-500', 'bg-green-500', 'bg-yellow-500', 'bg-purple-500', 'bg-pink-500', 'bg-indigo-500'];
 
@@ -1559,11 +1613,20 @@
                             React.createElement('h3', { className: "text-xl mb-4", style: { fontWeight: 300 } }, "session log"),
                             React.createElement('div', { className: "space-y-3 max-h-[400px] overflow-y-auto" },
                                 sessions.length > 0 ? sessions.map(session =>
-                                    React.createElement('div', { key: session.id, className: "border-b pb-2 last:border-b-0" },
-                                        React.createElement('p', { style: { fontWeight: 400 } }, session.habitName),
-                                        React.createElement('div', { className: "flex justify-between text-sm text-gray-600" },
-                                            React.createElement('span', null, formatDate(session.startTime)),
-                                            React.createElement('span', null, formatTime(session.duration))
+                                    React.createElement('div', { key: session.id, className: "border-b pb-2 last:border-b-0 flex items-center justify-between gap-2" },
+                                        React.createElement('div', { className: "flex-grow" },
+                                            React.createElement('p', { style: { fontWeight: 400 } }, session.habitName),
+                                            React.createElement('div', { className: "flex justify-between text-sm text-gray-600" },
+                                                React.createElement('span', null, formatDate(session.startTime)),
+                                                React.createElement('span', null, formatTime(session.duration))
+                                            )
+                                        ),
+                                        React.createElement('button', {
+                                            onClick: () => handleDeleteSession(session.id),
+                                            className: "p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition flex-shrink-0",
+                                            title: "Delete session"
+                                        },
+                                            React.createElement(TrashIcon)
                                         )
                                     )
                                 ) :
