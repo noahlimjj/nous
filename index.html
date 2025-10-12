@@ -4099,15 +4099,21 @@
                     
                     const authInstance = window.getAuth(app);
                     const dbInstance = window.getFirestore(app);
-                    
+
                     setFirebaseApp(app);
                     setAuth(authInstance);
                     setDb(dbInstance);
+
+                    // Expose to window for debugging
+                    window.db = dbInstance;
+                    window.auth = authInstance;
 
                     const unsubscribe = window.onAuthStateChanged(authInstance, async (user) => {
                         if (user) {
                             setUser(user);
                             setUserId(user.uid);
+                            // Expose to window for debugging
+                            window.userId = user.uid;
                         } else {
                             // If no user and an initial token exists, try to sign in with it.
                             // This handles the case where the Canvas environment provides a token.
@@ -4123,6 +4129,8 @@
                                 // Otherwise, no user and no token, so clear state.
                                 setUser(null);
                                 setUserId(null);
+                                // Clear window references
+                                window.userId = null;
                             }
                         }
                         setIsAuthReady(true);
