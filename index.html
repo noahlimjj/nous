@@ -1048,6 +1048,7 @@
             const [chatOpen, setChatOpen] = useState({});
             const [unreadMessages, setUnreadMessages] = useState({});
             const [lastReadTime, setLastReadTime] = useState({});
+            const chatMessagesRefs = useRef({});
 
             const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
 
@@ -1174,38 +1175,29 @@
 
                 try {
                     const unsubscribe = window.onSnapshot(chatQuery, (snapshot) => {
-                        console.log('📬 Chat listener triggered, snapshot size:', snapshot.size);
-
                         // Get all messages where user is a participant
                         let allMessages = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                        console.log('📬 All messages received:', allMessages);
 
                         // Group messages by timerId
                         const messagesByTimer = {};
                         sharedTimers.forEach(timer => {
                             messagesByTimer[timer.id] = [];
                         });
-                        console.log('📬 Grouping messages for timers:', Object.keys(messagesByTimer));
 
                         allMessages.forEach(msg => {
-                            console.log('📬 Processing message:', msg.id, 'timerId:', msg.timerId);
                             if (messagesByTimer[msg.timerId] !== undefined) {
                                 messagesByTimer[msg.timerId].push(msg);
-                            } else {
-                                console.warn('⚠️ Message timerId not in current shared timers:', msg.timerId);
                             }
                         });
 
-                        // Sort messages for each timer
+                        // Sort messages for each timer by time
                         Object.keys(messagesByTimer).forEach(timerId => {
                             messagesByTimer[timerId].sort((a, b) => {
                                 if (!a.createdAt || !b.createdAt) return 0;
                                 return a.createdAt.toMillis() - b.createdAt.toMillis();
                             });
-                            console.log(`✉️ Chat messages for timer ${timerId}:`, messagesByTimer[timerId].length);
                         });
 
-                        console.log('📬 Setting chat messages state:', messagesByTimer);
                         setChatMessages(messagesByTimer);
 
                         // Count unread messages for each timer
@@ -1219,15 +1211,23 @@
                         });
                         setUnreadMessages(unreadCounts);
                     }, (error) => {
-                        console.error("❌ Error listening to chat:", error);
-                        console.error("Error details:", error.code, error.message);
+                        console.error("Error listening to chat:", error);
                     });
 
                     return () => unsubscribe && unsubscribe();
                 } catch (error) {
-                    console.error("❌ Error setting up chat listener:", error);
+                    console.error("Error setting up chat listener:", error);
                 }
             }, [db, userId, JSON.stringify(sharedTimers.map(t => t.id)), lastReadTime]);
+
+            // Auto-scroll chat to bottom when messages change
+            useEffect(() => {
+                sharedTimers.forEach(timer => {
+                    if (chatOpen[timer.id]) {
+                        scrollChatToBottom(timer.id);
+                    }
+                });
+            }, [chatMessages]);
 
             // Listen for active timer changes from Firebase
             useEffect(() => {
@@ -1683,41 +1683,29 @@
                 }
             };
 
+            // Scroll chat to bottom
+            const scrollChatToBottom = (timerId) => {
+                requestAnimationFrame(() => {
+                    const container = chatMessagesRefs.current[timerId];
+                    if (container) {
+                        container.scrollTop = container.scrollHeight;
+                    }
+                });
+            };
+
             // Send a chat message
             const sendMessage = async (timerId) => {
-                console.log('🚀 sendMessage called with timerId:', timerId);
-                console.log('📝 Current messageInput state:', messageInput);
-
                 const message = messageInput[timerId]?.trim();
-                console.log('💬 Message to send:', message);
 
-                if (!message) {
-                    console.warn('⚠️ No message to send (empty or whitespace)');
-                    return;
-                }
-
-                if (!timerId) {
-                    console.error('❌ No timerId provided');
-                    return;
-                }
+                if (!message || !timerId) return;
 
                 try {
-                    console.log('🔍 Looking for timer in sharedTimers:', sharedTimers.length, 'timers');
                     const timer = sharedTimers.find(t => t.id === timerId);
-
-                    if (!timer) {
-                        console.error("❌ Timer not found:", timerId);
-                        console.error("Available timers:", sharedTimers.map(t => t.id));
-                        return;
-                    }
-
-                    console.log('✅ Timer found:', timer);
+                    if (!timer) return;
 
                     // Get current user's profile for username
-                    console.log('👤 Fetching user profile...');
                     const userDoc = await window.getDoc(window.doc(db, 'users', userId));
                     const username = userDoc.exists() ? userDoc.data().username : 'Anonymous';
-                    console.log('✅ Username:', username);
 
                     const messageData = {
                         timerId,
@@ -1728,22 +1716,15 @@
                         createdAt: window.Timestamp.now()
                     };
 
-                    console.log("📤 Sending message to Firestore:", messageData);
-
-                    const docRef = await window.addDoc(window.collection(db, 'chatMessages'), messageData);
-
-                    console.log("✅ Message sent successfully! Doc ID:", docRef.id);
+                    await window.addDoc(window.collection(db, 'chatMessages'), messageData);
 
                     // Clear input
-                    setMessageInput(prev => {
-                        console.log('🧹 Clearing input for timer:', timerId);
-                        return { ...prev, [timerId]: '' };
-                    });
+                    setMessageInput(prev => ({ ...prev, [timerId]: '' }));
+
+                    // Scroll to bottom after sending
+                    scrollChatToBottom(timerId);
                 } catch (error) {
-                    console.error("❌ Error sending message:", error);
-                    console.error("Error code:", error.code);
-                    console.error("Error message:", error.message);
-                    console.error("Full error:", error);
+                    console.error("Error sending message:", error);
                     setNotification({ type: 'error', message: `Failed to send message: ${error.message}` });
                 }
             };
@@ -1936,6 +1917,15 @@
 
                                             // Messages
                                             React.createElement('div', {
+                                                ref: (el) => {
+                                                    chatMessagesRefs.current[timer.id] = el;
+                                                    if (el) {
+                                                        // Scroll to bottom immediately when element is attached
+                                                        requestAnimationFrame(() => {
+                                                            el.scrollTop = el.scrollHeight;
+                                                        });
+                                                    }
+                                                },
                                                 className: "space-y-2 mb-3 max-h-40 overflow-y-auto"
                                             },
                                                 messages.length > 0 ?
