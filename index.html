@@ -1162,39 +1162,49 @@
             useEffect(() => {
                 if (!db || !userId || sharedTimers.length === 0) return;
 
-                const unsubscribers = [];
-                const timerIds = sharedTimers.map(t => t.id);
+                // Query by participants (matches security rules)
+                // Security rules check: request.auth.uid in resource.data.participants
+                const chatQuery = window.query(
+                    window.collection(db, 'chatMessages'),
+                    window.where('participants', 'array-contains', userId)
+                );
 
-                timerIds.forEach(timerId => {
-                    // Simple query without orderBy (no index required)
-                    const chatQuery = window.query(
-                        window.collection(db, 'chatMessages'),
-                        window.where('timerId', '==', timerId)
-                    );
+                try {
+                    const unsubscribe = window.onSnapshot(chatQuery, (snapshot) => {
+                        // Get all messages where user is a participant
+                        let allMessages = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
-                    try {
-                        const unsubscribe = window.onSnapshot(chatQuery, (snapshot) => {
-                            let messages = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                            // Sort in memory by createdAt
-                            messages.sort((a, b) => {
+                        // Group messages by timerId
+                        const messagesByTimer = {};
+                        sharedTimers.forEach(timer => {
+                            messagesByTimer[timer.id] = [];
+                        });
+
+                        allMessages.forEach(msg => {
+                            if (messagesByTimer[msg.timerId] !== undefined) {
+                                messagesByTimer[msg.timerId].push(msg);
+                            }
+                        });
+
+                        // Sort messages for each timer
+                        Object.keys(messagesByTimer).forEach(timerId => {
+                            messagesByTimer[timerId].sort((a, b) => {
                                 if (!a.createdAt || !b.createdAt) return 0;
                                 return a.createdAt.toMillis() - b.createdAt.toMillis();
                             });
-                            console.log(`✉️ Chat messages for timer ${timerId}:`, messages.length);
-                            setChatMessages(prev => ({ ...prev, [timerId]: messages }));
-                        }, (error) => {
-                            console.error("❌ Error listening to chat:", error);
+                            console.log(`✉️ Chat messages for timer ${timerId}:`, messagesByTimer[timerId].length);
                         });
 
-                        unsubscribers.push(unsubscribe);
-                    } catch (error) {
-                        console.error("❌ Error setting up chat listener:", error);
-                    }
-                });
+                        setChatMessages(messagesByTimer);
+                    }, (error) => {
+                        console.error("❌ Error listening to chat:", error);
+                        console.error("Error details:", error.code, error.message);
+                    });
 
-                return () => {
-                    unsubscribers.forEach(unsub => unsub && unsub());
-                };
+                    return () => unsubscribe && unsubscribe();
+                } catch (error) {
+                    console.error("❌ Error setting up chat listener:", error);
+                }
             }, [db, userId, JSON.stringify(sharedTimers.map(t => t.id))]);
 
             // Listen for active timer changes from Firebase
