@@ -93,7 +93,8 @@ service cloud.firestore {
     match /chatMessages/{messageId} {
       // Allow users to create messages for shared timers they're in
       allow create: if request.auth != null &&
-                      request.resource.data.senderId == request.auth.uid;
+                      request.resource.data.senderId == request.auth.uid &&
+                      request.auth.uid in request.resource.data.participants;
 
       // Allow users to read messages for shared timers they're participating in
       allow read: if request.auth != null &&
