@@ -1645,55 +1645,6 @@
                         )
                     ),
 
-                    // Shared Timers
-                    sharedTimers.length > 0 && React.createElement('div', { className: "space-y-3 mb-4" },
-                        sharedTimers.map(timer => {
-                            const otherParticipant = timer.participantNames.find((name, idx) => timer.participants[idx] !== userId);
-                            const elapsedBeforePause = timer.elapsedBeforePause || 0;
-                            const sessionElapsed = !timer.isPaused && timer.startTime
-                                ? Date.now() - timer.startTime.toMillis()
-                                : 0;
-                            const totalElapsed = elapsedBeforePause + sessionElapsed;
-                            const displayTime = formatTime(totalElapsed);
-
-                            return React.createElement('div', {
-                                key: timer.id,
-                                className: "bg-gradient-to-r from-purple-100 to-blue-100 border-2 border-purple-300 rounded-lg p-4 shadow-md"
-                            },
-                                React.createElement('div', { className: "flex items-center justify-between mb-2" },
-                                    React.createElement('div', null,
-                                        React.createElement('div', { className: "text-lg text-purple-900", style: { fontWeight: 500 } },
-                                            `🤝 Nous Together with @${otherParticipant}`
-                                        ),
-                                        React.createElement('div', { className: "text-sm text-purple-700", style: { fontWeight: 300 } },
-                                            timer.isPaused ? 'Paused' : 'Running'
-                                        )
-                                    ),
-                                    React.createElement('div', { className: "text-3xl font-mono text-purple-900", style: { fontWeight: 500 } },
-                                        displayTime
-                                    )
-                                ),
-                                React.createElement('div', { className: "flex gap-2" },
-                                    !timer.isPaused ?
-                                        React.createElement('button', {
-                                            onClick: () => pauseSharedTimer(timer.id),
-                                            className: "flex-1 bg-yellow-500 text-white py-2 rounded-lg hover:bg-yellow-600 transition",
-                                            style: { fontWeight: 400 }
-                                        }, "⏸ Pause") :
-                                        React.createElement('button', {
-                                            onClick: () => resumeSharedTimer(timer.id),
-                                            className: "flex-1 bg-green-500 text-white py-2 rounded-lg hover:bg-green-600 transition",
-                                            style: { fontWeight: 400 }
-                                        }, "▶ Resume"),
-                                    React.createElement('button', {
-                                        onClick: () => stopSharedTimer(timer.id),
-                                        className: "flex-1 bg-red-500 text-white py-2 rounded-lg hover:bg-red-600 transition",
-                                        style: { fontWeight: 400 }
-                                    }, "⏹ Stop & Save")
-                                )
-                            );
-                        })
-                    ),
 
                     // Add new habit form
                     React.createElement('form', { onSubmit: handleAddHabit, className: "bg-white p-4 rounded-lg shadow-sm mb-6 flex gap-4" },
@@ -1707,111 +1658,194 @@
                         React.createElement('button', { type: "submit", className: "bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition", style: { fontWeight: 400 } }, "add habit")
                     ),
 
-                    // Habits List
+                    // Habits List (including shared timers)
                     React.createElement('div', { className: "space-y-4" },
-                        habits.length > 0 ? habits.map((habit, index) => {
-                            const timer = activeTimers[habit.id];
-                            const isRunning = timer && !timer.isPaused;
-                            const isEditing = editingHabitId === habit.id;
-                            const isDragging = draggedHabitId === habit.id;
-                            const isDropTarget = dragOverIndex === index;
+                        (() => {
+                            // Combine shared timers and habits
+                            const sharedTimerItems = sharedTimers.map(timer => ({
+                                type: 'sharedTimer',
+                                data: timer,
+                                id: timer.id
+                            }));
+                            const habitItems = habits.map(habit => ({
+                                type: 'habit',
+                                data: habit,
+                                id: habit.id
+                            }));
+                            const allItems = [...sharedTimerItems, ...habitItems];
 
-                            return React.createElement('div', {
-                                key: habit.id,
-                                draggable: !isEditing,
-                                onDragStart: (e) => handleDragStart(e, habit.id),
-                                onDragOver: (e) => handleDragOver(e, index),
-                                onDragLeave: handleDragLeave,
-                                onDrop: (e) => handleDrop(e, index),
-                                onDragEnd: handleDragEnd,
-                                className: `bg-white p-4 rounded-lg shadow-sm flex flex-col sm:flex-row sm:items-center gap-4 transition-all ${isDragging ? 'opacity-50 scale-95' : ''} ${isDropTarget ? 'border-2 border-blue-400 border-dashed' : ''}`
-                            },
-                                // Drag handle (left side)
-                                React.createElement('div', {
-                                    className: `p-2 text-gray-400 transition ${isEditing ? 'cursor-default opacity-30' : 'cursor-move hover:text-gray-600'}`,
-                                    title: isEditing ? "" : "Drag to reorder",
-                                    onMouseDown: (e) => {
-                                        if (isEditing) e.preventDefault();
-                                    }
-                                },
-                                    React.createElement(GripIcon)
-                                ),
+                            if (allItems.length === 0) {
+                                return React.createElement('p', { className: "text-gray-500 text-center py-8" }, "No habits yet. Add one to get started!");
+                            }
 
-                                // Habit name and timer (middle)
-                                React.createElement('div', { className: "flex-grow" },
-                                    isEditing ?
-                                        React.createElement('div', { className: "flex items-center gap-2 mb-4" },
-                                            React.createElement('input', {
-                                                type: "text",
-                                                value: tempHabitName,
-                                                onChange: (e) => setTempHabitName(e.target.value),
-                                                onKeyDown: (e) => {
-                                                    if (e.key === 'Enter') handleRenameHabit(habit.id, tempHabitName);
-                                                    if (e.key === 'Escape') { setEditingHabitId(null); setTempHabitName(''); }
-                                                },
-                                                className: "flex-grow px-3 py-1 border border-blue-400 rounded focus:ring-2 focus:ring-blue-500 focus:outline-none",
-                                                autoFocus: true
-                                            }),
-                                            React.createElement('button', {
-                                                onClick: () => {
-                                                    console.log('Save button clicked');
-                                                    handleRenameHabit(habit.id, tempHabitName);
-                                                },
-                                                className: "p-2 bg-green-100 text-green-600 rounded hover:bg-green-200 transition",
-                                                title: "Save"
-                                            },
-                                                React.createElement(CheckIcon)
-                                            ),
-                                            React.createElement('button', {
-                                                onClick: () => { setEditingHabitId(null); setTempHabitName(''); },
-                                                className: "p-2 bg-red-100 text-red-600 rounded hover:bg-red-200 transition",
-                                                title: "Cancel"
-                                            },
-                                                React.createElement(XIcon)
-                                            )
-                                        ) :
-                                        React.createElement('div', { className: "flex items-center gap-2 mb-4" },
-                                            React.createElement('h3', { className: "text-xl text-gray-700", style: { fontWeight: 400 } }, habit.name),
-                                            React.createElement('button', {
-                                                onClick: () => { setEditingHabitId(habit.id); setTempHabitName(habit.name); },
-                                                className: "p-1 text-gray-400 hover:text-gray-600 transition",
-                                                title: "Rename habit"
-                                            },
-                                                React.createElement(PencilIcon)
-                                            )
-                                        ),
-                                    React.createElement('div', {
-                                        className: `timer-display ${isRunning ? 'running' : (timer ? 'paused' : '')}`
+                            return allItems.map((item, index) => {
+                                if (item.type === 'sharedTimer') {
+                                    // Render shared timer as a habit card with purple theme
+                                    const timer = item.data;
+                                    const otherParticipant = timer.participantNames.find((name, idx) => timer.participants[idx] !== userId);
+                                    const elapsedBeforePause = timer.elapsedBeforePause || 0;
+                                    const sessionElapsed = !timer.isPaused && timer.startTime
+                                        ? Date.now() - timer.startTime.toMillis()
+                                        : 0;
+                                    const totalElapsed = elapsedBeforePause + sessionElapsed;
+                                    const isRunning = !timer.isPaused;
+
+                                    return React.createElement('div', {
+                                        key: timer.id,
+                                        className: "bg-gradient-to-r from-purple-50 to-blue-50 border-2 border-purple-300 p-4 rounded-lg shadow-sm flex flex-col sm:flex-row sm:items-center gap-4"
                                     },
-                                        React.createElement('span', null, formatTimeDisplay(getTimerElapsedTime(timer))),
-                                        React.createElement('span', { className: "milliseconds" },
-                                            `.${String(getMilliseconds(getTimerElapsedTime(timer))).padStart(2, '0')}`
-                                        )
-                                    )
-                                ),
-
-                                // Action buttons (right side)
-                                React.createElement('div', { className: "flex items-center gap-2 flex-wrap" },
-                                    isRunning ?
-                                        React.createElement('button', { onClick: () => pauseTimer(habit.id), className: "p-3 bg-yellow-100 text-yellow-600 rounded-full hover:bg-yellow-200 transition" },
-                                            React.createElement(PauseIcon)
-                                        ) :
-                                        React.createElement('button', { onClick: () => startTimer(habit.id), className: "p-3 bg-green-100 text-green-600 rounded-full hover:bg-green-200 transition" },
-                                            React.createElement(PlayIcon)
+                                        // Empty drag handle space for alignment
+                                        React.createElement('div', { className: "p-2 text-purple-400 opacity-50" },
+                                            React.createElement(GripIcon)
                                         ),
-                                    React.createElement('button', { onClick: () => stopTimer(habit.id, habit.name), disabled: !timer, className: "p-3 bg-red-100 text-red-600 rounded-full hover:bg-red-200 transition disabled:opacity-50 disabled:cursor-not-allowed" },
-                                        React.createElement(StopIcon)
-                                    ),
-                                    React.createElement('button', { onClick: () => setModalHabit(habit), className: "p-3 bg-blue-100 text-blue-600 rounded-full hover:bg-blue-200 transition" },
-                                        React.createElement(PlusCircleIcon)
-                                    ),
-                                    React.createElement('button', { onClick: () => handleDeleteHabit(habit.id), className: "p-3 bg-gray-100 text-gray-500 rounded-full hover:bg-gray-200 transition" },
-                                        React.createElement(TrashIcon)
-                                    )
-                                )
-                            );
-                        }) :
-                        React.createElement('p', { className: "text-gray-500 text-center py-8" }, "No habits yet. Add one to get started!")
+
+                                        // Timer name and display (middle)
+                                        React.createElement('div', { className: "flex-grow" },
+                                            React.createElement('div', { className: "flex items-center gap-2 mb-4" },
+                                                React.createElement('h3', { className: "text-xl text-purple-900", style: { fontWeight: 400 } },
+                                                    `Nous with @${otherParticipant}`
+                                                )
+                                            ),
+                                            React.createElement('div', {
+                                                className: `timer-display ${isRunning ? 'running' : 'paused'}`
+                                            },
+                                                React.createElement('span', null, formatTimeDisplay(totalElapsed)),
+                                                React.createElement('span', { className: "milliseconds" },
+                                                    `.${String(Math.floor((totalElapsed % 1000) / 10)).padStart(2, '0')}`
+                                                )
+                                            )
+                                        ),
+
+                                        // Action buttons (right side)
+                                        React.createElement('div', { className: "flex items-center gap-2 flex-wrap" },
+                                            isRunning ?
+                                                React.createElement('button', {
+                                                    onClick: () => pauseSharedTimer(timer.id),
+                                                    className: "p-3 bg-purple-100 text-purple-600 rounded-full hover:bg-purple-200 transition"
+                                                },
+                                                    React.createElement(PauseIcon)
+                                                ) :
+                                                React.createElement('button', {
+                                                    onClick: () => resumeSharedTimer(timer.id),
+                                                    className: "p-3 bg-purple-100 text-purple-600 rounded-full hover:bg-purple-200 transition"
+                                                },
+                                                    React.createElement(PlayIcon)
+                                                ),
+                                            React.createElement('button', {
+                                                onClick: () => stopSharedTimer(timer.id),
+                                                className: "p-3 bg-purple-100 text-purple-600 rounded-full hover:bg-purple-200 transition"
+                                            },
+                                                React.createElement(StopIcon)
+                                            )
+                                        )
+                                    );
+                                } else {
+                                    // Render regular habit
+                                    const habit = item.data;
+                                    const habit_index = habits.findIndex(h => h.id === habit.id);
+                                    const timer = activeTimers[habit.id];
+                                    const isRunning = timer && !timer.isPaused;
+                                    const isEditing = editingHabitId === habit.id;
+                                    const isDragging = draggedHabitId === habit.id;
+                                    const isDropTarget = dragOverIndex === habit_index;
+
+                                    return React.createElement('div', {
+                                        key: habit.id,
+                                        draggable: !isEditing,
+                                        onDragStart: (e) => handleDragStart(e, habit.id),
+                                        onDragOver: (e) => handleDragOver(e, habit_index),
+                                        onDragLeave: handleDragLeave,
+                                        onDrop: (e) => handleDrop(e, habit_index),
+                                        onDragEnd: handleDragEnd,
+                                        className: `bg-white p-4 rounded-lg shadow-sm flex flex-col sm:flex-row sm:items-center gap-4 transition-all ${isDragging ? 'opacity-50 scale-95' : ''} ${isDropTarget ? 'border-2 border-blue-400 border-dashed' : ''}`
+                                    },
+                                        // Drag handle (left side)
+                                        React.createElement('div', {
+                                            className: `p-2 text-gray-400 transition ${isEditing ? 'cursor-default opacity-30' : 'cursor-move hover:text-gray-600'}`,
+                                            title: isEditing ? "" : "Drag to reorder",
+                                            onMouseDown: (e) => {
+                                                if (isEditing) e.preventDefault();
+                                            }
+                                        },
+                                            React.createElement(GripIcon)
+                                        ),
+
+                                        // Habit name and timer (middle)
+                                        React.createElement('div', { className: "flex-grow" },
+                                            isEditing ?
+                                                React.createElement('div', { className: "flex items-center gap-2 mb-4" },
+                                                    React.createElement('input', {
+                                                        type: "text",
+                                                        value: tempHabitName,
+                                                        onChange: (e) => setTempHabitName(e.target.value),
+                                                        onKeyDown: (e) => {
+                                                            if (e.key === 'Enter') handleRenameHabit(habit.id, tempHabitName);
+                                                            if (e.key === 'Escape') { setEditingHabitId(null); setTempHabitName(''); }
+                                                        },
+                                                        className: "flex-grow px-3 py-1 border border-blue-400 rounded focus:ring-2 focus:ring-blue-500 focus:outline-none",
+                                                        autoFocus: true
+                                                    }),
+                                                    React.createElement('button', {
+                                                        onClick: () => {
+                                                            console.log('Save button clicked');
+                                                            handleRenameHabit(habit.id, tempHabitName);
+                                                        },
+                                                        className: "p-2 bg-green-100 text-green-600 rounded hover:bg-green-200 transition",
+                                                        title: "Save"
+                                                    },
+                                                        React.createElement(CheckIcon)
+                                                    ),
+                                                    React.createElement('button', {
+                                                        onClick: () => { setEditingHabitId(null); setTempHabitName(''); },
+                                                        className: "p-2 bg-red-100 text-red-600 rounded hover:bg-red-200 transition",
+                                                        title: "Cancel"
+                                                    },
+                                                        React.createElement(XIcon)
+                                                    )
+                                                ) :
+                                                React.createElement('div', { className: "flex items-center gap-2 mb-4" },
+                                                    React.createElement('h3', { className: "text-xl text-gray-700", style: { fontWeight: 400 } }, habit.name),
+                                                    React.createElement('button', {
+                                                        onClick: () => { setEditingHabitId(habit.id); setTempHabitName(habit.name); },
+                                                        className: "p-1 text-gray-400 hover:text-gray-600 transition",
+                                                        title: "Rename habit"
+                                                    },
+                                                        React.createElement(PencilIcon)
+                                                    )
+                                                ),
+                                            React.createElement('div', {
+                                                className: `timer-display ${isRunning ? 'running' : (timer ? 'paused' : '')}`
+                                            },
+                                                React.createElement('span', null, formatTimeDisplay(getTimerElapsedTime(timer))),
+                                                React.createElement('span', { className: "milliseconds" },
+                                                    `.${String(getMilliseconds(getTimerElapsedTime(timer))).padStart(2, '0')}`
+                                                )
+                                            )
+                                        ),
+
+                                        // Action buttons (right side)
+                                        React.createElement('div', { className: "flex items-center gap-2 flex-wrap" },
+                                            isRunning ?
+                                                React.createElement('button', { onClick: () => pauseTimer(habit.id), className: "p-3 bg-yellow-100 text-yellow-600 rounded-full hover:bg-yellow-200 transition" },
+                                                    React.createElement(PauseIcon)
+                                                ) :
+                                                React.createElement('button', { onClick: () => startTimer(habit.id), className: "p-3 bg-green-100 text-green-600 rounded-full hover:bg-green-200 transition" },
+                                                    React.createElement(PlayIcon)
+                                                ),
+                                            React.createElement('button', { onClick: () => stopTimer(habit.id, habit.name), disabled: !timer, className: "p-3 bg-red-100 text-red-600 rounded-full hover:bg-red-200 transition disabled:opacity-50 disabled:cursor-not-allowed" },
+                                                React.createElement(StopIcon)
+                                            ),
+                                            React.createElement('button', { onClick: () => setModalHabit(habit), className: "p-3 bg-blue-100 text-blue-600 rounded-full hover:bg-blue-200 transition" },
+                                                React.createElement(PlusCircleIcon)
+                                            ),
+                                            React.createElement('button', { onClick: () => handleDeleteHabit(habit.id), className: "p-3 bg-gray-100 text-gray-500 rounded-full hover:bg-gray-200 transition" },
+                                                React.createElement(TrashIcon)
+                                            )
+                                        )
+                                    );
+                                }
+                            });
+                        })()
                     )
                 ),
 
