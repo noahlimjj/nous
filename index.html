@@ -3211,11 +3211,30 @@
                     )
                 ),
 
-                // Next unlock message
-                unlockedTrees.length < TREE_TYPES.length && React.createElement('p', {
-                    className: "text-xs text-calm-500 mt-3 text-center",
-                    style: { fontWeight: 300 }
-                }, `Study ${(TREE_TYPES[unlockedTrees.length].requiredHours - totalHours).toFixed(1)} more hours to unlock ${TREE_TYPES[unlockedTrees.length].name}`)
+                // Next tree message - shows next tree to grow or unlock
+                (() => {
+                    // Find the first unlocked tree that's not fully grown
+                    const nextTreeToGrow = unlockedTrees.find(tree => {
+                        const growth = getTreeGrowth(totalHours, tree);
+                        return growth < 100;
+                    });
+
+                    if (nextTreeToGrow) {
+                        const hoursNeeded = 5 - (totalHours - nextTreeToGrow.requiredHours);
+                        return React.createElement('p', {
+                            className: "text-xs text-calm-500 mt-3 text-center",
+                            style: { fontWeight: 300 }
+                        }, `Study ${hoursNeeded.toFixed(1)} more hours to fully grow ${nextTreeToGrow.name}`);
+                    } else if (unlockedTrees.length < TREE_TYPES.length) {
+                        // All unlocked trees are fully grown, show next unlock
+                        const nextToUnlock = TREE_TYPES[unlockedTrees.length];
+                        return React.createElement('p', {
+                            className: "text-xs text-calm-500 mt-3 text-center",
+                            style: { fontWeight: 300 }
+                        }, `Study ${(nextToUnlock.requiredHours - totalHours).toFixed(1)} more hours to unlock ${nextToUnlock.name}`);
+                    }
+                    return null;
+                })()
             );
         };
 
