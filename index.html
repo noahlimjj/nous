@@ -1647,7 +1647,7 @@
                     const totalElapsed = currentElapsed + sessionElapsed;
 
                     if (totalElapsed > 0) {
-                        // Save session for both participants
+                        // Save session for current user
                         const sessionsCol = window.collection(db, `/artifacts/${appId}/users/${userId}/sessions`);
                         await window.addDoc(sessionsCol, {
                             habitId: 'nous_together',
@@ -1658,6 +1658,14 @@
                             isShared: true,
                             sharedWith: timer.participantNames.filter(name => name !== timer.participantNames[timer.participants.indexOf(userId)])
                         });
+
+                        // Update user stats to include this session
+                        const allSessionsSnapshot = await window.getDocs(sessionsCol);
+                        const allSessions = allSessionsSnapshot.docs.map(doc => ({
+                            id: doc.id,
+                            ...doc.data()
+                        }));
+                        await updateUserStats(db, userId, allSessions);
                     }
 
                     // Update timer status to ended
