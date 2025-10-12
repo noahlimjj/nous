@@ -1685,7 +1685,7 @@
                                     const otherParticipant = timer.participantNames.find((name, idx) => timer.participants[idx] !== userId);
                                     const elapsedBeforePause = timer.elapsedBeforePause || 0;
                                     const sessionElapsed = !timer.isPaused && timer.startTime
-                                        ? Date.now() - timer.startTime.toMillis()
+                                        ? currentTime - timer.startTime.toMillis()
                                         : 0;
                                     const totalElapsed = elapsedBeforePause + sessionElapsed;
                                     const isRunning = !timer.isPaused;
