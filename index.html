@@ -1163,39 +1163,39 @@
                 if (!db || !userId || sharedTimers.length === 0) return;
 
                 const unsubscribers = [];
+                const timerIds = sharedTimers.map(t => t.id);
 
-                sharedTimers.forEach(timer => {
+                timerIds.forEach(timerId => {
+                    // Simple query without orderBy (no index required)
                     const chatQuery = window.query(
                         window.collection(db, 'chatMessages'),
-                        window.where('timerId', '==', timer.id),
-                        window.orderBy('createdAt', 'asc')
+                        window.where('timerId', '==', timerId)
                     );
 
-                    const unsubscribe = window.onSnapshot(chatQuery, (snapshot) => {
-                        const messages = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                        console.log(`Chat messages for timer ${timer.id}:`, messages.length, "messages");
-                        setChatMessages(prev => ({ ...prev, [timer.id]: messages }));
-                    }, (error) => {
-                        console.error("Error listening to chat messages:", error);
-                        // If orderBy fails (no index), try without it
-                        const simpleQuery = window.query(
-                            window.collection(db, 'chatMessages'),
-                            window.where('timerId', '==', timer.id)
-                        );
-                        const unsubscribe2 = window.onSnapshot(simpleQuery, (snapshot) => {
-                            const messages = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                            setChatMessages(prev => ({ ...prev, [timer.id]: messages }));
+                    try {
+                        const unsubscribe = window.onSnapshot(chatQuery, (snapshot) => {
+                            let messages = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                            // Sort in memory by createdAt
+                            messages.sort((a, b) => {
+                                if (!a.createdAt || !b.createdAt) return 0;
+                                return a.createdAt.toMillis() - b.createdAt.toMillis();
+                            });
+                            console.log(`✉️ Chat messages for timer ${timerId}:`, messages.length);
+                            setChatMessages(prev => ({ ...prev, [timerId]: messages }));
+                        }, (error) => {
+                            console.error("❌ Error listening to chat:", error);
                         });
-                        unsubscribers.push(unsubscribe2);
-                    });
 
-                    unsubscribers.push(unsubscribe);
+                        unsubscribers.push(unsubscribe);
+                    } catch (error) {
+                        console.error("❌ Error setting up chat listener:", error);
+                    }
                 });
 
                 return () => {
-                    unsubscribers.forEach(unsub => unsub());
+                    unsubscribers.forEach(unsub => unsub && unsub());
                 };
-            }, [db, userId, sharedTimers]);
+            }, [db, userId, JSON.stringify(sharedTimers.map(t => t.id))]);
 
             // Listen for active timer changes from Firebase
             useEffect(() => {
