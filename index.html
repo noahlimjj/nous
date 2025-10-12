@@ -1150,12 +1150,6 @@
                 const unsubscribeSharedTimers = window.onSnapshot(sharedTimersQuery, async (snapshot) => {
                     const timersData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                     setSharedTimers(timersData);
-
-                    // Set up chat listeners for each shared timer
-                    const timerIds = timersData.map(t => t.id);
-                    timerIds.forEach(timerId => {
-                        setupChatListener(timerId);
-                    });
                 });
 
                 return () => {
@@ -1163,6 +1157,45 @@
                     unsubscribeSharedTimers();
                 };
             }, [db, userId]);
+
+            // Listen for chat messages for active shared timers
+            useEffect(() => {
+                if (!db || !userId || sharedTimers.length === 0) return;
+
+                const unsubscribers = [];
+
+                sharedTimers.forEach(timer => {
+                    const chatQuery = window.query(
+                        window.collection(db, 'chatMessages'),
+                        window.where('timerId', '==', timer.id),
+                        window.orderBy('createdAt', 'asc')
+                    );
+
+                    const unsubscribe = window.onSnapshot(chatQuery, (snapshot) => {
+                        const messages = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                        console.log(`Chat messages for timer ${timer.id}:`, messages.length, "messages");
+                        setChatMessages(prev => ({ ...prev, [timer.id]: messages }));
+                    }, (error) => {
+                        console.error("Error listening to chat messages:", error);
+                        // If orderBy fails (no index), try without it
+                        const simpleQuery = window.query(
+                            window.collection(db, 'chatMessages'),
+                            window.where('timerId', '==', timer.id)
+                        );
+                        const unsubscribe2 = window.onSnapshot(simpleQuery, (snapshot) => {
+                            const messages = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                            setChatMessages(prev => ({ ...prev, [timer.id]: messages }));
+                        });
+                        unsubscribers.push(unsubscribe2);
+                    });
+
+                    unsubscribers.push(unsubscribe);
+                });
+
+                return () => {
+                    unsubscribers.forEach(unsub => unsub());
+                };
+            }, [db, userId, sharedTimers]);
 
             // Listen for active timer changes from Firebase
             useEffect(() => {
@@ -1610,29 +1643,6 @@
                 }
             };
 
-            // Set up chat listener for a shared timer
-            const chatUnsubscribers = {};
-            const setupChatListener = (timerId) => {
-                if (!db || !timerId) return;
-                if (chatUnsubscribers[timerId]) return; // Already listening
-
-                const timer = sharedTimers.find(t => t.id === timerId);
-                if (!timer) return;
-
-                const chatQuery = window.query(
-                    window.collection(db, 'chatMessages'),
-                    window.where('timerId', '==', timerId),
-                    window.orderBy('createdAt', 'asc')
-                );
-
-                const unsubscribe = window.onSnapshot(chatQuery, (snapshot) => {
-                    const messages = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                    setChatMessages(prev => ({ ...prev, [timerId]: messages }));
-                });
-
-                chatUnsubscribers[timerId] = unsubscribe;
-            };
-
             // Send a chat message
             const sendMessage = async (timerId) => {
                 const message = messageInput[timerId]?.trim();
@@ -1640,13 +1650,18 @@
 
                 try {
                     const timer = sharedTimers.find(t => t.id === timerId);
-                    if (!timer) return;
+                    if (!timer) {
+                        console.error("Timer not found:", timerId);
+                        return;
+                    }
 
                     // Get current user's profile for username
                     const userDoc = await window.getDoc(window.doc(db, 'users', userId));
                     const username = userDoc.exists() ? userDoc.data().username : 'Anonymous';
 
-                    await window.addDoc(window.collection(db, 'chatMessages'), {
+                    console.log("Sending message:", { timerId, senderId: userId, senderName: username, message, participants: timer.participants });
+
+                    const docRef = await window.addDoc(window.collection(db, 'chatMessages'), {
                         timerId,
                         senderId: userId,
                         senderName: username,
@@ -1655,10 +1670,13 @@
                         createdAt: window.Timestamp.now()
                     });
 
+                    console.log("Message sent successfully:", docRef.id);
+
                     // Clear input
                     setMessageInput(prev => ({ ...prev, [timerId]: '' }));
                 } catch (error) {
                     console.error("Error sending message:", error);
+                    console.error("Error details:", error.code, error.message);
                     setNotification({ type: 'error', message: 'Failed to send message.' });
                 }
             };
