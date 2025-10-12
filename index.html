@@ -1171,18 +1171,25 @@
 
                 try {
                     const unsubscribe = window.onSnapshot(chatQuery, (snapshot) => {
+                        console.log('📬 Chat listener triggered, snapshot size:', snapshot.size);
+
                         // Get all messages where user is a participant
                         let allMessages = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                        console.log('📬 All messages received:', allMessages);
 
                         // Group messages by timerId
                         const messagesByTimer = {};
                         sharedTimers.forEach(timer => {
                             messagesByTimer[timer.id] = [];
                         });
+                        console.log('📬 Grouping messages for timers:', Object.keys(messagesByTimer));
 
                         allMessages.forEach(msg => {
+                            console.log('📬 Processing message:', msg.id, 'timerId:', msg.timerId);
                             if (messagesByTimer[msg.timerId] !== undefined) {
                                 messagesByTimer[msg.timerId].push(msg);
+                            } else {
+                                console.warn('⚠️ Message timerId not in current shared timers:', msg.timerId);
                             }
                         });
 
@@ -1195,6 +1202,7 @@
                             console.log(`✉️ Chat messages for timer ${timerId}:`, messagesByTimer[timerId].length);
                         });
 
+                        console.log('📬 Setting chat messages state:', messagesByTimer);
                         setChatMessages(messagesByTimer);
                     }, (error) => {
                         console.error("❌ Error listening to chat:", error);
@@ -1809,6 +1817,7 @@
                                     const isRunning = !timer.isPaused;
 
                                     const messages = chatMessages[timer.id] || [];
+                                    console.log('🎨 Rendering chat for timer:', timer.id, 'Messages:', messages.length, messages);
 
                                     return React.createElement('div', { key: timer.id, className: "space-y-2" },
                                         // Timer card
