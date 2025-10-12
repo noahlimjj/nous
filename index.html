@@ -3048,7 +3048,26 @@
             // Send Nous together request
             const handleNousRequest = async (friend) => {
                 try {
+                    console.log('Attempting to send Nous request...');
+                    console.log('Friend:', friend);
+                    console.log('User ID:', userId);
+                    console.log('User Profile:', userProfile);
+                    console.log('Database:', db);
+
+                    if (!db || !userId || !userProfile) {
+                        console.error('Missing required data:', { db, userId, userProfile });
+                        setNotification({ type: 'error', message: 'Missing required data. Please try refreshing the page.' });
+                        return;
+                    }
+
+                    if (!userProfile.username) {
+                        console.error('User profile missing username');
+                        setNotification({ type: 'error', message: 'Your profile is incomplete. Please check your settings.' });
+                        return;
+                    }
+
                     // Check if there's already a pending request
+                    console.log('Checking for existing requests...');
                     const existingQuery = window.query(
                         window.collection(db, 'nousRequests'),
                         window.where('fromUserId', '==', userId),
@@ -3063,19 +3082,25 @@
                     }
 
                     // Create Nous request
-                    await window.addDoc(window.collection(db, 'nousRequests'), {
+                    console.log('Creating Nous request...');
+                    const requestData = {
                         fromUserId: userId,
                         fromUsername: userProfile.username,
                         toUserId: friend.userId,
                         toUsername: friend.username,
                         status: 'pending',
                         createdAt: window.Timestamp.now()
-                    });
+                    };
+                    console.log('Request data:', requestData);
 
+                    await window.addDoc(window.collection(db, 'nousRequests'), requestData);
+
+                    console.log('Nous request sent successfully!');
                     setNotification({ type: 'success', message: `Nous request sent to @${friend.username}!` });
                 } catch (error) {
                     console.error("Error sending Nous request:", error);
-                    setNotification({ type: 'error', message: 'Failed to send Nous request.' });
+                    console.error("Error details:", error.message, error.code);
+                    setNotification({ type: 'error', message: `Failed to send Nous request: ${error.message}` });
                 }
             };
 
