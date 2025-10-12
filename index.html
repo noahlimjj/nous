@@ -1043,6 +1043,8 @@
             const [draggedHabitId, setDraggedHabitId] = useState(null);
             const [dragOverIndex, setDragOverIndex] = useState(null);
             const [currentTime, setCurrentTime] = useState(Date.now());
+            const [chatMessages, setChatMessages] = useState({});
+            const [messageInput, setMessageInput] = useState({});
 
             const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
 
@@ -1148,6 +1150,12 @@
                 const unsubscribeSharedTimers = window.onSnapshot(sharedTimersQuery, async (snapshot) => {
                     const timersData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                     setSharedTimers(timersData);
+
+                    // Set up chat listeners for each shared timer
+                    const timerIds = timersData.map(t => t.id);
+                    timerIds.forEach(timerId => {
+                        setupChatListener(timerId);
+                    });
                 });
 
                 return () => {
@@ -1602,6 +1610,59 @@
                 }
             };
 
+            // Set up chat listener for a shared timer
+            const chatUnsubscribers = {};
+            const setupChatListener = (timerId) => {
+                if (!db || !timerId) return;
+                if (chatUnsubscribers[timerId]) return; // Already listening
+
+                const timer = sharedTimers.find(t => t.id === timerId);
+                if (!timer) return;
+
+                const chatQuery = window.query(
+                    window.collection(db, 'chatMessages'),
+                    window.where('timerId', '==', timerId),
+                    window.orderBy('createdAt', 'asc')
+                );
+
+                const unsubscribe = window.onSnapshot(chatQuery, (snapshot) => {
+                    const messages = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                    setChatMessages(prev => ({ ...prev, [timerId]: messages }));
+                });
+
+                chatUnsubscribers[timerId] = unsubscribe;
+            };
+
+            // Send a chat message
+            const sendMessage = async (timerId) => {
+                const message = messageInput[timerId]?.trim();
+                if (!message || !timerId) return;
+
+                try {
+                    const timer = sharedTimers.find(t => t.id === timerId);
+                    if (!timer) return;
+
+                    // Get current user's profile for username
+                    const userDoc = await window.getDoc(window.doc(db, 'users', userId));
+                    const username = userDoc.exists() ? userDoc.data().username : 'Anonymous';
+
+                    await window.addDoc(window.collection(db, 'chatMessages'), {
+                        timerId,
+                        senderId: userId,
+                        senderName: username,
+                        message,
+                        participants: timer.participants,
+                        createdAt: window.Timestamp.now()
+                    });
+
+                    // Clear input
+                    setMessageInput(prev => ({ ...prev, [timerId]: '' }));
+                } catch (error) {
+                    console.error("Error sending message:", error);
+                    setNotification({ type: 'error', message: 'Failed to send message.' });
+                }
+            };
+
             if (isLoading) {
                 return React.createElement('div', { className: "flex justify-center items-center p-8" },
                     React.createElement(LoaderIcon),
@@ -1692,52 +1753,103 @@
                                     const totalElapsed = elapsedBeforePause + sessionElapsed;
                                     const isRunning = !timer.isPaused;
 
-                                    return React.createElement('div', {
-                                        key: timer.id,
-                                        className: "bg-gradient-to-r from-purple-50 to-blue-50 border-2 border-purple-300 p-4 rounded-lg shadow-sm flex flex-col sm:flex-row sm:items-center gap-4"
-                                    },
-                                        // Empty drag handle space for alignment
-                                        React.createElement('div', { className: "p-2 text-purple-400 opacity-50" },
-                                            React.createElement(GripIcon)
-                                        ),
+                                    const messages = chatMessages[timer.id] || [];
 
-                                        // Timer name and display (middle)
-                                        React.createElement('div', { className: "flex-grow" },
-                                            React.createElement('div', { className: "flex items-center gap-2 mb-4" },
-                                                React.createElement('h3', { className: "text-xl text-purple-900", style: { fontWeight: 400 } },
-                                                    `Nous with @${otherParticipant}`
+                                    return React.createElement('div', { key: timer.id, className: "space-y-2" },
+                                        // Timer card
+                                        React.createElement('div', {
+                                            className: "bg-gradient-to-r from-purple-50 to-blue-50 border-2 border-purple-300 p-4 rounded-lg shadow-sm flex flex-col sm:flex-row sm:items-center gap-4"
+                                        },
+                                            // Empty drag handle space for alignment
+                                            React.createElement('div', { className: "p-2 text-purple-400 opacity-50" },
+                                                React.createElement(GripIcon)
+                                            ),
+
+                                            // Timer name and display (middle)
+                                            React.createElement('div', { className: "flex-grow" },
+                                                React.createElement('div', { className: "flex items-center gap-2 mb-4" },
+                                                    React.createElement('h3', { className: "text-xl text-purple-900", style: { fontWeight: 400 } },
+                                                        `Nous with @${otherParticipant}`
+                                                    )
+                                                ),
+                                                React.createElement('div', {
+                                                    className: `timer-display ${isRunning ? 'running' : 'paused'}`
+                                                },
+                                                    React.createElement('span', null, formatTimeDisplay(totalElapsed)),
+                                                    React.createElement('span', { className: "milliseconds" },
+                                                        `.${String(Math.floor((totalElapsed % 1000) / 10)).padStart(2, '0')}`
+                                                    )
                                                 )
                                             ),
-                                            React.createElement('div', {
-                                                className: `timer-display ${isRunning ? 'running' : 'paused'}`
-                                            },
-                                                React.createElement('span', null, formatTimeDisplay(totalElapsed)),
-                                                React.createElement('span', { className: "milliseconds" },
-                                                    `.${String(Math.floor((totalElapsed % 1000) / 10)).padStart(2, '0')}`
+
+                                            // Action buttons (right side)
+                                            React.createElement('div', { className: "flex items-center gap-2 flex-wrap" },
+                                                isRunning ?
+                                                    React.createElement('button', {
+                                                        onClick: () => pauseSharedTimer(timer.id),
+                                                        className: "p-3 bg-purple-100 text-purple-600 rounded-full hover:bg-purple-200 transition"
+                                                    },
+                                                        React.createElement(PauseIcon)
+                                                    ) :
+                                                    React.createElement('button', {
+                                                        onClick: () => resumeSharedTimer(timer.id),
+                                                        className: "p-3 bg-purple-100 text-purple-600 rounded-full hover:bg-purple-200 transition"
+                                                    },
+                                                        React.createElement(PlayIcon)
+                                                    ),
+                                                React.createElement('button', {
+                                                    onClick: () => stopSharedTimer(timer.id),
+                                                    className: "p-3 bg-purple-100 text-purple-600 rounded-full hover:bg-purple-200 transition"
+                                                },
+                                                    React.createElement(StopIcon)
                                                 )
                                             )
                                         ),
 
-                                        // Action buttons (right side)
-                                        React.createElement('div', { className: "flex items-center gap-2 flex-wrap" },
-                                            isRunning ?
-                                                React.createElement('button', {
-                                                    onClick: () => pauseSharedTimer(timer.id),
-                                                    className: "p-3 bg-purple-100 text-purple-600 rounded-full hover:bg-purple-200 transition"
-                                                },
-                                                    React.createElement(PauseIcon)
-                                                ) :
-                                                React.createElement('button', {
-                                                    onClick: () => resumeSharedTimer(timer.id),
-                                                    className: "p-3 bg-purple-100 text-purple-600 rounded-full hover:bg-purple-200 transition"
-                                                },
-                                                    React.createElement(PlayIcon)
-                                                ),
-                                            React.createElement('button', {
-                                                onClick: () => stopSharedTimer(timer.id),
-                                                className: "p-3 bg-purple-100 text-purple-600 rounded-full hover:bg-purple-200 transition"
+                                        // Chat box
+                                        React.createElement('div', {
+                                            className: "bg-white border-2 border-purple-200 rounded-lg p-4 shadow-sm"
+                                        },
+                                            React.createElement('h4', { className: "text-sm text-purple-900 mb-2", style: { fontWeight: 500 } }, "Chat"),
+
+                                            // Messages
+                                            React.createElement('div', {
+                                                className: "space-y-2 mb-3 max-h-40 overflow-y-auto"
                                             },
-                                                React.createElement(StopIcon)
+                                                messages.length > 0 ?
+                                                    messages.map(msg =>
+                                                        React.createElement('div', {
+                                                            key: msg.id,
+                                                            className: `flex ${msg.senderId === userId ? 'justify-end' : 'justify-start'}`
+                                                        },
+                                                            React.createElement('div', {
+                                                                className: `${msg.senderId === userId ? 'bg-purple-100' : 'bg-gray-100'} rounded-lg px-3 py-2 max-w-xs`
+                                                            },
+                                                                React.createElement('div', { className: "text-xs text-gray-600 mb-1" }, msg.senderName),
+                                                                React.createElement('div', { className: "text-sm" }, msg.message)
+                                                            )
+                                                        )
+                                                    ) :
+                                                    React.createElement('p', { className: "text-xs text-gray-400 text-center py-4" }, "No messages yet. Start chatting!")
+                                            ),
+
+                                            // Input
+                                            React.createElement('div', { className: "flex gap-2" },
+                                                React.createElement('input', {
+                                                    type: "text",
+                                                    value: messageInput[timer.id] || '',
+                                                    onChange: (e) => setMessageInput(prev => ({ ...prev, [timer.id]: e.target.value })),
+                                                    onKeyDown: (e) => {
+                                                        if (e.key === 'Enter') sendMessage(timer.id);
+                                                    },
+                                                    placeholder: "Type a message...",
+                                                    className: "flex-grow px-3 py-2 border border-purple-200 rounded-lg focus:ring-2 focus:ring-purple-400 focus:outline-none text-sm"
+                                                }),
+                                                React.createElement('button', {
+                                                    onClick: () => sendMessage(timer.id),
+                                                    className: "px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition text-sm",
+                                                    style: { fontWeight: 400 }
+                                                }, "Send")
                                             )
                                         )
                                     );
