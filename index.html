@@ -698,8 +698,10 @@
         };
 
         // Get tree growth stage based on hours (0-100%)
-        const getTreeGrowth = (totalHours) => {
-            return Math.min(100, (totalHours / 5) * 100); // Full growth at 5 hours
+        const getTreeGrowth = (totalHours, currentTree) => {
+            // Calculate hours since this tree was unlocked
+            const hoursSinceUnlock = totalHours - currentTree.requiredHours;
+            return Math.min(100, (hoursSinceUnlock / 5) * 100); // Full growth at 5 hours after unlock
         };
 
         // Get available tree types based on hours
@@ -2723,9 +2725,9 @@
 
             // Calculate growth metrics
             const totalHours = calculateTotalHours(sessions);
-            const growthPercent = getTreeGrowth(totalHours);
             const unlockedTrees = getUnlockedTrees(totalHours);
             const currentTree = TREE_TYPES.find(t => t.id === selectedTreeType) || TREE_TYPES[0];
+            const growthPercent = getTreeGrowth(totalHours, currentTree);
 
             // Load tree preferences
             useEffect(() => {
@@ -3163,7 +3165,7 @@
                 React.createElement('div', { className: "mb-4" },
                     React.createElement('div', { className: "flex justify-between text-xs text-calm-600 mb-1", style: { fontWeight: 300 } },
                         React.createElement('span', null, currentTree.name),
-                        React.createElement('span', null, `${totalHours.toFixed(1)} / 5.0 hours`)
+                        React.createElement('span', null, `${Math.max(0, totalHours - currentTree.requiredHours).toFixed(1)} / 5.0 hours`)
                     ),
                     React.createElement('div', { className: "w-full bg-calm-200 rounded-full h-2" },
                         React.createElement('div', {
