@@ -70,7 +70,7 @@ service cloud.firestore {
                        resource.data.user2Id == request.auth.uid);
     }
 
-    // Shared Timers Collection (ADDED THIS)
+    // Shared Timers Collection
     match /sharedTimers/{timerId} {
       // Allow users to create shared timers where they're a participant
       allow create: if request.auth != null &&
@@ -87,6 +87,19 @@ service cloud.firestore {
       // Allow participants to delete shared timers
       allow delete: if request.auth != null &&
                       request.auth.uid in resource.data.participants;
+    }
+
+    // Chat Messages Collection (for Nous together chat)
+    match /chatMessages/{messageId} {
+      // Allow users to create messages for shared timers they're in
+      allow create: if request.auth != null &&
+                      request.resource.data.senderId == request.auth.uid;
+
+      // Allow users to read messages for shared timers they're participating in
+      allow read: if request.auth != null &&
+                    (request.auth.uid in resource.data.participants);
+
+      // No updates or deletes for now (messages are immutable)
     }
 
     // Artifacts Collection (for habits, sessions, active timers)

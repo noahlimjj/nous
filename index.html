@@ -1042,6 +1042,7 @@
             const [tempHabitName, setTempHabitName] = useState('');
             const [draggedHabitId, setDraggedHabitId] = useState(null);
             const [dragOverIndex, setDragOverIndex] = useState(null);
+            const [currentTime, setCurrentTime] = useState(Date.now());
 
             const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
 
@@ -1184,6 +1185,7 @@
             // Update timer display every 10ms for running timers
             useEffect(() => {
                 const interval = setInterval(() => {
+                    setCurrentTime(Date.now());
                     setActiveTimers(prev => {
                         const updated = { ...prev };
                         let hasChanges = false;
