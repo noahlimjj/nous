@@ -2793,6 +2793,7 @@
         // --- Friends Page Component ---
         const Friends = ({ db, userId, setNotification, userProfile }) => {
             const [friendRequests, setFriendRequests] = useState([]);
+            const [nousRequests, setNousRequests] = useState([]);
             const [friends, setFriends] = useState([]);
             const [searchTerm, setSearchTerm] = useState('');
             const [searchResult, setSearchResult] = useState(null);
@@ -2814,6 +2815,18 @@
                 const unsubscribeRequests = window.onSnapshot(requestsQuery, async (snapshot) => {
                     const requests = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                     setFriendRequests(requests);
+                });
+
+                // Listen to incoming Nous requests
+                const nousRequestsQuery = window.query(
+                    window.collection(db, 'nousRequests'),
+                    window.where('toUserId', '==', userId),
+                    window.where('status', '==', 'pending')
+                );
+
+                const unsubscribeNousRequests = window.onSnapshot(nousRequestsQuery, async (snapshot) => {
+                    const requests = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                    setNousRequests(requests);
                 });
 
                 // Listen to friendships
@@ -2866,7 +2879,10 @@
                 };
 
                 fetchFriends();
-                return () => unsubscribeRequests();
+                return () => {
+                    unsubscribeRequests();
+                    unsubscribeNousRequests();
+                };
             }, [db, userId, setNotification]);
 
             // Search for user by username
@@ -3063,6 +3079,36 @@
                 }
             };
 
+            // Accept Nous request
+            const handleAcceptNousRequest = async (request) => {
+                try {
+                    const requestDocRef = window.doc(db, 'nousRequests', request.id);
+                    await window.updateDoc(requestDocRef, {
+                        status: 'accepted'
+                    });
+                    setNousRequests(prev => prev.filter(r => r.id !== request.id));
+                    setNotification({ type: 'success', message: `You're now studying together with @${request.fromUsername}!` });
+                } catch (error) {
+                    console.error("Error accepting Nous request:", error);
+                    setNotification({ type: 'error', message: 'Failed to accept request.' });
+                }
+            };
+
+            // Decline Nous request
+            const handleDeclineNousRequest = async (request) => {
+                try {
+                    const requestDocRef = window.doc(db, 'nousRequests', request.id);
+                    await window.updateDoc(requestDocRef, {
+                        status: 'declined'
+                    });
+                    setNousRequests(prev => prev.filter(r => r.id !== request.id));
+                    setNotification({ type: 'success', message: 'Nous request declined.' });
+                } catch (error) {
+                    console.error("Error declining Nous request:", error);
+                    setNotification({ type: 'error', message: 'Failed to decline request.' });
+                }
+            };
+
             if (isLoading) {
                 return React.createElement('div', { className: "flex justify-center items-center p-8" },
                     React.createElement(LoaderIcon),
@@ -3192,6 +3238,42 @@
                     )
                 ),
 
+                // Nous Requests
+                nousRequests.length > 0 && React.createElement('div', { className: "bg-white rounded-xl soft-shadow p-6" },
+                    React.createElement('h3', { className: "text-xl text-calm-800 mb-4", style: { fontWeight: 300 } },
+                        `nous together requests (${nousRequests.length})`
+                    ),
+                    React.createElement('div', { className: "space-y-3" },
+                        nousRequests.map(request =>
+                            React.createElement('div', {
+                                key: request.id,
+                                className: "p-4 bg-purple-50 rounded-lg border border-purple-200 flex justify-between items-center"
+                            },
+                                React.createElement('div', null,
+                                    React.createElement('p', { className: "text-lg text-calm-800", style: { fontWeight: 400 } },
+                                        `@${request.fromUsername} wants to Nous together`
+                                    ),
+                                    React.createElement('p', { className: "text-sm text-calm-600", style: { fontWeight: 300 } },
+                                        formatDate(request.createdAt)
+                                    )
+                                ),
+                                React.createElement('div', { className: "flex gap-2" },
+                                    React.createElement('button', {
+                                        onClick: () => handleAcceptNousRequest(request),
+                                        className: "px-3 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition text-sm",
+                                        style: { fontWeight: 400 }
+                                    }, "Accept"),
+                                    React.createElement('button', {
+                                        onClick: () => handleDeclineNousRequest(request),
+                                        className: "px-3 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 transition text-sm",
+                                        style: { fontWeight: 400 }
+                                    }, "Decline")
+                                )
+                            )
+                        )
+                    )
+                ),
+
                 // My Friends List
                 React.createElement('div', { className: "bg-white rounded-xl soft-shadow p-6" },
                     React.createElement('h3', { className: "text-xl text-calm-800 mb-4", style: { fontWeight: 300 } },
@@ -3237,9 +3319,9 @@
                                         // Nous together button
                                         React.createElement('button', {
                                             onClick: () => handleNousRequest(friend),
-                                            className: "px-4 py-2 bg-purple-100 text-purple-700 rounded-lg hover:bg-purple-200 transition text-sm",
+                                            className: "px-3 py-1.5 bg-purple-100 text-purple-700 rounded-lg hover:bg-purple-200 transition text-xs",
                                             style: { fontWeight: 400 }
-                                        }, "🤝 Nous together")
+                                        }, "Nous together")
                                     )
                                 )
                             )
