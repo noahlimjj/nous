@@ -1759,7 +1759,7 @@
             if (isLoading) {
                 return React.createElement('div', { className: "flex justify-center items-center p-8" },
                     React.createElement(LoaderIcon),
-                    React.createElement('span', { className: "ml-2" }, "Loading your dashboard...")
+                    React.createElement('span', { className: "ml-2" }, "loading your dashboard...")
                 );
             }
 
@@ -1789,12 +1789,12 @@
                                             onClick: () => handleAcceptNousRequest(request),
                                             className: "px-3 py-1 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition text-sm",
                                             style: { fontWeight: 400 }
-                                        }, "Accept"),
+                                        }, "accept"),
                                         React.createElement('button', {
                                             onClick: () => handleDeclineNousRequest(request),
                                             className: "px-3 py-1 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 transition text-sm",
                                             style: { fontWeight: 400 }
-                                        }, "Decline")
+                                        }, "decline")
                                     )
                                 )
                             )
@@ -1956,7 +1956,7 @@
                                                             )
                                                         )
                                                     ) :
-                                                    React.createElement('p', { className: "text-xs text-gray-400 text-center py-4" }, "No messages yet. Start chatting!")
+                                                    React.createElement('p', { className: "text-xs text-gray-400 text-center py-4" }, "no messages yet. start chatting!")
                                             ),
 
                                             // Input
@@ -1975,7 +1975,7 @@
                                                     onClick: () => sendMessage(timer.id),
                                                     className: "px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition text-sm",
                                                     style: { fontWeight: 400 }
-                                                }, "Send")
+                                                }, "send")
                                             )
                                         )
                                     );
@@ -2031,14 +2031,14 @@
                                                             handleRenameHabit(habit.id, tempHabitName);
                                                         },
                                                         className: "p-2 bg-green-100 text-green-600 rounded hover:bg-green-200 transition",
-                                                        title: "Save"
+                                                        title: "save"
                                                     },
                                                         React.createElement(CheckIcon)
                                                     ),
                                                     React.createElement('button', {
                                                         onClick: () => { setEditingHabitId(null); setTempHabitName(''); },
                                                         className: "p-2 bg-red-100 text-red-600 rounded hover:bg-red-200 transition",
-                                                        title: "Cancel"
+                                                        title: "cancel"
                                                     },
                                                         React.createElement(XIcon)
                                                     )
@@ -2116,7 +2116,7 @@
                                     )
                                 )
                             ) :
-                            React.createElement('p', { className: "text-gray-500" }, "No sessions recorded yet.")
+                            React.createElement('p', { className: "text-gray-500" }, "no sessions recorded yet.")
                         )
                     )
                 )
@@ -2282,11 +2282,11 @@
                     React.createElement('button', {
                         onClick: () => setViewMode('monthly'),
                         className: `px-4 py-2 rounded-lg transition ${viewMode === 'monthly' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`
-                    }, "Monthly"),
+                    }, "monthly"),
                     React.createElement('button', {
                         onClick: () => setViewMode('weekly'),
                         className: `px-4 py-2 rounded-lg transition ${viewMode === 'weekly' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`
-                    }, "Weekly")
+                    }, "weekly")
                 ),
 
                 // Month selector (only for monthly view)
@@ -2305,7 +2305,7 @@
                 viewMode === 'monthly' && (isLoading ?
                     React.createElement('div', { className: "flex justify-center items-center p-8" },
                         React.createElement(LoaderIcon),
-                        React.createElement('span', { className: "ml-2" }, "Generating report...")
+                        React.createElement('span', { className: "ml-2" }, "generating report...")
                     ) :
                     React.createElement('div', { className: "grid grid-cols-1 md:grid-cols-2 gap-8" },
                         // Chart Section
@@ -2325,7 +2325,7 @@
                                             })
                                         )
                                     )
-                                ) : React.createElement('p', null, "No data for this month.")
+                                ) : React.createElement('p', null, "no data for this month.")
                             )
                         ),
 
@@ -2351,7 +2351,7 @@
                                         )
                                     )
                                 ) :
-                                React.createElement('p', { className: "text-gray-500" }, "No sessions recorded this month.")
+                                React.createElement('p', { className: "text-gray-500" }, "no sessions recorded this month.")
                             )
                         )
                     )
@@ -2361,7 +2361,7 @@
                 viewMode === 'weekly' && React.createElement('div', { className: "space-y-8" },
                     // Weekly hours over time
                     React.createElement('div', { className: "bg-white p-6 rounded-lg shadow-sm" },
-                        React.createElement('h3', { className: "text-xl mb-4", style: { fontWeight: 300 } }, "Weekly Hours (Last 8 Weeks)"),
+                        React.createElement('h3', { className: "text-xl mb-4", style: { fontWeight: 300 } }, "weekly hours (last 8 weeks)"),
                         React.createElement('div', { className: "space-y-3" },
                             weeklyData.length > 0 ? weeklyData.map((week, index) =>
                                 React.createElement('div', { key: index },
@@ -2378,15 +2378,15 @@
                                         })
                                     )
                                 )
-                            ) : React.createElement('p', { className: "text-gray-500" }, "No data available.")
+                            ) : React.createElement('p', { className: "text-gray-500" }, "no data available.")
                         )
                     ),
 
                     // Time of day analysis
                     timeOfDayData.length > 0 && React.createElement('div', { className: "bg-white p-6 rounded-lg shadow-sm" },
-                        React.createElement('h3', { className: "text-xl mb-4", style: { fontWeight: 300 } }, "Time of Day Analysis"),
+                        React.createElement('h3', { className: "text-xl mb-4", style: { fontWeight: 300 } }, "time of day analysis"),
                         React.createElement('p', { className: "text-sm text-gray-600 mb-4" },
-                            `You study most at ${timeOfDayData.reduce((max, item) => item.duration > max.duration ? item : max, timeOfDayData[0]).label}`
+                            `you study most at ${timeOfDayData.reduce((max, item) => item.duration > max.duration ? item : max, timeOfDayData[0]).label}`
                         ),
                         React.createElement('div', { className: "space-y-2" },
                             timeOfDayData.sort((a, b) => b.duration - a.duration).slice(0, 10).map((item, index) =>
@@ -2717,7 +2717,7 @@
 
         // Growth Tree Component - Aesthetic visualization of study progress
         const GrowthTree = ({ sessions, db, userId, setNotification }) => {
-            const [treeName, setTreeName] = useState('My Tree');
+            const [treeName, setTreeName] = useState('my tree');
             const [selectedTreeType, setSelectedTreeType] = useState('seedling');
             const [isEditingName, setIsEditingName] = useState(false);
             const [tempName, setTempName] = useState('');
@@ -3373,7 +3373,7 @@
             if (isLoading) {
                 return React.createElement('div', { className: "flex justify-center items-center p-8" },
                     React.createElement(LoaderIcon),
-                    React.createElement('span', { className: "ml-2" }, "Loading your goals...")
+                    React.createElement('span', { className: "ml-2" }, "loading your goals...")
                 );
             }
 
@@ -3830,7 +3830,7 @@
             if (isLoading) {
                 return React.createElement('div', { className: "flex justify-center items-center p-8" },
                     React.createElement(LoaderIcon),
-                    React.createElement('span', { className: "ml-2" }, "Loading friends...")
+                    React.createElement('span', { className: "ml-2" }, "loading friends...")
                 );
             }
 
@@ -3980,12 +3980,12 @@
                                         onClick: () => handleAcceptNousRequest(request),
                                         className: "px-3 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition text-sm",
                                         style: { fontWeight: 400 }
-                                    }, "Accept"),
+                                    }, "accept"),
                                     React.createElement('button', {
                                         onClick: () => handleDeclineNousRequest(request),
                                         className: "px-3 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 transition text-sm",
                                         style: { fontWeight: 400 }
-                                    }, "Decline")
+                                    }, "decline")
                                 )
                             )
                         )
@@ -4179,7 +4179,7 @@
             if (isLoading) {
                 return React.createElement('div', { className: "flex justify-center items-center p-8" },
                     React.createElement(LoaderIcon),
-                    React.createElement('span', { className: "ml-2" }, "Loading leaderboard...")
+                    React.createElement('span', { className: "ml-2" }, "loading leaderboard...")
                 );
             }
 
