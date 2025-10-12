@@ -684,6 +684,7 @@
         // Tree types with unlock requirements (total hours studied)
         const TREE_TYPES = [
             { id: 'seedling', name: 'Seedling', requiredHours: 0, color: '#86efac' },
+            { id: 'maple', name: 'Maple Tree', requiredHours: 5, color: '#f59e0b' },
             { id: 'oak', name: 'Oak Tree', requiredHours: 10, color: '#34d399' },
             { id: 'cherry', name: 'Cherry Blossom', requiredHours: 25, color: '#fda4af' },
             { id: 'pine', name: 'Pine Tree', requiredHours: 50, color: '#10b981' },
@@ -2811,6 +2812,9 @@
                 } else if (treeType === 'pine') {
                     // Pine: Dark green tones
                     leafColors = ["#14532d", "#166534", "#15803d", "#16a34a", "#22c55e"];
+                } else if (treeType === 'maple') {
+                    // Maple Tree: Orange and red autumn colors
+                    leafColors = ["#f97316", "#fb923c", "#ea580c", "#fdba74", "#ff6b35"];
                 } else {
                     // Oak, Seedling, and others: Minecraft oak/jungle leaf greens
                     leafColors = ["#48b518", "#5ec920", "#3fa014", "#6ed528", "#58b61c"];
