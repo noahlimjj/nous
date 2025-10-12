@@ -992,11 +992,34 @@
                     }
                 }
 
+                // Calculate hours studied today
+                const todayStart = new Date();
+                todayStart.setHours(0, 0, 0, 0);
+                const todayEnd = new Date();
+                todayEnd.setHours(23, 59, 59, 999);
+
+                const todaySessions = sessions.filter(s => {
+                    const sessionDate = s.startTime.toDate();
+                    return sessionDate >= todayStart && sessionDate <= todayEnd;
+                });
+
+                const hoursToday = todaySessions.reduce((total, session) => {
+                    return total + (session.duration || 0);
+                }, 0) / (1000 * 60 * 60);
+
+                // Calculate longest session
+                const longestSession = sessions.reduce((max, session) => {
+                    const duration = session.duration || 0;
+                    return duration > max ? duration : max;
+                }, 0) / (1000 * 60 * 60);
+
                 await window.setDoc(userDocRef, {
                     stats: {
                         totalHours,
                         currentStreak: streak,
                         totalSessions,
+                        hoursToday,
+                        longestSession,
                         goalsCompleted: 0,
                         treeLevel: Math.floor(totalHours / 10),
                         lastUpdated: window.Timestamp.now()
@@ -1330,6 +1353,12 @@
                         // Keep track of original start time for session recording
                         originalStartTime: existingTimer?.originalStartTime || window.serverTimestamp()
                     });
+
+                    // Update currentTopic in user profile
+                    const userDocRef = window.doc(db, 'users', userId);
+                    await window.setDoc(userDocRef, {
+                        currentTopic: habit.name
+                    }, { merge: true });
                 } catch (error) {
                     console.error("Error starting timer:", error);
                     setNotification({ type: 'error', message: 'Failed to start timer.' });
@@ -1389,6 +1418,15 @@
                         // Delete from activeTimers collection
                         const timerDocRef = window.doc(db, `/artifacts/${appId}/users/${userId}/activeTimers/${habitId}`);
                         await window.deleteDoc(timerDocRef);
+
+                        // Clear currentTopic in user profile if no other timers are active
+                        const remainingTimers = Object.keys(activeTimers).filter(id => id !== habitId);
+                        if (remainingTimers.length === 0) {
+                            const userDocRef = window.doc(db, 'users', userId);
+                            await window.setDoc(userDocRef, {
+                                currentTopic: null
+                            }, { merge: true });
+                        }
                     } catch(error) {
                         console.error("Error stopping timer:", error);
                         setNotification({ type: 'error', message: 'Failed to stop timer.' });
@@ -2991,6 +3029,40 @@
                 }
             };
 
+            // Send Nous together request
+            const handleNousRequest = async (friend) => {
+                try {
+                    // Check if there's already a pending request
+                    const existingQuery = window.query(
+                        window.collection(db, 'nousRequests'),
+                        window.where('fromUserId', '==', userId),
+                        window.where('toUserId', '==', friend.userId),
+                        window.where('status', '==', 'pending')
+                    );
+                    const existingDocs = await window.getDocs(existingQuery);
+
+                    if (!existingDocs.empty) {
+                        setNotification({ type: 'error', message: 'You already sent a Nous request to this friend!' });
+                        return;
+                    }
+
+                    // Create Nous request
+                    await window.addDoc(window.collection(db, 'nousRequests'), {
+                        fromUserId: userId,
+                        fromUsername: userProfile.username,
+                        toUserId: friend.userId,
+                        toUsername: friend.username,
+                        status: 'pending',
+                        createdAt: window.Timestamp.now()
+                    });
+
+                    setNotification({ type: 'success', message: `Nous request sent to @${friend.username}!` });
+                } catch (error) {
+                    console.error("Error sending Nous request:", error);
+                    setNotification({ type: 'error', message: 'Failed to send Nous request.' });
+                }
+            };
+
             if (isLoading) {
                 return React.createElement('div', { className: "flex justify-center items-center p-8" },
                     React.createElement(LoaderIcon),
@@ -3132,25 +3204,42 @@
                                     key: friend.friendshipId,
                                     className: "p-4 bg-calm-50 rounded-lg border border-calm-200 hover:border-calm-300 transition"
                                 },
-                                    React.createElement('div', { className: "flex justify-between items-start" },
-                                        React.createElement('div', { className: "flex-grow" },
-                                            React.createElement('p', { className: "text-lg text-calm-800 mb-1", style: { fontWeight: 400 } },
-                                                `@${friend.username}`
-                                            ),
-                                            React.createElement('div', { className: "flex items-center gap-4 text-sm text-calm-600", style: { fontWeight: 300 } },
-                                                React.createElement('span', null,
-                                                    `${friend.stats?.totalHours?.toFixed(1) || 0}h studied`
+                                    React.createElement('div', { className: "flex flex-col gap-3" },
+                                        React.createElement('div', { className: "flex justify-between items-start" },
+                                            React.createElement('div', { className: "flex-grow" },
+                                                React.createElement('p', { className: "text-lg text-calm-800 mb-1", style: { fontWeight: 400 } },
+                                                    `@${friend.username}`
                                                 ),
-                                                friend.stats?.currentStreak > 0 && React.createElement('span', null,
-                                                    `${friend.stats.currentStreak} day streak 🔥`
+                                                React.createElement('div', { className: "flex items-center gap-4 text-sm text-calm-600", style: { fontWeight: 300 } },
+                                                    React.createElement('span', null,
+                                                        `${friend.stats?.totalHours?.toFixed(1) || 0}h total`
+                                                    ),
+                                                    friend.stats?.currentStreak > 0 && React.createElement('span', null,
+                                                        `${friend.stats.currentStreak} day streak 🔥`
+                                                    )
+                                                ),
+                                                // Today's hours and current topic
+                                                React.createElement('div', { className: "flex items-center gap-4 text-sm text-calm-700 mt-1", style: { fontWeight: 300 } },
+                                                    React.createElement('span', null,
+                                                        `Today: ${friend.stats?.hoursToday?.toFixed(1) || 0}h`
+                                                    ),
+                                                    friend.currentTopic && React.createElement('span', { className: "text-accent-blue", style: { fontWeight: 400, color: '#6B8DD6' } },
+                                                        `📚 ${friend.currentTopic}`
+                                                    )
                                                 )
-                                            )
+                                            ),
+                                            React.createElement('button', {
+                                                onClick: () => handleUnfriend(friend),
+                                                className: "text-sm text-calm-500 hover:text-red-600 transition",
+                                                style: { fontWeight: 300 }
+                                            }, "Unfriend")
                                         ),
+                                        // Nous together button
                                         React.createElement('button', {
-                                            onClick: () => handleUnfriend(friend),
-                                            className: "text-sm text-calm-500 hover:text-red-600 transition",
-                                            style: { fontWeight: 300 }
-                                        }, "Unfriend")
+                                            onClick: () => handleNousRequest(friend),
+                                            className: "px-4 py-2 bg-purple-100 text-purple-700 rounded-lg hover:bg-purple-200 transition text-sm",
+                                            style: { fontWeight: 400 }
+                                        }, "🤝 Nous together")
                                     )
                                 )
                             )
@@ -3259,6 +3348,8 @@
                     return `${diff.toFixed(1)}h to reach #${currentUserRank - 1} 🚀`;
                 } else if (selectedMetric === 'currentStreak') {
                     return `${Math.ceil(diff)} days to reach #${currentUserRank - 1} 🚀`;
+                } else if (selectedMetric === 'longestSession') {
+                    return `${diff.toFixed(1)}h to reach #${currentUserRank - 1} 🚀`;
                 } else {
                     return `${Math.ceil(diff)} sessions to reach #${currentUserRank - 1} 🚀`;
                 }
@@ -3270,6 +3361,8 @@
                     return `${value.toFixed(1)} hours`;
                 } else if (metric === 'currentStreak') {
                     return `${Math.floor(value)} day${value !== 1 ? 's' : ''}`;
+                } else if (metric === 'longestSession') {
+                    return `${value.toFixed(1)} hours`;
                 } else {
                     return `${Math.floor(value)} session${value !== 1 ? 's' : ''}`;
                 }
@@ -3300,7 +3393,8 @@
                         [
                             { key: 'totalHours', label: 'Total Hours' },
                             { key: 'currentStreak', label: 'Current Streak' },
-                            { key: 'totalSessions', label: 'Total Sessions' }
+                            { key: 'totalSessions', label: 'Total Sessions' },
+                            { key: 'longestSession', label: 'Longest Session' }
                         ].map(metric =>
                             React.createElement('button', {
                                 key: metric.key,
