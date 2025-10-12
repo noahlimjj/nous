@@ -1645,39 +1645,66 @@
 
             // Send a chat message
             const sendMessage = async (timerId) => {
+                console.log('🚀 sendMessage called with timerId:', timerId);
+                console.log('📝 Current messageInput state:', messageInput);
+
                 const message = messageInput[timerId]?.trim();
-                if (!message || !timerId) return;
+                console.log('💬 Message to send:', message);
+
+                if (!message) {
+                    console.warn('⚠️ No message to send (empty or whitespace)');
+                    return;
+                }
+
+                if (!timerId) {
+                    console.error('❌ No timerId provided');
+                    return;
+                }
 
                 try {
+                    console.log('🔍 Looking for timer in sharedTimers:', sharedTimers.length, 'timers');
                     const timer = sharedTimers.find(t => t.id === timerId);
+
                     if (!timer) {
-                        console.error("Timer not found:", timerId);
+                        console.error("❌ Timer not found:", timerId);
+                        console.error("Available timers:", sharedTimers.map(t => t.id));
                         return;
                     }
 
+                    console.log('✅ Timer found:', timer);
+
                     // Get current user's profile for username
+                    console.log('👤 Fetching user profile...');
                     const userDoc = await window.getDoc(window.doc(db, 'users', userId));
                     const username = userDoc.exists() ? userDoc.data().username : 'Anonymous';
+                    console.log('✅ Username:', username);
 
-                    console.log("Sending message:", { timerId, senderId: userId, senderName: username, message, participants: timer.participants });
-
-                    const docRef = await window.addDoc(window.collection(db, 'chatMessages'), {
+                    const messageData = {
                         timerId,
                         senderId: userId,
                         senderName: username,
                         message,
                         participants: timer.participants,
                         createdAt: window.Timestamp.now()
-                    });
+                    };
 
-                    console.log("Message sent successfully:", docRef.id);
+                    console.log("📤 Sending message to Firestore:", messageData);
+
+                    const docRef = await window.addDoc(window.collection(db, 'chatMessages'), messageData);
+
+                    console.log("✅ Message sent successfully! Doc ID:", docRef.id);
 
                     // Clear input
-                    setMessageInput(prev => ({ ...prev, [timerId]: '' }));
+                    setMessageInput(prev => {
+                        console.log('🧹 Clearing input for timer:', timerId);
+                        return { ...prev, [timerId]: '' };
+                    });
                 } catch (error) {
-                    console.error("Error sending message:", error);
-                    console.error("Error details:", error.code, error.message);
-                    setNotification({ type: 'error', message: 'Failed to send message.' });
+                    console.error("❌ Error sending message:", error);
+                    console.error("Error code:", error.code);
+                    console.error("Error message:", error.message);
+                    console.error("Full error:", error);
+                    setNotification({ type: 'error', message: `Failed to send message: ${error.message}` });
                 }
             };
 
