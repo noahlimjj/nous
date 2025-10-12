@@ -1647,25 +1647,36 @@
                     const totalElapsed = currentElapsed + sessionElapsed;
 
                     if (totalElapsed > 0) {
-                        // Save session for current user
-                        const sessionsCol = window.collection(db, `/artifacts/${appId}/users/${userId}/sessions`);
-                        await window.addDoc(sessionsCol, {
-                            habitId: 'nous_together',
-                            habitName: timer.habitName || 'Nous Together',
-                            startTime: timer.createdAt,
-                            endTime: window.Timestamp.now(),
-                            duration: Math.round(totalElapsed),
-                            isShared: true,
-                            sharedWith: timer.participantNames.filter(name => name !== timer.participantNames[timer.participants.indexOf(userId)])
-                        });
+                        // Save session for ALL participants
+                        const endTime = window.Timestamp.now();
 
-                        // Update user stats to include this session
-                        const allSessionsSnapshot = await window.getDocs(sessionsCol);
-                        const allSessions = allSessionsSnapshot.docs.map(doc => ({
-                            id: doc.id,
-                            ...doc.data()
-                        }));
-                        await updateUserStats(db, userId, allSessions);
+                        for (const participantId of timer.participants) {
+                            const participantIndex = timer.participants.indexOf(participantId);
+                            const participantName = timer.participantNames[participantIndex];
+
+                            // Get other participants' names (everyone except this participant)
+                            const otherParticipants = timer.participantNames.filter((name, idx) => idx !== participantIndex);
+
+                            // Save session for this participant
+                            const sessionsCol = window.collection(db, `/artifacts/${appId}/users/${participantId}/sessions`);
+                            await window.addDoc(sessionsCol, {
+                                habitId: 'nous_together',
+                                habitName: timer.habitName || 'Nous Together',
+                                startTime: timer.createdAt,
+                                endTime: endTime,
+                                duration: Math.round(totalElapsed),
+                                isShared: true,
+                                sharedWith: otherParticipants
+                            });
+
+                            // Update stats for this participant
+                            const allSessionsSnapshot = await window.getDocs(sessionsCol);
+                            const allSessions = allSessionsSnapshot.docs.map(doc => ({
+                                id: doc.id,
+                                ...doc.data()
+                            }));
+                            await updateUserStats(db, participantId, allSessions);
+                        }
                     }
 
                     // Update timer status to ended
@@ -2114,6 +2125,9 @@
             const [sessions, setSessions] = useState([]);
             const [isLoading, setIsLoading] = useState(true);
             const [month, setMonth] = useState(new Date().toISOString().slice(0, 7));
+            const [viewMode, setViewMode] = useState('monthly'); // 'monthly' or 'weekly'
+            const [weeklyData, setWeeklyData] = useState([]);
+            const [timeOfDayData, setTimeOfDayData] = useState([]);
 
             const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
 
@@ -2157,6 +2171,69 @@
                 fetchReportData();
             }, [db, userId, month, appId, setNotification]);
 
+            // Fetch weekly and time-of-day data
+            useEffect(() => {
+                if (!db || !userId || viewMode !== 'weekly') return;
+
+                const fetchWeeklyData = async () => {
+                    try {
+                        // Get all sessions
+                        const sessionsQuery = window.collection(db, `/artifacts/${appId}/users/${userId}/sessions`);
+                        const snapshot = await window.getDocs(sessionsQuery);
+                        const allSessions = snapshot.docs.map(doc => ({id: doc.id, ...doc.data()}));
+
+                        // Get start of week (Sunday) for the last 8 weeks
+                        const weeks = [];
+                        for (let i = 0; i < 8; i++) {
+                            const date = new Date();
+                            date.setDate(date.getDate() - (i * 7));
+                            const startOfWeek = new Date(date);
+                            startOfWeek.setDate(date.getDate() - date.getDay());
+                            startOfWeek.setHours(0, 0, 0, 0);
+
+                            const endOfWeek = new Date(startOfWeek);
+                            endOfWeek.setDate(startOfWeek.getDate() + 6);
+                            endOfWeek.setHours(23, 59, 59, 999);
+
+                            const weekSessions = allSessions.filter(session => {
+                                const sessionTime = session.startTime.toMillis();
+                                return sessionTime >= startOfWeek.getTime() && sessionTime <= endOfWeek.getTime();
+                            });
+
+                            const totalDuration = weekSessions.reduce((sum, s) => sum + s.duration, 0);
+                            weeks.push({
+                                weekStart: startOfWeek,
+                                weekEnd: endOfWeek,
+                                totalHours: totalDuration / (1000 * 60 * 60),
+                                sessions: weekSessions
+                            });
+                        }
+
+                        weeks.reverse(); // Show oldest to newest
+                        setWeeklyData(weeks);
+
+                        // Calculate time of day distribution (for all time)
+                        const hourBuckets = Array(24).fill(0);
+                        allSessions.forEach(session => {
+                            const hour = new Date(session.startTime.toMillis()).getHours();
+                            hourBuckets[hour] += session.duration;
+                        });
+
+                        const timeOfDayStats = hourBuckets.map((duration, hour) => ({
+                            hour,
+                            duration,
+                            label: `${hour.toString().padStart(2, '0')}:00`
+                        })).filter(item => item.duration > 0);
+
+                        setTimeOfDayData(timeOfDayStats);
+                    } catch (error) {
+                        console.error("Error fetching weekly data:", error);
+                    }
+                };
+
+                fetchWeeklyData();
+            }, [db, userId, appId, viewMode]);
+
             const handleDeleteSession = async (sessionId) => {
                 if (window.confirm("Are you sure you want to delete this session? This cannot be undone.")) {
                     try {
@@ -2190,11 +2267,27 @@
             };
 
             const maxDuration = Math.max(...reportData.map(d => d.duration), 0);
+            const maxWeeklyHours = Math.max(...weeklyData.map(w => w.totalHours), 0);
+            const maxTimeOfDay = Math.max(...timeOfDayData.map(t => t.duration), 0);
             const colors = ['bg-blue-500', 'bg-green-500', 'bg-yellow-500', 'bg-purple-500', 'bg-pink-500', 'bg-indigo-500'];
 
             return React.createElement('div', { className: "max-w-7xl mx-auto p-4 sm:p-6 lg:p-8" },
-                React.createElement('h2', { className: "text-3xl text-gray-800 mb-4", style: { fontWeight: 300 } }, "monthly report"),
-                React.createElement('div', { className: "mb-6" },
+                React.createElement('h2', { className: "text-3xl text-gray-800 mb-4", style: { fontWeight: 300 } }, "reports"),
+
+                // View toggle buttons
+                React.createElement('div', { className: "mb-6 flex gap-2" },
+                    React.createElement('button', {
+                        onClick: () => setViewMode('monthly'),
+                        className: `px-4 py-2 rounded-lg transition ${viewMode === 'monthly' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`
+                    }, "Monthly"),
+                    React.createElement('button', {
+                        onClick: () => setViewMode('weekly'),
+                        className: `px-4 py-2 rounded-lg transition ${viewMode === 'weekly' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`
+                    }, "Weekly")
+                ),
+
+                // Month selector (only for monthly view)
+                viewMode === 'monthly' && React.createElement('div', { className: "mb-6" },
                     React.createElement('label', { htmlFor: "month-select", className: "mr-2", style: { fontWeight: 400 } }, "select month:"),
                     React.createElement('input', {
                         type: "month",
@@ -2205,7 +2298,8 @@
                     })
                 ),
 
-                isLoading ? 
+                // Monthly view
+                viewMode === 'monthly' && (isLoading ?
                     React.createElement('div', { className: "flex justify-center items-center p-8" },
                         React.createElement(LoaderIcon),
                         React.createElement('span', { className: "ml-2" }, "Generating report...")
@@ -2258,6 +2352,57 @@
                             )
                         )
                     )
+                ),
+
+                // Weekly view
+                viewMode === 'weekly' && React.createElement('div', { className: "space-y-8" },
+                    // Weekly hours over time
+                    React.createElement('div', { className: "bg-white p-6 rounded-lg shadow-sm" },
+                        React.createElement('h3', { className: "text-xl mb-4", style: { fontWeight: 300 } }, "Weekly Hours (Last 8 Weeks)"),
+                        React.createElement('div', { className: "space-y-3" },
+                            weeklyData.length > 0 ? weeklyData.map((week, index) =>
+                                React.createElement('div', { key: index },
+                                    React.createElement('div', { className: "flex justify-between mb-1 text-sm", style: { fontWeight: 400 } },
+                                        React.createElement('span', null,
+                                            `${week.weekStart.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - ${week.weekEnd.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`
+                                        ),
+                                        React.createElement('span', null, `${week.totalHours.toFixed(1)}h`)
+                                    ),
+                                    React.createElement('div', { className: "w-full bg-gray-200 rounded-full h-4" },
+                                        React.createElement('div', {
+                                            className: "bg-blue-500 h-4 rounded-full",
+                                            style: { width: `${maxWeeklyHours > 0 ? (week.totalHours / maxWeeklyHours) * 100 : 0}%` }
+                                        })
+                                    )
+                                )
+                            ) : React.createElement('p', { className: "text-gray-500" }, "No data available.")
+                        )
+                    ),
+
+                    // Time of day analysis
+                    timeOfDayData.length > 0 && React.createElement('div', { className: "bg-white p-6 rounded-lg shadow-sm" },
+                        React.createElement('h3', { className: "text-xl mb-4", style: { fontWeight: 300 } }, "Time of Day Analysis"),
+                        React.createElement('p', { className: "text-sm text-gray-600 mb-4" },
+                            `You study most at ${timeOfDayData.reduce((max, item) => item.duration > max.duration ? item : max, timeOfDayData[0]).label}`
+                        ),
+                        React.createElement('div', { className: "space-y-2" },
+                            timeOfDayData.sort((a, b) => b.duration - a.duration).slice(0, 10).map((item, index) =>
+                                React.createElement('div', { key: item.hour },
+                                    React.createElement('div', { className: "flex justify-between mb-1 text-sm", style: { fontWeight: 400 } },
+                                        React.createElement('span', null, item.label),
+                                        React.createElement('span', null, formatTime(item.duration))
+                                    ),
+                                    React.createElement('div', { className: "w-full bg-gray-200 rounded-full h-3" },
+                                        React.createElement('div', {
+                                            className: `${colors[index % colors.length]} h-3 rounded-full`,
+                                            style: { width: `${maxTimeOfDay > 0 ? (item.duration / maxTimeOfDay) * 100 : 0}%` }
+                                        })
+                                    )
+                                )
+                            )
+                        )
+                    )
+                )
             );
         };
 
