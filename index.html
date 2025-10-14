@@ -912,6 +912,11 @@
             const [unreadMessages, setUnreadMessages] = useState({});
             const [lastReadTime, setLastReadTime] = useState({});
             const chatMessagesRefs = useRef({});
+            const [showInviteModal, setShowInviteModal] = useState(false);
+            const [inviteSessionId, setInviteSessionId] = useState(null);
+            const [friends, setFriends] = useState([]);
+            const [selectedInviteFriends, setSelectedInviteFriends] = useState([]);
+            const [sessionInvites, setSessionInvites] = useState([]);
 
             const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
 
@@ -1031,6 +1036,26 @@
                     setNousRequests(requests);
                 });
 
+                // Listen to incoming session invites
+                const sessionInvitesQuery = window.query(
+                    window.collection(db, 'sessionInvites'),
+                    window.where('toUserId', '==', userId),
+                    window.where('status', '==', 'pending')
+                );
+
+                const unsubscribeSessionInvites = window.onSnapshot(
+                    sessionInvitesQuery,
+                    (snapshot) => {
+                        const invites = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                        setSessionInvites(invites);
+                    },
+                    (error) => {
+                        console.error("Error listening to session invites:", error);
+                        // Don't show notification - this is expected if rules aren't set up yet
+                        setSessionInvites([]);
+                    }
+                );
+
                 // Listen to shared timers where user is a participant
                 const sharedTimersQuery = window.query(
                     window.collection(db, 'sharedTimers'),
@@ -1045,6 +1070,7 @@
 
                 return () => {
                     unsubscribeNousRequests();
+                    unsubscribeSessionInvites();
                     unsubscribeSharedTimers();
                 };
             }, [db, userId]);
@@ -1169,15 +1195,30 @@
             // Accept Nous request and create shared timer
             const handleAcceptNousRequest = async (request) => {
                 try {
+                    // Get current user's profile for username
+                    const userDoc = await window.getDoc(window.doc(db, 'users', userId));
+                    const userProfile = userDoc.data();
+                    const myUsername = userProfile?.username || 'Anonymous';
+
                     const requestDocRef = window.doc(db, 'nousRequests', request.id);
                     await window.updateDoc(requestDocRef, {
                         status: 'accepted'
                     });
 
-                    // Create shared timer
+                    // Create shared timer with participantHabits field
                     const sharedTimerData = {
                         participants: [request.fromUserId, userId],
-                        participantNames: [request.fromUsername, request.toUsername],
+                        participantNames: [request.fromUsername, myUsername],
+                        participantHabits: {
+                            [request.fromUserId]: {
+                                habitId: 'nous_together',
+                                habitName: 'Nous Together'
+                            },
+                            [userId]: {
+                                habitId: 'nous_together',
+                                habitName: 'Nous Together'
+                            }
+                        },
                         status: 'active',
                         habitName: 'Nous Together',
                         startTime: window.Timestamp.now(),
@@ -1523,9 +1564,17 @@
             };
 
             const stopSharedTimer = async (sessionId) => {
+                // Add confirmation dialog
+                if (!window.confirm('End this Nous session for everyone? All progress will be saved.')) {
+                    return;
+                }
+
                 try {
                     const session = sharedTimers.find(t => t.id === sessionId);
-                    if (!session) return;
+                    if (!session) {
+                        setNotification({ type: 'error', message: 'Session not found.' });
+                        return;
+                    }
 
                     // Calculate total elapsed time for the shared timer
                     const currentElapsed = session.elapsedBeforePause || 0;
@@ -1538,46 +1587,239 @@
                         const endTime = window.Timestamp.now();
 
                         // Save session for EACH participant with their selected habit
-                        for (const participantId of session.participants) {
-                            const participantIndex = session.participants.indexOf(participantId);
-                            const otherParticipants = session.participantNames.filter((name, idx) => idx !== participantIndex);
+                        // Use Promise.allSettled to handle errors for individual participants
+                        const savePromises = session.participants.map(async (participantId) => {
+                            try {
+                                const participantIndex = session.participants.indexOf(participantId);
+                                const otherParticipants = session.participantNames.filter((name, idx) => idx !== participantIndex);
 
-                            // Get this participant's selected habit
-                            const participantHabit = session.participantHabits?.[participantId] || {
-                                habitId: 'nous_together',
-                                habitName: 'Nous Together'
-                            };
+                                // Get this participant's selected habit
+                                const participantHabit = session.participantHabits?.[participantId] || {
+                                    habitId: 'nous_together',
+                                    habitName: 'Nous Together'
+                                };
 
-                            // Save session for this participant with their habit
-                            const sessionsCol = window.collection(db, `/artifacts/${appId}/users/${participantId}/sessions`);
-                            await window.addDoc(sessionsCol, {
-                                habitId: participantHabit.habitId,
-                                habitName: participantHabit.habitName,
-                                startTime: session.startTime,
-                                endTime: endTime,
-                                duration: Math.round(totalElapsed),
-                                isShared: true,
-                                sharedWith: otherParticipants
-                            });
+                                // Save session for this participant with their habit
+                                const sessionsCol = window.collection(db, `/artifacts/${appId}/users/${participantId}/sessions`);
+                                await window.addDoc(sessionsCol, {
+                                    habitId: participantHabit.habitId,
+                                    habitName: participantHabit.habitName,
+                                    startTime: session.startTime,
+                                    endTime: endTime,
+                                    duration: Math.round(totalElapsed),
+                                    isShared: true,
+                                    sharedWith: otherParticipants
+                                });
 
-                            // Update stats for this participant
-                            const allSessionsSnapshot = await window.getDocs(sessionsCol);
-                            const allSessions = allSessionsSnapshot.docs.map(doc => ({
-                                id: doc.id,
-                                ...doc.data()
-                            }));
-                            await updateUserStats(db, participantId, allSessions);
+                                // Update stats for this participant
+                                const allSessionsSnapshot = await window.getDocs(sessionsCol);
+                                const allSessions = allSessionsSnapshot.docs.map(doc => ({
+                                    id: doc.id,
+                                    ...doc.data()
+                                }));
+                                await updateUserStats(db, participantId, allSessions);
+
+                                return { success: true, participantId };
+                            } catch (error) {
+                                console.error(`Error saving session for participant ${participantId}:`, error);
+                                return { success: false, participantId, error };
+                            }
+                        });
+
+                        const results = await Promise.allSettled(savePromises);
+                        const failures = results.filter(r => r.status === 'rejected' || (r.status === 'fulfilled' && !r.value.success));
+
+                        if (failures.length > 0) {
+                            console.warn(`Failed to save sessions for ${failures.length} participant(s)`);
                         }
                     }
 
-                    // Delete the shared timer
+                    // Delete the shared timer - always do this even if some saves failed
                     const sessionDocRef = window.doc(db, 'sharedTimers', sessionId);
                     await window.deleteDoc(sessionDocRef);
 
                     setNotification({ type: 'success', message: `Shared session saved! (${formatTimeDisplay(totalElapsed)})` });
                 } catch (error) {
                     console.error("Error stopping timer:", error);
-                    setNotification({ type: 'error', message: 'Failed to stop timer.' });
+                    setNotification({ type: 'error', message: `Failed to stop timer: ${error.message}` });
+                }
+            };
+
+            // Load friends list for inviting to existing session
+            useEffect(() => {
+                if (!db || !userId) return;
+
+                const friendshipsQuery1 = window.query(
+                    window.collection(db, 'friendships'),
+                    window.where('user1Id', '==', userId)
+                );
+                const friendshipsQuery2 = window.query(
+                    window.collection(db, 'friendships'),
+                    window.where('user2Id', '==', userId)
+                );
+
+                const fetchFriends = async () => {
+                    try {
+                        const [snap1, snap2] = await Promise.all([
+                            window.getDocs(friendshipsQuery1),
+                            window.getDocs(friendshipsQuery2)
+                        ]);
+
+                        const friendsList = [];
+                        for (const doc of [...snap1.docs, ...snap2.docs]) {
+                            const data = doc.data();
+                            const friendId = data.user1Id === userId ? data.user2Id : data.user1Id;
+
+                            const friendDocRef = window.doc(db, 'users', friendId);
+                            const friendSnapshot = await window.getDoc(friendDocRef);
+                            const friendData = friendSnapshot.data();
+
+                            if (friendData) {
+                                friendsList.push({
+                                    userId: friendId,
+                                    username: data.user1Id === userId ? data.user2Username : data.user1Username,
+                                    ...friendData
+                                });
+                            }
+                        }
+
+                        setFriends(friendsList);
+                    } catch (error) {
+                        console.error("Error fetching friends:", error);
+                    }
+                };
+
+                fetchFriends();
+            }, [db, userId]);
+
+            // Open invite modal for existing session
+            const handleOpenInviteModal = (sessionId) => {
+                setInviteSessionId(sessionId);
+                setSelectedInviteFriends([]);
+                setShowInviteModal(true);
+            };
+
+            // Toggle friend selection for invite
+            const handleToggleInviteFriend = (friend) => {
+                setSelectedInviteFriends(prev => {
+                    const isSelected = prev.some(f => f.userId === friend.userId);
+                    if (isSelected) {
+                        return prev.filter(f => f.userId !== friend.userId);
+                    } else {
+                        return [...prev, friend];
+                    }
+                });
+            };
+
+            // Send invites to join existing session
+            const handleInviteToSession = async () => {
+                try {
+                    if (selectedInviteFriends.length === 0) {
+                        setNotification({ type: 'error', message: 'Please select at least one friend!' });
+                        return;
+                    }
+
+                    const session = sharedTimers.find(t => t.id === inviteSessionId);
+                    if (!session) {
+                        setNotification({ type: 'error', message: 'Session not found.' });
+                        return;
+                    }
+
+                    // Get current user's profile
+                    const userDoc = await window.getDoc(window.doc(db, 'users', userId));
+                    const userProfile = userDoc.data();
+
+                    // Create invite requests for each selected friend
+                    for (const friend of selectedInviteFriends) {
+                        await window.addDoc(window.collection(db, 'sessionInvites'), {
+                            sessionId: inviteSessionId,
+                            fromUserId: userId,
+                            fromUsername: userProfile.username,
+                            toUserId: friend.userId,
+                            toUsername: friend.username,
+                            status: 'pending',
+                            createdAt: window.Timestamp.now()
+                        });
+                    }
+
+                    setNotification({
+                        type: 'success',
+                        message: `Invited ${selectedInviteFriends.length} friend${selectedInviteFriends.length > 1 ? 's' : ''}!`
+                    });
+
+                    // Reset modal state
+                    setShowInviteModal(false);
+                    setInviteSessionId(null);
+                    setSelectedInviteFriends([]);
+                } catch (error) {
+                    console.error("Error sending invites:", error);
+                    setNotification({ type: 'error', message: `Failed to send invites: ${error.message}` });
+                }
+            };
+
+            // Accept session invite and join existing session
+            const handleAcceptSessionInvite = async (invite) => {
+                try {
+                    // Check if session still exists
+                    const sessionRef = window.doc(db, 'sharedTimers', invite.sessionId);
+                    const sessionSnapshot = await window.getDoc(sessionRef);
+
+                    if (!sessionSnapshot.exists()) {
+                        setNotification({ type: 'error', message: 'This session has ended.' });
+                        // Mark invite as expired
+                        await window.updateDoc(window.doc(db, 'sessionInvites', invite.id), {
+                            status: 'expired'
+                        });
+                        return;
+                    }
+
+                    const sessionData = sessionSnapshot.data();
+
+                    // Get current user's profile
+                    const userDoc = await window.getDoc(window.doc(db, 'users', userId));
+                    const userProfile = userDoc.data();
+
+                    // Update session to add new participant
+                    await window.updateDoc(sessionRef, {
+                        participants: [...sessionData.participants, userId],
+                        participantNames: [...sessionData.participantNames, userProfile.username],
+                        participantHabits: {
+                            ...sessionData.participantHabits,
+                            [userId]: {
+                                habitId: 'nous_together',
+                                habitName: 'Nous Together'
+                            }
+                        }
+                    });
+
+                    // Mark invite as accepted
+                    await window.updateDoc(window.doc(db, 'sessionInvites', invite.id), {
+                        status: 'accepted',
+                        acceptedAt: window.Timestamp.now()
+                    });
+
+                    setNotification({
+                        type: 'success',
+                        message: `Joined ${invite.fromUsername}'s session!`
+                    });
+                } catch (error) {
+                    console.error("Error accepting session invite:", error);
+                    setNotification({ type: 'error', message: `Failed to join session: ${error.message}` });
+                }
+            };
+
+            // Decline session invite
+            const handleDeclineSessionInvite = async (invite) => {
+                try {
+                    await window.updateDoc(window.doc(db, 'sessionInvites', invite.id), {
+                        status: 'declined',
+                        declinedAt: window.Timestamp.now()
+                    });
+
+                    setNotification({ type: 'info', message: 'Invite declined.' });
+                } catch (error) {
+                    console.error("Error declining session invite:", error);
+                    setNotification({ type: 'error', message: 'Failed to decline invite.' });
                 }
             };
 
@@ -1649,7 +1891,43 @@
 
             return React.createElement('div', { className: "max-w-7xl mx-auto p-4 sm:p-6 lg:p-8 grid grid-cols-1 lg:grid-cols-3 gap-8" },
                 modalHabit && React.createElement(ManualEntryModal, { db, userId, habit: modalHabit, onClose: () => setModalHabit(null), setNotification }),
-                
+
+                // Session Invites Notification (full width across columns)
+                sessionInvites.length > 0 && React.createElement('div', { className: "lg:col-span-3 bg-purple-50 border-2 border-purple-200 rounded-lg p-4" },
+                    React.createElement('h3', { className: "text-lg text-purple-800 mb-3", style: { fontWeight: 400 } },
+                        `Session Invites (${sessionInvites.length})`
+                    ),
+                    React.createElement('div', { className: "space-y-2" },
+                        sessionInvites.map(invite =>
+                            React.createElement('div', {
+                                key: invite.id,
+                                className: "bg-white p-3 rounded-lg flex justify-between items-center gap-3"
+                            },
+                                React.createElement('div', null,
+                                    React.createElement('p', { className: "text-gray-800", style: { fontWeight: 400 } },
+                                        `@${invite.fromUsername} invited you to join their Nous session`
+                                    ),
+                                    React.createElement('p', { className: "text-sm text-gray-600", style: { fontWeight: 300 } },
+                                        formatDate(invite.createdAt)
+                                    )
+                                ),
+                                React.createElement('div', { className: "flex gap-2 flex-shrink-0" },
+                                    React.createElement('button', {
+                                        onClick: () => handleAcceptSessionInvite(invite),
+                                        className: "px-3 py-1.5 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition text-sm",
+                                        style: { fontWeight: 400 }
+                                    }, "Join"),
+                                    React.createElement('button', {
+                                        onClick: () => handleDeclineSessionInvite(invite),
+                                        className: "px-3 py-1.5 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 transition text-sm",
+                                        style: { fontWeight: 400 }
+                                    }, "Decline")
+                                )
+                            )
+                        )
+                    )
+                ),
+
                 // Left/Main Column: Habits
                 React.createElement('div', { className: "lg:col-span-2" },
                     React.createElement('h2', { className: "text-2xl text-gray-800 mb-4", style: { fontWeight: 300 } }, "my habits"),
@@ -1816,7 +2094,29 @@
                                                         className: "absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center",
                                                         style: { fontSize: '10px' }
                                                     }, unreadMessages[session.id])
-                                                )
+                                                ),
+                                                        // Invite Friends button
+                                                        React.createElement('button', {
+                                                            onClick: () => handleOpenInviteModal(session.id),
+                                                            className: "p-3 bg-purple-100 text-purple-600 rounded-full hover:bg-purple-200 transition",
+                                                            title: "Invite more friends"
+                                                        },
+                                                            React.createElement('svg', {
+                                                                width: "20",
+                                                                height: "20",
+                                                                viewBox: "0 0 24 24",
+                                                                fill: "none",
+                                                                stroke: "currentColor",
+                                                                strokeWidth: "2",
+                                                                strokeLinecap: "round",
+                                                                strokeLinejoin: "round"
+                                                            },
+                                                                React.createElement('path', { d: "M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" }),
+                                                                React.createElement('circle', { cx: "8.5", cy: "7", r: "4" }),
+                                                                React.createElement('line', { x1: "20", y1: "8", x2: "20", y2: "14" }),
+                                                                React.createElement('line', { x1: "23", y1: "11", x2: "17", y2: "11" })
+                                                            )
+                                                        )
                                             )
                                             )
                                         )
@@ -2016,6 +2316,86 @@
                                 )
                             ) :
                             React.createElement('p', { className: "text-gray-500" }, "no sessions recorded yet.")
+                        )
+                    )
+                ),
+
+                // Invite Friends to Existing Session Modal
+                showInviteModal && React.createElement('div', {
+                    className: "fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4",
+                    onClick: () => {
+                        setShowInviteModal(false);
+                        setInviteSessionId(null);
+                        setSelectedInviteFriends([]);
+                    }
+                },
+                    React.createElement('div', {
+                        className: "bg-white rounded-lg p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto",
+                        onClick: (e) => e.stopPropagation()
+                    },
+                        React.createElement('h3', { className: "text-2xl text-purple-800 mb-4", style: { fontWeight: 400 } },
+                            "Invite Friends to Session"
+                        ),
+
+                        React.createElement('p', { className: "text-gray-600 mb-4", style: { fontWeight: 300 } },
+                            "Select friends to invite to this Nous session. They'll receive an invitation to join."
+                        ),
+
+                        // Select Friends Section
+                        React.createElement('div', { className: "mb-6" },
+                            React.createElement('h4', { className: "text-lg text-gray-700 mb-3", style: { fontWeight: 400 } },
+                                `Select friends (${selectedInviteFriends.length} selected)`
+                            ),
+                            React.createElement('div', { className: "space-y-2 max-h-64 overflow-y-auto border border-purple-200 rounded-lg p-3" },
+                                friends.length === 0 ?
+                                    React.createElement('p', { className: "text-gray-500 text-center py-4", style: { fontWeight: 300 } },
+                                        "No friends available. Add friends first!"
+                                    ) :
+                                    friends.map(friend =>
+                                        React.createElement('label', {
+                                            key: friend.userId,
+                                            className: "flex items-center gap-3 p-2 hover:bg-purple-50 rounded cursor-pointer"
+                                        },
+                                            React.createElement('input', {
+                                                type: "checkbox",
+                                                checked: selectedInviteFriends.some(f => f.userId === friend.userId),
+                                                onChange: () => handleToggleInviteFriend(friend),
+                                                className: "w-4 h-4 text-purple-600"
+                                            }),
+                                            React.createElement('div', { className: "flex-grow" },
+                                                React.createElement('span', { className: "text-gray-800", style: { fontWeight: 400 } },
+                                                    `@${friend.username}`
+                                                ),
+                                                React.createElement('div', { className: "text-sm text-gray-600", style: { fontWeight: 300 } },
+                                                    `${friend.stats?.totalHours?.toFixed(1) || 0}h total`
+                                                )
+                                            )
+                                        )
+                                    )
+                            )
+                        ),
+
+                        // Action Buttons
+                        React.createElement('div', { className: "flex gap-3 justify-end" },
+                            React.createElement('button', {
+                                onClick: () => {
+                                    setShowInviteModal(false);
+                                    setInviteSessionId(null);
+                                    setSelectedInviteFriends([]);
+                                },
+                                className: "px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 transition",
+                                style: { fontWeight: 400 }
+                            }, "Cancel"),
+                            React.createElement('button', {
+                                onClick: handleInviteToSession,
+                                disabled: selectedInviteFriends.length === 0,
+                                className: `px-4 py-2 rounded-lg transition ${
+                                    selectedInviteFriends.length === 0
+                                        ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                                        : 'bg-purple-600 text-white hover:bg-purple-700'
+                                }`,
+                                style: { fontWeight: 400 }
+                            }, "Send Invites")
                         )
                     )
                 )
