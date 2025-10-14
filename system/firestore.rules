@@ -31,25 +31,30 @@ service cloud.firestore {
                       resource.data.fromUserId == request.auth.uid;
     }
 
-    // Nous Requests Collection (ADDED THIS)
+    // Nous Requests Collection (Multi-Participant Support)
     match /nousRequests/{requestId} {
       // Allow users to create requests they're sending
       allow create: if request.auth != null &&
                       request.resource.data.fromUserId == request.auth.uid;
 
-      // Allow users to read requests where they're the sender or receiver
+      // Allow users to read requests where they're the sender or a receiver
+      // Support both old (toUserId) and new (toUserIds array) schema
       allow read: if request.auth != null &&
                     (resource.data.fromUserId == request.auth.uid ||
-                     resource.data.toUserId == request.auth.uid);
+                     resource.data.toUserId == request.auth.uid ||
+                     request.auth.uid in resource.data.get('toUserIds', []));
 
-      // Allow users to update requests they received
+      // Allow users to update requests they received (to add their acceptance)
+      // Support both old and new schema
       allow update: if request.auth != null &&
-                      resource.data.toUserId == request.auth.uid;
+                      (resource.data.toUserId == request.auth.uid ||
+                       request.auth.uid in resource.data.get('toUserIds', []));
 
-      // Allow users to delete requests
+      // Allow users to delete requests they sent or received
       allow delete: if request.auth != null &&
                       (resource.data.fromUserId == request.auth.uid ||
-                       resource.data.toUserId == request.auth.uid);
+                       resource.data.toUserId == request.auth.uid ||
+                       request.auth.uid in resource.data.get('toUserIds', []));
     }
 
     // Friendships Collection

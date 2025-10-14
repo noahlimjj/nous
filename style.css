@@ -1,0 +1,150 @@
+/* Set default body font */
+body {
+    font-family: "Satoshi", -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+    font-weight: 400;
+    background-color: #f8f9fb;
+}
+
+/* Title styling with letter spacing */
+.nous-title {
+    font-family: "Satoshi", -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+    font-weight: 300;
+    letter-spacing: 0.025em; /* 2.5% letter spacing */
+}
+
+/* Regular weight for all headers */
+h1, h2, h3, h4, h5, h6 {
+    font-weight: 400;
+}
+
+/* Soft shadows */
+.soft-shadow {
+    box-shadow: 0 2px 12px rgba(99, 110, 129, 0.08), 0 1px 4px rgba(99, 110, 129, 0.04);
+}
+
+.soft-shadow-lg {
+    box-shadow: 0 8px 24px rgba(99, 110, 129, 0.12), 0 2px 8px rgba(99, 110, 129, 0.06);
+}
+
+/* Pulse animation for success */
+@keyframes neuron-pulse {
+    0%, 100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+    50% {
+        opacity: 0.8;
+        transform: scale(1.05);
+    }
+}
+
+.neuron-pulse {
+    animation: neuron-pulse 1.5s ease-in-out;
+}
+
+/* Glow effect for streaks */
+@keyframes soft-glow {
+    0%, 100% {
+        box-shadow: 0 0 8px rgba(107, 141, 214, 0.3), 0 0 16px rgba(107, 141, 214, 0.1);
+    }
+    50% {
+        box-shadow: 0 0 12px rgba(107, 141, 214, 0.5), 0 0 24px rgba(107, 141, 214, 0.2);
+    }
+}
+
+.soft-glow {
+    animation: soft-glow 2s ease-in-out infinite;
+}
+
+/* Circular logo animation */
+@keyframes circle-flow {
+    0% {
+        stroke-dashoffset: 0;
+    }
+    100% {
+        stroke-dashoffset: -200;
+    }
+}
+
+.circle-flow {
+    stroke-dasharray: 100;
+    animation: circle-flow 8s linear infinite;
+}
+
+.timer-display {
+    font-family: "Satoshi", -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+    font-size: 3rem;
+    font-weight: 300;
+    font-variant-numeric: tabular-nums;
+    color: #1f2937;
+    text-align: center;
+    user-select: none;
+    margin: 20px 0;
+    padding: 20px;
+    background: #f9fafb;
+    border-radius: 12px;
+    border: 2px solid #e5e7eb;
+    transition: all 0.3s ease;
+}
+
+.timer-display.running {
+    color: #10b981;
+    border-color: #10b981;
+    background: #f0fdf4;
+}
+
+.timer-display.paused {
+    color: #f59e0b;
+    border-color: #f59e0b;
+    background: #fffbeb;
+}
+
+.timer-display .milliseconds {
+    font-size: 1.8rem;
+    color: #6b7280;
+    margin-left: 8px;
+}
+
+.timer-display.running .milliseconds {
+    color: #059669;
+}
+
+.timer-display.paused .milliseconds {
+    color: #d97706;
+}
+
+.timer-container {
+    position: relative;
+    width: 200px;
+    height: 200px;
+}
+
+.timer-svg {
+    transform: rotate(-90deg);
+    width: 100%;
+    height: 100%;
+}
+
+.timer-circle-bg {
+    fill: none;
+    stroke: #e6e6e6;
+    stroke-width: 12;
+}
+
+.timer-circle-progress {
+    fill: none;
+    stroke: #007bff;
+    stroke-width: 12;
+    stroke-linecap: round;
+    transition: stroke-dashoffset 0.1s linear;
+}
+
+.timer-text {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-family: "Satoshi", -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+    font-size: 1.5rem;
+    font-variant-numeric: tabular-nums;
+}

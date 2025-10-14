@@ -11,6 +11,9 @@
     <!-- Satoshi font -->
     <link href="https://api.fontshare.com/v2/css?f[]=satoshi@300,400,500,700&display=swap" rel="stylesheet">
 
+    <!-- External Styles -->
+    <link rel="stylesheet" href="style.css">
+
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
@@ -44,121 +47,6 @@
             }
         }
     </script>
-    <style>
-        /* Set default body font */
-        body {
-            font-family: "Satoshi", -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
-            font-weight: 400;
-            background-color: #f8f9fb;
-        }
-
-        /* Title styling with letter spacing */
-        .nous-title {
-            font-family: "Satoshi", -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
-            font-weight: 300;
-            letter-spacing: 0.025em; /* 2.5% letter spacing */
-        }
-
-        /* Regular weight for all headers */
-        h1, h2, h3, h4, h5, h6 {
-            font-weight: 400;
-        }
-
-        /* Soft shadows */
-        .soft-shadow {
-            box-shadow: 0 2px 12px rgba(99, 110, 129, 0.08), 0 1px 4px rgba(99, 110, 129, 0.04);
-        }
-
-        .soft-shadow-lg {
-            box-shadow: 0 8px 24px rgba(99, 110, 129, 0.12), 0 2px 8px rgba(99, 110, 129, 0.06);
-        }
-
-        /* Pulse animation for success */
-        @keyframes neuron-pulse {
-            0%, 100% {
-                opacity: 1;
-                transform: scale(1);
-            }
-            50% {
-                opacity: 0.8;
-                transform: scale(1.05);
-            }
-        }
-
-        .neuron-pulse {
-            animation: neuron-pulse 1.5s ease-in-out;
-        }
-
-        /* Glow effect for streaks */
-        @keyframes soft-glow {
-            0%, 100% {
-                box-shadow: 0 0 8px rgba(107, 141, 214, 0.3), 0 0 16px rgba(107, 141, 214, 0.1);
-            }
-            50% {
-                box-shadow: 0 0 12px rgba(107, 141, 214, 0.5), 0 0 24px rgba(107, 141, 214, 0.2);
-            }
-        }
-
-        .soft-glow {
-            animation: soft-glow 2s ease-in-out infinite;
-        }
-
-        /* Circular logo animation */
-        @keyframes circle-flow {
-            0% {
-                stroke-dashoffset: 0;
-            }
-            100% {
-                stroke-dashoffset: -200;
-            }
-        }
-
-        .circle-flow {
-            stroke-dasharray: 100;
-            animation: circle-flow 8s linear infinite;
-        }
-        .timer-display {
-            font-family: "Satoshi", -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
-            font-size: 3rem;
-            font-weight: 300;
-            font-variant-numeric: tabular-nums;
-            color: #1f2937;
-            text-align: center;
-            user-select: none;
-            margin: 20px 0;
-            padding: 20px;
-            background: #f9fafb;
-            border-radius: 12px;
-            border: 2px solid #e5e7eb;
-            transition: all 0.3s ease;
-        }
-        
-        .timer-display.running {
-            color: #10b981;
-            border-color: #10b981;
-            background: #f0fdf4;
-        }
-        
-        .timer-display.paused {
-            color: #f59e0b;
-            border-color: #f59e0b;
-            background: #fffbeb;
-        }
-        
-        .timer-display .milliseconds {
-            font-size: 1.8rem;
-            color: #6b7280;
-            margin-left: 8px;
-        }
-        
-        .timer-display.running .milliseconds {
-            color: #059669;
-        }
-        
-        .timer-display.paused .milliseconds {
-            color: #d97706;
-        }
-    </style>
     <!-- Firebase Configuration - Must load first -->
     <script src="config.js"></script>
 
@@ -231,39 +119,6 @@
         // Firebase configuration is loaded from config.js
         // If config.js is not found, the app will show an error
     </script>
-<style>
-        .timer-container {
-            position: relative;
-            width: 200px;
-            height: 200px;
-        }
-        .timer-svg {
-            transform: rotate(-90deg);
-            width: 100%;
-            height: 100%;
-        }
-        .timer-circle-bg {
-            fill: none;
-            stroke: #e6e6e6;
-            stroke-width: 12;
-        }
-        .timer-circle-progress {
-            fill: none;
-            stroke: #007bff;
-            stroke-width: 12;
-            stroke-linecap: round;
-            transition: stroke-dashoffset 0.1s linear;
-        }
-        .timer-text {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            font-family: "Satoshi", -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
-            font-size: 1.5rem;
-            font-variant-numeric: tabular-nums;
-        }
-    </style>
 </head>
 <body>
     <div id="root"></div>
@@ -683,13 +538,18 @@
 
         // Tree types with unlock requirements (total hours studied)
         const TREE_TYPES = [
-            { id: 'seedling', name: 'Seedling', requiredHours: 0, color: '#86efac' },
-            { id: 'maple', name: 'Maple Tree', requiredHours: 5, color: '#f59e0b' },
-            { id: 'oak', name: 'Oak Tree', requiredHours: 10, color: '#34d399' },
-            { id: 'cherry', name: 'Cherry Blossom', requiredHours: 25, color: '#fda4af' },
-            { id: 'pine', name: 'Pine Tree', requiredHours: 50, color: '#10b981' },
-            { id: 'willow', name: 'Willow Tree', requiredHours: 100, color: '#6ee7b7' },
-            { id: 'sakura', name: 'Ancient Sakura', requiredHours: 200, color: '#f472b6' }
+            { id: 'oak', name: 'Oak', requiredHours: 0, color: '#5DAE49', leafShapes: ['oval', 'triangle', 'diamond'], leafColors: ['#3E7C17', '#5DAE49', '#A1C349'], branchColor: '#5A3E1B' },
+            { id: 'maple', name: 'Maple', requiredHours: 5, color: '#FF4C29', leafShapes: ['triangle', 'star'], leafColors: ['#FF4C29', '#FFB84C', '#D94F04'], branchColor: '#6B2B06' },
+            { id: 'cherry', name: 'Cherry Blossom', requiredHours: 10, color: '#F8C8DC', leafShapes: ['circle', 'heart'], leafColors: ['#F8C8DC', '#FADADD', '#FFD6E8'], branchColor: '#8B5E3C' },
+            { id: 'willow', name: 'Willow', requiredHours: 25, color: '#A3C9A8', leafShapes: ['oval', 'rectangle', 'diamond'], leafColors: ['#A3C9A8', '#6BA292', '#446A46'], branchColor: '#4E3B31' },
+            { id: 'pine', name: 'Pine', requiredHours: 50, color: '#2C5F2D', leafShapes: ['triangle', 'hexagon'], leafColors: ['#2C5F2D', '#97BC62', '#5E8C61'], branchColor: '#3B2F2F' },
+            { id: 'sakura', name: 'Ancient Sakura', requiredHours: 100, color: '#EFBBCF', leafShapes: ['circle', 'heart'], leafColors: ['#EFBBCF', '#F2A7B9', '#FFCBDD'], branchColor: '#705243' },
+            { id: 'cypress', name: 'Cypress', requiredHours: 200, color: '#557A46', leafShapes: ['rectangle', 'hexagon'], leafColors: ['#557A46', '#A9C46C', '#7BA23F'], branchColor: '#4B3D28' },
+            { id: 'birch', name: 'Birch', requiredHours: 300, color: '#C7E6D7', leafShapes: ['oval', 'circle', 'diamond'], leafColors: ['#C7E6D7', '#9DD9D2', '#7DCFB6'], branchColor: '#8E7C5D' },
+            { id: 'baobab', name: 'Baobab', requiredHours: 400, color: '#8ABF69', leafShapes: ['circle', 'star'], leafColors: ['#8ABF69', '#C8E7A7', '#EBF2C0'], branchColor: '#8B5A2B' },
+            { id: 'magnolia', name: 'Magnolia', requiredHours: 500, color: '#F6D6AD', leafShapes: ['oval', 'heart'], leafColors: ['#F6D6AD', '#EFBBCF', '#E6AACE'], branchColor: '#7E6651' },
+            { id: 'redwood', name: 'Redwood', requiredHours: 700, color: '#7D6B91', leafShapes: ['rectangle', 'diamond'], leafColors: ['#7D6B91', '#B88B4A', '#A17C3A'], branchColor: '#4A2C2A' },
+            { id: 'ginkgo', name: 'Ginkgo', requiredHours: 1000, color: '#F4E409', leafShapes: ['fan', 'hexagon'], leafColors: ['#F4E409', '#FFD23F', '#F6AE2D'], branchColor: '#8C5E24' }
         ];
 
         // Calculate total study hours from sessions
@@ -1135,15 +995,39 @@
             useEffect(() => {
                 if (!db || !userId) return;
 
-                // Listen to incoming Nous requests
+                // Listen to incoming Nous requests (multi-participant support with auto-decline)
                 const nousRequestsQuery = window.query(
                     window.collection(db, 'nousRequests'),
-                    window.where('toUserId', '==', userId),
+                    window.where('toUserIds', 'array-contains', userId),
                     window.where('status', '==', 'pending')
                 );
 
                 const unsubscribeNousRequests = window.onSnapshot(nousRequestsQuery, async (snapshot) => {
-                    const requests = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                    const now = Date.now();
+                    const TWO_HOURS = 2 * 60 * 60 * 1000; // 2 hours in milliseconds
+
+                    const requests = [];
+
+                    for (const doc of snapshot.docs) {
+                        const data = doc.data();
+                        const requestAge = now - data.createdAt.toMillis();
+
+                        // Auto-decline requests older than 2 hours
+                        if (requestAge > TWO_HOURS) {
+                            try {
+                                await window.updateDoc(window.doc(db, 'nousRequests', doc.id), {
+                                    status: 'expired',
+                                    expiredAt: window.Timestamp.now()
+                                });
+                                console.log(`Auto-declined expired Nous request from @${data.fromUsername}`);
+                            } catch (error) {
+                                console.error('Error auto-declining request:', error);
+                            }
+                        } else {
+                            requests.push({ id: doc.id, ...data });
+                        }
+                    }
+
                     setNousRequests(requests);
                 });
 
@@ -1595,77 +1479,81 @@
             }, [activeTimers, db, userId, appId, setNotification]);
 
             // Shared timer control handlers
-            const pauseSharedTimer = async (timerId) => {
+            const pauseSharedTimer = async (sessionId) => {
                 try {
-                    const timer = sharedTimers.find(t => t.id === timerId);
-                    if (!timer) return;
+                    const session = sharedTimers.find(t => t.id === sessionId);
+                    if (!session) return;
 
-                    const timerDocRef = window.doc(db, 'sharedTimers', timerId);
-                    const currentElapsed = timer.elapsedBeforePause || 0;
-                    const sessionElapsed = !timer.isPaused && timer.startTime
-                        ? Date.now() - timer.startTime.toMillis()
+                    const currentElapsed = session.elapsedBeforePause || 0;
+                    const sessionElapsed = !session.isPaused && session.startTime
+                        ? Date.now() - session.startTime.toMillis()
                         : 0;
 
-                    await window.updateDoc(timerDocRef, {
+                    const sessionDocRef = window.doc(db, 'sharedTimers', sessionId);
+                    await window.updateDoc(sessionDocRef, {
                         isPaused: true,
                         elapsedBeforePause: currentElapsed + sessionElapsed,
-                        lastUpdated: window.Timestamp.now(),
-                        lastUpdatedBy: userId
+                        lastUpdated: window.Timestamp.now()
                     });
 
                     setNotification({ type: 'success', message: 'Shared timer paused.' });
                 } catch (error) {
-                    console.error("Error pausing shared timer:", error);
-                    setNotification({ type: 'error', message: 'Failed to pause shared timer.' });
+                    console.error("Error pausing timer:", error);
+                    setNotification({ type: 'error', message: 'Failed to pause timer.' });
                 }
             };
 
-            const resumeSharedTimer = async (timerId) => {
+            const resumeSharedTimer = async (sessionId) => {
                 try {
-                    const timerDocRef = window.doc(db, 'sharedTimers', timerId);
-                    await window.updateDoc(timerDocRef, {
+                    const session = sharedTimers.find(t => t.id === sessionId);
+                    if (!session) return;
+
+                    const sessionDocRef = window.doc(db, 'sharedTimers', sessionId);
+                    await window.updateDoc(sessionDocRef, {
                         isPaused: false,
                         startTime: window.Timestamp.now(),
-                        lastUpdated: window.Timestamp.now(),
-                        lastUpdatedBy: userId
+                        lastUpdated: window.Timestamp.now()
                     });
 
                     setNotification({ type: 'success', message: 'Shared timer resumed.' });
                 } catch (error) {
-                    console.error("Error resuming shared timer:", error);
-                    setNotification({ type: 'error', message: 'Failed to resume shared timer.' });
+                    console.error("Error resuming timer:", error);
+                    setNotification({ type: 'error', message: 'Failed to resume timer.' });
                 }
             };
 
-            const stopSharedTimer = async (timerId) => {
+            const stopSharedTimer = async (sessionId) => {
                 try {
-                    const timer = sharedTimers.find(t => t.id === timerId);
-                    if (!timer) return;
+                    const session = sharedTimers.find(t => t.id === sessionId);
+                    if (!session) return;
 
-                    // Calculate total elapsed time
-                    const currentElapsed = timer.elapsedBeforePause || 0;
-                    const sessionElapsed = !timer.isPaused && timer.startTime
-                        ? Date.now() - timer.startTime.toMillis()
+                    // Calculate total elapsed time for the shared timer
+                    const currentElapsed = session.elapsedBeforePause || 0;
+                    const sessionElapsed = !session.isPaused && session.startTime
+                        ? Date.now() - session.startTime.toMillis()
                         : 0;
                     const totalElapsed = currentElapsed + sessionElapsed;
 
                     if (totalElapsed > 0) {
-                        // Save session for ALL participants
                         const endTime = window.Timestamp.now();
 
-                        for (const participantId of timer.participants) {
-                            const participantIndex = timer.participants.indexOf(participantId);
-                            const participantName = timer.participantNames[participantIndex];
+                        // Save session for EACH participant with their selected habit
+                        for (const participantId of session.participants) {
+                            const participantIndex = session.participants.indexOf(participantId);
+                            const otherParticipants = session.participantNames.filter((name, idx) => idx !== participantIndex);
 
-                            // Get other participants' names (everyone except this participant)
-                            const otherParticipants = timer.participantNames.filter((name, idx) => idx !== participantIndex);
+                            // Get this participant's selected habit
+                            const participantHabit = session.participantHabits?.[participantId] || {
+                                habitId: 'nous_together',
+                                habitName: 'Nous Together'
+                            };
 
-                            // Save session for this participant
+                            // Save session for this participant with their habit
                             const sessionsCol = window.collection(db, `/artifacts/${appId}/users/${participantId}/sessions`);
                             await window.addDoc(sessionsCol, {
-                                habitId: 'nous_together',
-                                habitName: timer.habitName || 'Nous Together',
-                                startTime: timer.createdAt,
+                                habitId: participantHabit.habitId,
+                                habitName: participantHabit.habitName,
+                                startTime: session.startTime,
                                 endTime: endTime,
                                 duration: Math.round(totalElapsed),
                                 isShared: true,
@@ -1682,18 +1570,14 @@
                         }
                     }
 
-                    // Update timer status to ended
-                    const timerDocRef = window.doc(db, 'sharedTimers', timerId);
-                    await window.updateDoc(timerDocRef, {
-                        status: 'ended',
-                        endedAt: window.Timestamp.now(),
-                        endedBy: userId
-                    });
+                    // Delete the shared timer
+                    const sessionDocRef = window.doc(db, 'sharedTimers', sessionId);
+                    await window.deleteDoc(sessionDocRef);
 
-                    setNotification({ type: 'success', message: 'Nous Together session saved!' });
+                    setNotification({ type: 'success', message: `Shared session saved! (${formatTimeDisplay(totalElapsed)})` });
                 } catch (error) {
-                    console.error("Error stopping shared timer:", error);
-                    setNotification({ type: 'error', message: 'Failed to stop shared timer.' });
+                    console.error("Error stopping timer:", error);
+                    setNotification({ type: 'error', message: 'Failed to stop timer.' });
                 }
             };
 
@@ -1836,72 +1720,85 @@
 
                             return allItems.map((item, index) => {
                                 if (item.type === 'sharedTimer') {
-                                    // Render shared timer as a habit card with purple theme
-                                    const timer = item.data;
-                                    const otherParticipant = timer.participantNames.find((name, idx) => timer.participants[idx] !== userId);
-                                    const elapsedBeforePause = timer.elapsedBeforePause || 0;
-                                    const sessionElapsed = !timer.isPaused && timer.startTime
-                                        ? currentTime - timer.startTime.toMillis()
+                                    // Render Nous session with shared timer
+                                    const session = item.data;
+                                    const messages = chatMessages[session.id] || [];
+
+                                    // Calculate shared timer time
+                                    const currentElapsed = session.elapsedBeforePause || 0;
+                                    const sessionElapsed = !session.isPaused && session.startTime
+                                        ? currentTime - session.startTime.toMillis()
                                         : 0;
-                                    const totalElapsed = elapsedBeforePause + sessionElapsed;
-                                    const isRunning = !timer.isPaused;
 
-                                    const messages = chatMessages[timer.id] || [];
-                                    console.log('🎨 Rendering chat for timer:', timer.id, 'Messages:', messages.length, messages);
-
-                                    return React.createElement('div', { key: timer.id, className: "space-y-2" },
-                                        // Timer card
+                                    return React.createElement('div', { key: session.id, className: "space-y-2" },
+                                        // Nous session card
                                         React.createElement('div', {
-                                            className: "bg-gradient-to-r from-purple-50 to-blue-50 border-2 border-purple-300 p-4 rounded-lg shadow-sm flex flex-col sm:flex-row sm:items-center gap-4"
+                                            className: "bg-gradient-to-r from-purple-50 to-blue-50 border-2 border-purple-300 p-4 rounded-lg shadow-sm"
                                         },
-                                            // Empty drag handle space for alignment
-                                            React.createElement('div', { className: "p-2 text-purple-400 opacity-50" },
-                                                React.createElement(GripIcon)
-                                            ),
-
-                                            // Timer name and display (middle)
-                                            React.createElement('div', { className: "flex-grow" },
-                                                React.createElement('div', { className: "flex items-center gap-2 mb-4" },
-                                                    React.createElement('h3', { className: "text-xl text-purple-900", style: { fontWeight: 400 } },
-                                                        `Nous with @${otherParticipant}`
-                                                    )
-                                                ),
-                                                React.createElement('div', {
-                                                    className: `timer-display ${isRunning ? 'running' : 'paused'}`
-                                                },
-                                                    React.createElement('span', null, formatTimeDisplay(totalElapsed)),
-                                                    React.createElement('span', { className: "milliseconds" },
-                                                        `.${String(Math.floor((totalElapsed % 1000) / 10)).padStart(2, '0')}`
-                                                    )
-                                                )
-                                            ),
-
-                                            // Action buttons (right side)
-                                            React.createElement('div', { className: "flex items-center gap-2 flex-wrap" },
-                                                isRunning ?
-                                                    React.createElement('button', {
-                                                        onClick: () => pauseSharedTimer(timer.id),
-                                                        className: "p-3 bg-purple-100 text-purple-600 rounded-full hover:bg-purple-200 transition"
-                                                    },
-                                                        React.createElement(PauseIcon)
-                                                    ) :
-                                                    React.createElement('button', {
-                                                        onClick: () => resumeSharedTimer(timer.id),
-                                                        className: "p-3 bg-purple-100 text-purple-600 rounded-full hover:bg-purple-200 transition"
-                                                    },
-                                                        React.createElement(PlayIcon)
+                                            React.createElement('div', { className: "flex flex-col gap-4" },
+                                                // Header with drag handle
+                                                React.createElement('div', { className: "flex items-center gap-2" },
+                                                    React.createElement('div', { className: "p-2 text-purple-400 opacity-50" },
+                                                        React.createElement(GripIcon)
                                                     ),
-                                                React.createElement('button', {
-                                                    onClick: () => stopSharedTimer(timer.id),
-                                                    className: "p-3 bg-purple-100 text-purple-600 rounded-full hover:bg-purple-200 transition"
-                                                },
-                                                    React.createElement(StopIcon)
+                                                    React.createElement('h3', { className: "text-xl text-purple-900", style: { fontWeight: 400 } },
+                                                        `Nous Together (${session.participants.length} participants)`
+                                                    )
                                                 ),
-                                                // Chat button with notification badge
-                                                React.createElement('button', {
-                                                    onClick: () => toggleChat(timer.id),
-                                                    className: "relative p-3 bg-purple-100 text-purple-600 rounded-full hover:bg-purple-200 transition"
-                                                },
+
+                                                // Show all participants with their habits
+                                                React.createElement('div', { className: "mb-3 space-y-1" },
+                                                    session.participants.map((participantId, idx) => {
+                                                        const participantName = session.participantNames[idx];
+                                                        const participantHabit = session.participantHabits?.[participantId];
+                                                        const isCurrentUser = participantId === userId;
+                                                        return React.createElement('div', {
+                                                            key: participantId,
+                                                            className: `text-sm ${isCurrentUser ? 'text-purple-900 font-medium' : 'text-purple-700'}`,
+                                                            style: { fontWeight: isCurrentUser ? 500 : 300 }
+                                                        },
+                                                            `${isCurrentUser ? '👤 You' : `👥 @${participantName}`} • ${participantHabit?.habitName || 'Nous Together'}`
+                                                        );
+                                                    })
+                                                ),
+
+                                                // Shared timer display and controls
+                                                React.createElement('div', { className: "flex items-center justify-between border-t border-purple-200 pt-3" },
+                                                    React.createElement('div', {
+                                                        className: `timer-display ${!session.isPaused ? 'running' : 'paused'}`
+                                                    },
+                                                        React.createElement('span', null, formatTimeDisplay(currentElapsed + sessionElapsed)),
+                                                        React.createElement('span', { className: "milliseconds" },
+                                                            `.${String(Math.floor(((currentElapsed + sessionElapsed) % 1000) / 10)).padStart(2, '0')}`
+                                                        )
+                                                    ),
+
+                                                    // Action buttons for shared timer
+                                                    React.createElement('div', { className: "flex items-center gap-2 flex-wrap" },
+                                                        !session.isPaused ?
+                                                            React.createElement('button', {
+                                                                onClick: () => pauseSharedTimer(session.id),
+                                                                className: "p-3 bg-purple-100 text-purple-600 rounded-full hover:bg-purple-200 transition"
+                                                            },
+                                                                React.createElement(PauseIcon)
+                                                            ) :
+                                                            React.createElement('button', {
+                                                                onClick: () => resumeSharedTimer(session.id),
+                                                                className: "p-3 bg-purple-100 text-purple-600 rounded-full hover:bg-purple-200 transition"
+                                                            },
+                                                                React.createElement(PlayIcon)
+                                                            ),
+                                                        React.createElement('button', {
+                                                            onClick: () => stopSharedTimer(session.id),
+                                                            className: "p-3 bg-purple-100 text-purple-600 rounded-full hover:bg-purple-200 transition"
+                                                        },
+                                                            React.createElement(StopIcon)
+                                                        ),
+                                                        // Chat button with notification badge
+                                                        React.createElement('button', {
+                                                            onClick: () => toggleChat(session.id),
+                                                            className: "relative p-3 bg-purple-100 text-purple-600 rounded-full hover:bg-purple-200 transition"
+                                                        },
                                                     React.createElement('svg', {
                                                         width: "20",
                                                         height: "20",
@@ -1915,16 +1812,18 @@
                                                         React.createElement('path', { d: "M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" })
                                                     ),
                                                     // Unread badge
-                                                    unreadMessages[timer.id] > 0 && React.createElement('span', {
+                                                    unreadMessages[session.id] > 0 && React.createElement('span', {
                                                         className: "absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center",
                                                         style: { fontSize: '10px' }
-                                                    }, unreadMessages[timer.id])
+                                                    }, unreadMessages[session.id])
                                                 )
                                             )
-                                        ),
+                                            )
+                                        )
+                                            ),
 
                                         // Chat box (only show when open)
-                                        chatOpen[timer.id] && React.createElement('div', {
+                                        chatOpen[session.id] && React.createElement('div', {
                                             className: "bg-white border-2 border-purple-200 rounded-lg p-4 shadow-sm"
                                         },
                                             React.createElement('h4', { className: "text-sm text-purple-900 mb-2", style: { fontWeight: 500 } }, "Chat"),
@@ -1932,7 +1831,7 @@
                                             // Messages
                                             React.createElement('div', {
                                                 ref: (el) => {
-                                                    chatMessagesRefs.current[timer.id] = el;
+                                                    chatMessagesRefs.current[session.id] = el;
                                                     if (el) {
                                                         // Scroll to bottom immediately when element is attached
                                                         requestAnimationFrame(() => {
@@ -1963,16 +1862,16 @@
                                             React.createElement('div', { className: "flex gap-2" },
                                                 React.createElement('input', {
                                                     type: "text",
-                                                    value: messageInput[timer.id] || '',
-                                                    onChange: (e) => setMessageInput(prev => ({ ...prev, [timer.id]: e.target.value })),
+                                                    value: messageInput[session.id] || '',
+                                                    onChange: (e) => setMessageInput(prev => ({ ...prev, [session.id]: e.target.value })),
                                                     onKeyDown: (e) => {
-                                                        if (e.key === 'Enter') sendMessage(timer.id);
+                                                        if (e.key === 'Enter') sendMessage(session.id);
                                                     },
                                                     placeholder: "Type a message...",
                                                     className: "flex-grow px-3 py-2 border border-purple-200 rounded-lg focus:ring-2 focus:ring-purple-400 focus:outline-none text-sm"
                                                 }),
                                                 React.createElement('button', {
-                                                    onClick: () => sendMessage(timer.id),
+                                                    onClick: () => sendMessage(session.id),
                                                     className: "px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition text-sm",
                                                     style: { fontWeight: 400 }
                                                 }, "send")
@@ -2789,36 +2688,21 @@
                 const leafGrowth = Math.max(0, Math.min((normalizedGrowth - 0.6) / 0.35, 1)); // 60-95%
                 const fruitGrowth = normalizedGrowth >= 0.95 ? 1 : 0;
 
-                // Enhanced colors with depth and variety - Minecraft-inspired
-                // Trunk colors with more variety (browns, greys, reddish tones)
-                const trunkDark = "#6B5947";    // Dark brown
-                const trunkMid = "#8B7355";      // Medium brown
-                const trunkLight = "#A0826D";    // Light brown
-                const trunkGrey = "#736B5E";     // Grey-brown (birch-inspired)
-                const trunkRed = "#A85C4A";      // Reddish brown (jungle-inspired)
-                const trunkOrange = "#C97A3D";   // Orange-brown (acacia-inspired)
+                // Get tree configuration from TREE_TYPES
+                const treeConfig = TREE_TYPES.find(t => t.id === treeType) || TREE_TYPES[0];
+                const leafColors = treeConfig.leafColors || ['#5DAE49', '#3E7C17', '#A1C349'];
+                const leafShapes = treeConfig.leafShapes || ['oval', 'triangle'];
+                const mainBranchColor = treeConfig.branchColor || '#5A3E1B';
 
-                // Dynamic leaf colors based on tree type (specific to each tree)
-                let leafColors;
-                if (treeType === 'sakura') {
-                    // Ancient Sakura: Pink and bright purple
-                    leafColors = ["#fda4af", "#fb7185", "#f472b6", "#c084fc", "#e879f9"];
-                } else if (treeType === 'cherry') {
-                    // Cherry Blossom: Pink shades
-                    leafColors = ["#fda4af", "#fb7185", "#f472b6", "#fbbf24", "#fce7f3"];
-                } else if (treeType === 'willow') {
-                    // Willow: Grey tones
-                    leafColors = ["#9ca3af", "#6b7280", "#d1d5db", "#9ca3af", "#6b7280"];
-                } else if (treeType === 'pine') {
-                    // Pine: Dark green tones
-                    leafColors = ["#14532d", "#166534", "#15803d", "#16a34a", "#22c55e"];
-                } else if (treeType === 'maple') {
-                    // Maple Tree: Orange and red autumn colors
-                    leafColors = ["#f97316", "#fb923c", "#ea580c", "#fdba74", "#ff6b35"];
-                } else {
-                    // Oak, Seedling, and others: Minecraft oak/jungle leaf greens
-                    leafColors = ["#48b518", "#5ec920", "#3fa014", "#6ed528", "#58b61c"];
-                }
+                // Enhanced colors with depth and variety - tree-specific branch colors
+                // Use the tree's branch color and create variations for depth
+                const trunkBase = mainBranchColor;
+                const trunkDark = mainBranchColor;
+                const trunkMid = mainBranchColor;
+                const trunkLight = mainBranchColor;
+                const trunkGrey = mainBranchColor;
+                const trunkRed = mainBranchColor;
+                const trunkOrange = mainBranchColor;
 
                 // Minecraft-inspired fruit colors (apples, berries, cocoa)
                 const fruitColors = [
@@ -2922,6 +2806,113 @@
                     { x: 95, y: 70, size: 3.5, color: fruitColors[2], delay: 0.3 },   // Glow berry
                     { x: 105, y: 70, size: 3.5, color: fruitColors[0], delay: 0.35 }, // Apple
                 ] : [];
+
+                // Helper function to render different leaf shapes
+                const renderLeafShape = (leaf, index) => {
+                    const shapeType = leafShapes[index % leafShapes.length];
+                    const rotation = -20 + (index % 5) * 8; // Vary rotation for more organic look
+
+                    switch (shapeType) {
+                        case 'circle':
+                            return React.createElement('circle', {
+                                cx: leaf.x,
+                                cy: leaf.y,
+                                r: leaf.size * 0.42,
+                                fill: leaf.color,
+                                opacity: 0.85
+                            });
+
+                        case 'triangle':
+                            const triangleSize = leaf.size * 0.5;
+                            const h = triangleSize * Math.sqrt(3) / 2;
+                            return React.createElement('polygon', {
+                                points: `${leaf.x},${leaf.y - h} ${leaf.x - triangleSize/2},${leaf.y + h/2} ${leaf.x + triangleSize/2},${leaf.y + h/2}`,
+                                fill: leaf.color,
+                                transform: `rotate(${rotation} ${leaf.x} ${leaf.y})`,
+                                opacity: 0.85
+                            });
+
+                        case 'rectangle':
+                            return React.createElement('rect', {
+                                x: leaf.x - leaf.size * 0.25,
+                                y: leaf.y - leaf.size * 0.4,
+                                width: leaf.size * 0.5,
+                                height: leaf.size * 0.8,
+                                fill: leaf.color,
+                                rx: leaf.size * 0.1,
+                                transform: `rotate(${rotation} ${leaf.x} ${leaf.y})`,
+                                opacity: 0.85
+                            });
+
+                        case 'diamond':
+                            const diamondSize = leaf.size * 0.35;
+                            return React.createElement('polygon', {
+                                points: `${leaf.x},${leaf.y - diamondSize} ${leaf.x + diamondSize},${leaf.y} ${leaf.x},${leaf.y + diamondSize} ${leaf.x - diamondSize},${leaf.y}`,
+                                fill: leaf.color,
+                                transform: `rotate(${rotation} ${leaf.x} ${leaf.y})`,
+                                opacity: 0.85
+                            });
+
+                        case 'hexagon':
+                            const hexSize = leaf.size * 0.3;
+                            const hexHeight = hexSize * Math.sqrt(3);
+                            return React.createElement('polygon', {
+                                points: `${leaf.x},${leaf.y - hexHeight} ${leaf.x + hexSize * 0.866},${leaf.y - hexHeight/2} ${leaf.x + hexSize * 0.866},${leaf.y + hexHeight/2} ${leaf.x},${leaf.y + hexHeight} ${leaf.x - hexSize * 0.866},${leaf.y + hexHeight/2} ${leaf.x - hexSize * 0.866},${leaf.y - hexHeight/2}`,
+                                fill: leaf.color,
+                                transform: `rotate(${rotation} ${leaf.x} ${leaf.y})`,
+                                opacity: 0.85
+                            });
+
+                        case 'heart':
+                            // Heart shape using path
+                            const heartSize = leaf.size * 0.4;
+                            const heartPath = `M ${leaf.x},${leaf.y + heartSize * 0.3} C ${leaf.x},${leaf.y - heartSize * 0.5} ${leaf.x - heartSize * 0.5},${leaf.y - heartSize * 0.5} ${leaf.x - heartSize * 0.5},${leaf.y} C ${leaf.x - heartSize * 0.5},${leaf.y + heartSize * 0.5} ${leaf.x},${leaf.y + heartSize * 0.5} ${leaf.x},${leaf.y + heartSize * 0.3} C ${leaf.x},${leaf.y + heartSize * 0.5} ${leaf.x + heartSize * 0.5},${leaf.y + heartSize * 0.5} ${leaf.x + heartSize * 0.5},${leaf.y} C ${leaf.x + heartSize * 0.5},${leaf.y - heartSize * 0.5} ${leaf.x},${leaf.y - heartSize * 0.5} ${leaf.x},${leaf.y + heartSize * 0.3} Z`;
+                            return React.createElement('path', {
+                                d: heartPath,
+                                fill: leaf.color,
+                                opacity: 0.8
+                            });
+
+                        case 'star':
+                            // 5-point star shape
+                            const starSize = leaf.size * 0.35;
+                            let points = [];
+                            for (let i = 0; i < 10; i++) {
+                                const angle = Math.PI / 2 + i * Math.PI / 5;
+                                const radius = i % 2 === 0 ? starSize : starSize * 0.4;
+                                const pointX = leaf.x + radius * Math.cos(angle);
+                                const pointY = leaf.y - radius * Math.sin(angle);
+                                points.push(`${pointX},${pointY}`);
+                            }
+                            return React.createElement('polygon', {
+                                points: points.join(' '),
+                                fill: leaf.color,
+                                transform: `rotate(${rotation} ${leaf.x} ${leaf.y})`,
+                                opacity: 0.8
+                            });
+
+                        case 'fan':
+                            // Ginkgo-style fan shape
+                            const fanPath = `M ${leaf.x},${leaf.y} Q ${leaf.x - leaf.size * 0.4},${leaf.y - leaf.size * 0.3} ${leaf.x - leaf.size * 0.5},${leaf.y - leaf.size * 0.5} L ${leaf.x - leaf.size * 0.3},${leaf.y - leaf.size * 0.6} Q ${leaf.x},${leaf.y - leaf.size * 0.4} ${leaf.x + leaf.size * 0.3},${leaf.y - leaf.size * 0.6} L ${leaf.x + leaf.size * 0.5},${leaf.y - leaf.size * 0.5} Q ${leaf.x + leaf.size * 0.4},${leaf.y - leaf.size * 0.3} ${leaf.x},${leaf.y} Z`;
+                            return React.createElement('path', {
+                                d: fanPath,
+                                fill: leaf.color,
+                                opacity: 0.85
+                            });
+
+                        case 'oval':
+                        default:
+                            return React.createElement('ellipse', {
+                                cx: leaf.x,
+                                cy: leaf.y,
+                                rx: leaf.size * 0.35,
+                                ry: leaf.size * 0.5,
+                                fill: leaf.color,
+                                transform: `rotate(${rotation} ${leaf.x} ${leaf.y})`,
+                                opacity: 0.85
+                            });
+                    }
+                };
 
                 return React.createElement('svg', {
                     viewBox: "0 0 200 200",
@@ -3042,24 +3033,17 @@
                             }) : null
                         ),
 
-                        // Enhanced leaves with varied colors and sizes
+                        // Enhanced leaves with varied colors, sizes, and shapes
                         ...leaves.map((leaf, i) =>
-                            leaf.visible ? React.createElement('ellipse', {
+                            leaf.visible ? React.createElement('g', {
                                 key: `leaf-${i}`,
-                                cx: leaf.x,
-                                cy: leaf.y,
-                                rx: leaf.size * 0.35,
-                                ry: leaf.size * 0.5,
-                                fill: leaf.color,
-                                transform: `rotate(-20 ${leaf.x} ${leaf.y})`,
                                 className: "leaf-pop",
                                 style: {
                                     animation: `leafPop 0.22s cubic-bezier(0.68, -0.55, 0.27, 1.55) ${leaf.delay}s both`,
                                     transformOrigin: `${leaf.x}px ${leaf.y}px`,
-                                    willChange: "transform, opacity",
-                                    opacity: 0.85
+                                    willChange: "transform, opacity"
                                 }
-                            }) : null
+                            }, renderLeafShape(leaf, i)) : null
                         ),
 
                         // Enhanced fruits with varied colors, sizes, and details
@@ -3474,6 +3458,12 @@
             const [friends, setFriends] = useState([]);
             const [searchTerm, setSearchTerm] = useState('');
             const [searchResult, setSearchResult] = useState(null);
+            const [showNousModal, setShowNousModal] = useState(false);
+            const [selectedFriends, setSelectedFriends] = useState([]);
+            const [selectedHabit, setSelectedHabit] = useState(null);
+            const [habits, setHabits] = useState([]);
+            const [showAcceptModal, setShowAcceptModal] = useState(false);
+            const [acceptingRequest, setAcceptingRequest] = useState(null);
             const [friendCodeInput, setFriendCodeInput] = useState('');
             const [isLoading, setIsLoading] = useState(true);
             const [isSearching, setIsSearching] = useState(false);
@@ -3494,15 +3484,39 @@
                     setFriendRequests(requests);
                 });
 
-                // Listen to incoming Nous requests
+                // Listen to incoming Nous requests (multi-participant support with auto-decline)
                 const nousRequestsQuery = window.query(
                     window.collection(db, 'nousRequests'),
-                    window.where('toUserId', '==', userId),
+                    window.where('toUserIds', 'array-contains', userId),
                     window.where('status', '==', 'pending')
                 );
 
                 const unsubscribeNousRequests = window.onSnapshot(nousRequestsQuery, async (snapshot) => {
-                    const requests = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                    const now = Date.now();
+                    const TWO_HOURS = 2 * 60 * 60 * 1000; // 2 hours in milliseconds
+
+                    const requests = [];
+
+                    for (const doc of snapshot.docs) {
+                        const data = doc.data();
+                        const requestAge = now - data.createdAt.toMillis();
+
+                        // Auto-decline requests older than 2 hours
+                        if (requestAge > TWO_HOURS) {
+                            try {
+                                await window.updateDoc(window.doc(db, 'nousRequests', doc.id), {
+                                    status: 'expired',
+                                    expiredAt: window.Timestamp.now()
+                                });
+                                console.log(`Auto-declined expired Nous request from @${data.fromUsername}`);
+                            } catch (error) {
+                                console.error('Error auto-declining request:', error);
+                            }
+                        } else {
+                            requests.push({ id: doc.id, ...data });
+                        }
+                    }
+
                     setNousRequests(requests);
                 });
 
@@ -3561,6 +3575,21 @@
                     unsubscribeNousRequests();
                 };
             }, [db, userId, setNotification]);
+
+            // Load user's habits for Nous Together modal
+            useEffect(() => {
+                if (!db || !userId) return;
+
+                const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+                const habitsCol = window.collection(db, `/artifacts/${appId}/users/${userId}/habits`);
+
+                const unsubscribe = window.onSnapshot(habitsCol, (snapshot) => {
+                    const habitsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                    setHabits(habitsData);
+                });
+
+                return () => unsubscribe();
+            }, [db, userId]);
 
             // Search for user by username
             const handleSearchUsername = async () => {
@@ -3722,90 +3751,160 @@
                 }
             };
 
-            // Send Nous together request
-            const handleNousRequest = async (friend) => {
+            // Open Nous modal with selected friend
+            const handleOpenNousModal = (friend) => {
+                setSelectedFriends([friend]);
+                setShowNousModal(true);
+            };
+
+            // Toggle friend selection in modal
+            const handleToggleFriend = (friend) => {
+                setSelectedFriends(prev => {
+                    const isSelected = prev.some(f => f.userId === friend.userId);
+                    if (isSelected) {
+                        return prev.filter(f => f.userId !== friend.userId);
+                    } else if (prev.length < 4) { // Max 4 friends (5 total including sender)
+                        return [...prev, friend];
+                    } else {
+                        setNotification({ type: 'error', message: 'Maximum 4 friends (5 total participants)!' });
+                        return prev;
+                    }
+                });
+            };
+
+            // Send Nous together request to multiple participants
+            const handleSendNousRequest = async () => {
                 try {
-                    console.log('Attempting to send Nous request...');
-                    console.log('Friend:', friend);
-                    console.log('User ID:', userId);
-                    console.log('User Profile:', userProfile);
-                    console.log('Database:', db);
+                    if (selectedFriends.length === 0) {
+                        setNotification({ type: 'error', message: 'Please select at least one friend!' });
+                        return;
+                    }
+
+                    if (!selectedHabit) {
+                        setNotification({ type: 'error', message: 'Please select what you\'re working on!' });
+                        return;
+                    }
 
                     if (!db || !userId || !userProfile) {
-                        console.error('Missing required data:', { db, userId, userProfile });
                         setNotification({ type: 'error', message: 'Missing required data. Please try refreshing the page.' });
                         return;
                     }
 
                     if (!userProfile.username) {
-                        console.error('User profile missing username');
                         setNotification({ type: 'error', message: 'Your profile is incomplete. Please check your settings.' });
                         return;
                     }
 
-                    // Check if there's already a pending request
-                    console.log('Checking for existing requests...');
-                    const existingQuery = window.query(
-                        window.collection(db, 'nousRequests'),
-                        window.where('fromUserId', '==', userId),
-                        window.where('toUserId', '==', friend.userId),
-                        window.where('status', '==', 'pending')
-                    );
-                    const existingDocs = await window.getDocs(existingQuery);
-
-                    if (!existingDocs.empty) {
-                        setNotification({ type: 'error', message: 'You already sent a Nous request to this friend!' });
-                        return;
-                    }
-
-                    // Create Nous request
-                    console.log('Creating Nous request...');
+                    // Create a group request (one request for all participants)
                     const requestData = {
                         fromUserId: userId,
                         fromUsername: userProfile.username,
-                        toUserId: friend.userId,
-                        toUsername: friend.username,
+                        fromHabitId: selectedHabit.id,
+                        fromHabitName: selectedHabit.name,
+                        toUserIds: selectedFriends.map(f => f.userId),
+                        toUsernames: selectedFriends.map(f => f.username),
+                        acceptedBy: [], // Track who has accepted
+                        participantHabits: {
+                            [userId]: { habitId: selectedHabit.id, habitName: selectedHabit.name }
+                        },
                         status: 'pending',
                         createdAt: window.Timestamp.now()
                     };
-                    console.log('Request data:', requestData);
 
                     await window.addDoc(window.collection(db, 'nousRequests'), requestData);
 
-                    console.log('Nous request sent successfully!');
-                    setNotification({ type: 'success', message: `Nous request sent to @${friend.username}!` });
+                    setNotification({
+                        type: 'success',
+                        message: `Nous request sent to ${selectedFriends.length} friend${selectedFriends.length > 1 ? 's' : ''}!`
+                    });
+
+                    // Reset modal state
+                    setShowNousModal(false);
+                    setSelectedFriends([]);
+                    setSelectedHabit(null);
                 } catch (error) {
                     console.error("Error sending Nous request:", error);
-                    console.error("Error details:", error.message, error.code);
                     setNotification({ type: 'error', message: `Failed to send Nous request: ${error.message}` });
                 }
             };
 
-            // Accept Nous request and create shared timer
-            const handleAcceptNousRequest = async (request) => {
-                try {
-                    const requestDocRef = window.doc(db, 'nousRequests', request.id);
-                    await window.updateDoc(requestDocRef, {
-                        status: 'accepted'
-                    });
+            // Show accept modal with habit selection
+            const handleOpenAcceptModal = (request) => {
+                setAcceptingRequest(request);
+                setShowAcceptModal(true);
+            };
 
-                    // Create shared timer
-                    const sharedTimerData = {
-                        participants: [request.fromUserId, userId],
-                        participantNames: [request.fromUsername, request.toUsername],
-                        status: 'active',
-                        habitName: 'Nous Together',
-                        startTime: window.Timestamp.now(),
-                        elapsedBeforePause: 0,
-                        isPaused: false,
-                        createdAt: window.Timestamp.now(),
-                        createdBy: userId
+            // Accept Nous request with selected habit
+            const handleAcceptNousRequest = async () => {
+                try {
+                    if (!selectedHabit) {
+                        setNotification({ type: 'error', message: 'Please select what you\'re working on!' });
+                        return;
+                    }
+
+                    const request = acceptingRequest;
+                    const requestDocRef = window.doc(db, 'nousRequests', request.id);
+
+                    // Add user to acceptedBy array and add their habit
+                    const updatedParticipantHabits = {
+                        ...request.participantHabits,
+                        [userId]: { habitId: selectedHabit.id, habitName: selectedHabit.name }
                     };
 
-                    await window.addDoc(window.collection(db, 'sharedTimers'), sharedTimerData);
+                    const updatedAcceptedBy = [...(request.acceptedBy || []), userId];
 
-                    setNousRequests(prev => prev.filter(r => r.id !== request.id));
-                    setNotification({ type: 'success', message: `You're now studying together with @${request.fromUsername}!` });
+                    await window.updateDoc(requestDocRef, {
+                        acceptedBy: updatedAcceptedBy,
+                        participantHabits: updatedParticipantHabits
+                    });
+
+                    // Check if all participants have accepted
+                    const allParticipants = [request.fromUserId, ...(request.toUserIds || [request.toUserId])];
+                    const allAccepted = allParticipants.every(id =>
+                        id === request.fromUserId || updatedAcceptedBy.includes(id)
+                    );
+
+                    if (allAccepted) {
+                        // Everyone has accepted - create Nous session with shared timer
+                        const participantIds = [request.fromUserId, ...updatedAcceptedBy];
+                        const participantNames = [
+                            request.fromUsername,
+                            ...(request.toUsernames || [request.toUsername])
+                        ];
+
+                        const nousSessionData = {
+                            participants: participantIds,
+                            participantNames: participantNames,
+                            participantHabits: updatedParticipantHabits,
+                            status: 'active',
+                            startTime: window.Timestamp.now(),
+                            elapsedBeforePause: 0,
+                            isPaused: false,
+                            createdAt: window.Timestamp.now(),
+                            createdBy: request.fromUserId
+                        };
+
+                        await window.addDoc(window.collection(db, 'sharedTimers'), nousSessionData);
+
+                        // Mark request as accepted (will be cleaned up later)
+                        await window.updateDoc(requestDocRef, { status: 'accepted' });
+
+                        setNotification({
+                            type: 'success',
+                            message: `Nous session started with ${participantIds.length} participants!`
+                        });
+                    } else {
+                        setNotification({
+                            type: 'success',
+                            message: `You accepted! Waiting for ${allParticipants.length - updatedAcceptedBy.length - 1} more...`
+                        });
+                    }
+
+                    // Reset modal state
+                    setShowAcceptModal(false);
+                    setAcceptingRequest(null);
+                    setSelectedHabit(null);
+                    setNousRequests(prev => allAccepted ? prev.filter(r => r.id !== request.id) : prev);
                 } catch (error) {
                     console.error("Error accepting Nous request:", error);
                     setNotification({ type: 'error', message: 'Failed to accept request.' });
@@ -3977,7 +4076,7 @@
                                 ),
                                 React.createElement('div', { className: "flex gap-2" },
                                     React.createElement('button', {
-                                        onClick: () => handleAcceptNousRequest(request),
+                                        onClick: () => handleOpenAcceptModal(request),
                                         className: "px-3 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition text-sm",
                                         style: { fontWeight: 400 }
                                     }, "accept"),
@@ -4036,7 +4135,7 @@
                                         ),
                                         // Nous together button
                                         React.createElement('button', {
-                                            onClick: () => handleNousRequest(friend),
+                                            onClick: () => handleOpenNousModal(friend),
                                             className: "px-3 py-1.5 bg-purple-100 text-purple-700 rounded-lg hover:bg-purple-200 transition text-xs",
                                             style: { fontWeight: 400 }
                                         }, "Nous together")
@@ -4047,6 +4146,179 @@
                         React.createElement('p', { className: "text-center text-calm-500 py-8", style: { fontWeight: 300 } },
                             "No friends yet. Add some friends to get started!"
                         )
+                ),
+
+                // Nous Together Modal (Send Request)
+                showNousModal && React.createElement('div', {
+                    className: "fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4",
+                    onClick: () => {
+                        setShowNousModal(false);
+                        setSelectedFriends([]);
+                        setSelectedHabit(null);
+                    }
+                },
+                    React.createElement('div', {
+                        className: "bg-white rounded-lg p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto",
+                        onClick: (e) => e.stopPropagation()
+                    },
+                        React.createElement('h3', { className: "text-2xl text-calm-800 mb-4", style: { fontWeight: 400 } },
+                            "Nous Together"
+                        ),
+
+                        // Select Friends Section
+                        React.createElement('div', { className: "mb-6" },
+                            React.createElement('h4', { className: "text-lg text-calm-700 mb-3", style: { fontWeight: 400 } },
+                                `Select friends (${selectedFriends.length}/4 selected)`
+                            ),
+                            React.createElement('div', { className: "space-y-2 max-h-48 overflow-y-auto border border-calm-200 rounded-lg p-3" },
+                                friends.map(friend =>
+                                    React.createElement('label', {
+                                        key: friend.userId,
+                                        className: "flex items-center gap-3 p-2 hover:bg-calm-50 rounded cursor-pointer"
+                                    },
+                                        React.createElement('input', {
+                                            type: "checkbox",
+                                            checked: selectedFriends.some(f => f.userId === friend.userId),
+                                            onChange: () => handleToggleFriend(friend),
+                                            className: "w-4 h-4 text-purple-600"
+                                        }),
+                                        React.createElement('span', { className: "text-calm-800", style: { fontWeight: 400 } },
+                                            `@${friend.username}`
+                                        )
+                                    )
+                                )
+                            )
+                        ),
+
+                        // Select Habit Section
+                        React.createElement('div', { className: "mb-6" },
+                            React.createElement('h4', { className: "text-lg text-calm-700 mb-3", style: { fontWeight: 400 } },
+                                "What are you working on?"
+                            ),
+                            React.createElement('div', { className: "space-y-2 max-h-48 overflow-y-auto border border-calm-200 rounded-lg p-3" },
+                                habits.length === 0 ?
+                                    React.createElement('p', { className: "text-calm-500 text-center py-4", style: { fontWeight: 300 } },
+                                        "No habits yet. Create one in the Dashboard first!"
+                                    ) :
+                                    habits.map(habit =>
+                                        React.createElement('label', {
+                                            key: habit.id,
+                                            className: "flex items-center gap-3 p-2 hover:bg-calm-50 rounded cursor-pointer"
+                                        },
+                                            React.createElement('input', {
+                                                type: "radio",
+                                                name: "habit",
+                                                checked: selectedHabit?.id === habit.id,
+                                                onChange: () => setSelectedHabit(habit),
+                                                className: "w-4 h-4 text-purple-600"
+                                            }),
+                                            React.createElement('span', { className: "text-calm-800", style: { fontWeight: 400 } },
+                                                habit.name
+                                            )
+                                        )
+                                    )
+                            )
+                        ),
+
+                        // Action Buttons
+                        React.createElement('div', { className: "flex gap-3 justify-end" },
+                            React.createElement('button', {
+                                onClick: () => {
+                                    setShowNousModal(false);
+                                    setSelectedFriends([]);
+                                    setSelectedHabit(null);
+                                },
+                                className: "px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 transition",
+                                style: { fontWeight: 400 }
+                            }, "Cancel"),
+                            React.createElement('button', {
+                                onClick: handleSendNousRequest,
+                                disabled: selectedFriends.length === 0 || !selectedHabit,
+                                className: `px-4 py-2 rounded-lg transition ${
+                                    selectedFriends.length === 0 || !selectedHabit
+                                        ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                                        : 'bg-purple-600 text-white hover:bg-purple-700'
+                                }`,
+                                style: { fontWeight: 400 }
+                            }, "Send Request")
+                        )
+                    )
+                ),
+
+                // Accept Request Modal (With Habit Selection)
+                showAcceptModal && React.createElement('div', {
+                    className: "fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4",
+                    onClick: () => {
+                        setShowAcceptModal(false);
+                        setAcceptingRequest(null);
+                        setSelectedHabit(null);
+                    }
+                },
+                    React.createElement('div', {
+                        className: "bg-white rounded-lg p-6 max-w-lg w-full max-h-[90vh] overflow-y-auto",
+                        onClick: (e) => e.stopPropagation()
+                    },
+                        React.createElement('h3', { className: "text-2xl text-calm-800 mb-4", style: { fontWeight: 400 } },
+                            `Nous with @${acceptingRequest?.fromUsername}`
+                        ),
+
+                        React.createElement('p', { className: "text-calm-600 mb-4", style: { fontWeight: 300 } },
+                            `They're working on: ${acceptingRequest?.fromHabitName}`
+                        ),
+
+                        // Select Your Habit
+                        React.createElement('div', { className: "mb-6" },
+                            React.createElement('h4', { className: "text-lg text-calm-700 mb-3", style: { fontWeight: 400 } },
+                                "What will you work on?"
+                            ),
+                            React.createElement('div', { className: "space-y-2 max-h-64 overflow-y-auto border border-calm-200 rounded-lg p-3" },
+                                habits.length === 0 ?
+                                    React.createElement('p', { className: "text-calm-500 text-center py-4", style: { fontWeight: 300 } },
+                                        "No habits yet. Create one in the Dashboard first!"
+                                    ) :
+                                    habits.map(habit =>
+                                        React.createElement('label', {
+                                            key: habit.id,
+                                            className: "flex items-center gap-3 p-2 hover:bg-calm-50 rounded cursor-pointer"
+                                        },
+                                            React.createElement('input', {
+                                                type: "radio",
+                                                name: "acceptHabit",
+                                                checked: selectedHabit?.id === habit.id,
+                                                onChange: () => setSelectedHabit(habit),
+                                                className: "w-4 h-4 text-purple-600"
+                                            }),
+                                            React.createElement('span', { className: "text-calm-800", style: { fontWeight: 400 } },
+                                                habit.name
+                                            )
+                                        )
+                                    )
+                            )
+                        ),
+
+                        // Action Buttons
+                        React.createElement('div', { className: "flex gap-3 justify-end" },
+                            React.createElement('button', {
+                                onClick: () => {
+                                    setShowAcceptModal(false);
+                                    setAcceptingRequest(null);
+                                    setSelectedHabit(null);
+                                },
+                                className: "px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 transition",
+                                style: { fontWeight: 400 }
+                            }, "Cancel"),
+                            React.createElement('button', {
+                                onClick: handleAcceptNousRequest,
+                                disabled: !selectedHabit,
+                                className: `px-4 py-2 rounded-lg transition ${
+                                    !selectedHabit
+                                        ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                                        : 'bg-purple-600 text-white hover:bg-purple-700'
+                                }`,
+                                style: { fontWeight: 400 }
+                            }, "Accept & Join")
+                        )
+                    )
                 )
             );
         };
