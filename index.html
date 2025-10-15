@@ -855,11 +855,19 @@
                     }
                 }
 
-                // Calculate hours studied today
+                // Calculate hours studied today (Singapore timezone UTC+8)
+                const now = new Date();
+                const singaporeOffset = 8 * 60; // UTC+8 in minutes
+                const localOffset = now.getTimezoneOffset(); // Local offset from UTC in minutes (negative for ahead of UTC)
+                const offsetDiff = singaporeOffset + localOffset; // Difference in minutes
+
                 const todayStart = new Date();
                 todayStart.setHours(0, 0, 0, 0);
+                todayStart.setMinutes(todayStart.getMinutes() - offsetDiff);
+
                 const todayEnd = new Date();
                 todayEnd.setHours(23, 59, 59, 999);
+                todayEnd.setMinutes(todayEnd.getMinutes() - offsetDiff);
 
                 const todaySessions = sessions.filter(s => {
                     const sessionDate = s.startTime.toDate();
