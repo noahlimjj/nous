@@ -108,6 +108,35 @@ service cloud.firestore {
       // No updates or deletes for now (messages are immutable)
     }
 
+    // Session Pings Collection (for Nous together pings)
+    match /sessionPings/{pingId} {
+      // Allow users to create pings for shared timers they're in
+      allow create: if request.auth != null &&
+                      request.resource.data.senderId == request.auth.uid &&
+                      request.auth.uid in request.resource.data.participants;
+
+      // Allow users to read pings for shared timers they're participating in
+      allow read: if request.auth != null &&
+                    (request.auth.uid in resource.data.participants);
+
+      // No updates or deletes for now (pings are immutable)
+    }
+
+    // Session Invites Collection (for inviting friends to existing sessions)
+    match /sessionInvites/{inviteId} {
+      allow create: if request.auth != null && request.resource.data.fromUserId == request.auth.uid;
+      allow read: if request.auth != null &&
+        (resource.data.toUserId == request.auth.uid || resource.data.fromUserId == request.auth.uid);
+      allow update: if request.auth != null && resource.data.toUserId == request.auth.uid;
+      allow delete: if request.auth != null && resource.data.fromUserId == request.auth.uid;
+    }
+
+    // Completed Nous Sessions (if you want to track them separately)
+    match /completedNousSessions/{sessionId} {
+      allow read: if request.auth != null && request.auth.uid in resource.data.participants;
+      allow create: if request.auth != null;
+    }
+
     // Artifacts Collection (for habits, sessions, active timers)
     match /artifacts/{appId}/users/{userId}/{document=**} {
       // Allow users to read/write their own data
