@@ -5,6 +5,20 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Nous</title>
 
+    <!-- PWA Meta Tags -->
+    <meta name="description" content="A modern study habit tracker and time management app">
+    <meta name="theme-color" content="#5d6b86">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="Nous">
+    <link rel="manifest" href="/manifest.json">
+
+    <!-- Apple Touch Icons -->
+    <link rel="apple-touch-icon" href="/icons/icon-152x152.png">
+    <link rel="apple-touch-icon" sizes="152x152" href="/icons/icon-152x152.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="/icons/icon-192x192.png">
+    <link rel="apple-touch-icon" sizes="167x167" href="/icons/icon-192x192.png">
+
     <!-- Favicon -->
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cstyle%3Etext%7Bfont-family:Satoshi,sans-serif;font-weight:300;font-size:72px;fill:%235d6b86%7D%3C/style%3E%3Ccircle cx='50' cy='50' r='35' fill='none' stroke='%23000000' stroke-width='3'/%3E%3Ctext x='50' y='72' text-anchor='middle' letter-spacing='1.5'%3En%3C/text%3E%3C/svg%3E">
 
@@ -538,16 +552,16 @@
 
         // Tree types with unlock requirements (total hours studied)
         const TREE_TYPES = [
-            { id: 'oak', name: 'Oak', requiredHours: 0, color: '#5DAE49', leafShapes: ['oval', 'diamond'], leafColors: ['#3E7C17', '#5DAE49', '#A1C349', '#4a7c2c', '#6d9f4f'], branchColor: '#5A3E1B' },
-            { id: 'maple', name: 'Maple', requiredHours: 5, color: '#FF4C29', leafShapes: ['star', 'triangle'], leafColors: ['#FF4C29', '#FFB84C', '#D94F04', '#c2410c', '#f97316'], branchColor: '#6B2B06' },
-            { id: 'cherry', name: 'Cherry Blossom', requiredHours: 15, color: '#F8C8DC', leafShapes: ['heart', 'oval'], leafColors: ['#F8C8DC', '#FADADD', '#FFD6E8', '#fbcfe8', '#f9a8d4'], branchColor: '#8B5E3C' },
-            { id: 'willow', name: 'Willow', requiredHours: 30, color: '#A3C9A8', leafShapes: ['oval', 'rectangle'], leafColors: ['#A3C9A8', '#6BA292', '#446A46', '#94a3b8', '#64748b'], branchColor: '#4E3B31' },
-            { id: 'pine', name: 'Pine', requiredHours: 50, color: '#2C5F2D', leafShapes: ['rectangle', 'hexagon'], leafColors: ['#2C5F2D', '#97BC62', '#5E8C61', '#166534', '#15803d'], branchColor: '#3B2F2F' },
-            { id: 'cypress', name: 'Cypress', requiredHours: 75, color: '#557A46', leafShapes: ['hexagon', 'diamond'], leafColors: ['#557A46', '#A9C46C', '#7BA23F', '#65a30d', '#4d7c0f'], branchColor: '#4B3D28' },
-            { id: 'birch', name: 'Birch', requiredHours: 100, color: '#C7E6D7', leafShapes: ['triangle', 'diamond'], leafColors: ['#C7E6D7', '#9DD9D2', '#7DCFB6', '#fef08a', '#fde047'], branchColor: '#8E7C5D' },
-            { id: 'sakura', name: 'Ancient Sakura', requiredHours: 150, color: '#EFBBCF', leafShapes: ['heart', 'circle'], leafColors: ['#EFBBCF', '#F2A7B9', '#FFCBDD', '#f472b6', '#db2777'], branchColor: '#705243' },
-            { id: 'baobab', name: 'Baobab', requiredHours: 250, color: '#8ABF69', leafShapes: ['star', 'circle'], leafColors: ['#8ABF69', '#C8E7A7', '#EBF2C0', '#4d7c0f', '#3f6212'], branchColor: '#8B5A2B' },
-            { id: 'magnolia', name: 'Magnolia', requiredHours: 400, color: '#F6D6AD', leafShapes: ['oval', 'heart'], leafColors: ['#F6D6AD', '#EFBBCF', '#E6AACE', '#f5d0fe', '#e879f9'], branchColor: '#7E6651' },
+            { id: 'oak', name: 'Oak', requiredHours: 0, color: '#4a7c2c', leafShapes: ['oval', 'diamond'], leafColors: ['#3E7C17', '#5DAE49', '#A1C349', '#4a7c2c', '#6d9f4f'], branchColor: '#5A3E1B' },
+            { id: 'maple', name: 'Maple', requiredHours: 5, color: '#d94f04', leafShapes: ['star', 'triangle'], leafColors: ['#FF4C29', '#FFB84C', '#D94F04', '#c2410c', '#f97316'], branchColor: '#6B2B06' },
+            { id: 'cherry', name: 'Cherry Blossom', requiredHours: 15, color: '#f9a8d4', leafShapes: ['heart', 'circle'], leafColors: ['#F8C8DC', '#FADADD', '#FFD6E8', '#fbcfe8', '#fce7f3'], branchColor: '#8B5E3C' },
+            { id: 'willow', name: 'Willow', requiredHours: 30, color: '#94a3b8', leafShapes: ['oval', 'rectangle'], leafColors: ['#A3C9A8', '#6BA292', '#446A46', '#94a3b8', '#d1d5db'], branchColor: '#4E3B31' },
+            { id: 'pine', name: 'Pine', requiredHours: 50, color: '#166534', leafShapes: ['rectangle', 'hexagon'], leafColors: ['#2C5F2D', '#166534', '#15803d', '#052e16', '#064e3b'], branchColor: '#3B2F2F' },
+            { id: 'cypress', name: 'Cypress', requiredHours: 75, color: '#4d7c0f', leafShapes: ['hexagon', 'diamond'], leafColors: ['#557A46', '#A9C46C', '#7BA23F', '#65a30d', '#84cc16'], branchColor: '#4B3D28' },
+            { id: 'birch', name: 'Birch', requiredHours: 100, color: '#fde047', leafShapes: ['diamond', 'triangle'], leafColors: ['#C7E6D7', '#fef08a', '#fde047', '#facc15', '#eab308'], branchColor: '#8E7C5D' },
+            { id: 'sakura', name: 'Ancient Sakura', requiredHours: 150, color: '#db2777', leafShapes: ['heart', 'fan'], leafColors: ['#EFBBCF', '#F2A7B9', '#FFCBDD', '#f472b6', '#ec4899'], branchColor: '#705243' },
+            { id: 'baobab', name: 'Baobab', requiredHours: 250, color: '#4d7c0f', leafShapes: ['star', 'circle'], leafColors: ['#8ABF69', '#C8E7A7', '#EBF2C0', '#4d7c0f', '#a3e635'], branchColor: '#8B5A2B' },
+            { id: 'magnolia', name: 'Magnolia', requiredHours: 400, color: '#e879f9', leafShapes: ['oval', 'heart'], leafColors: ['#F6D6AD', '#EFBBCF', '#E6AACE', '#f5d0fe', '#f0abfc'], branchColor: '#7E6651' },
             {
                 id: 'starry-night',
                 name: 'Starry Night Tree',
@@ -557,8 +571,8 @@
                 leafColors: ['#0B0B45', '#23238E', '#4B0082', '#8A2BE2', '#FFD700'],
                 leafShapes: ['star', 'diamond', 'circle'],
             },
-            { id: 'redwood', name: 'Redwood', requiredHours: 800, color: '#7D6B91', leafShapes: ['rectangle', 'diamond'], leafColors: ['#7D6B91', '#B88B4A', '#A17C3A', '#450a0a', '#7f1d1d'], branchColor: '#4A2C2A' },
-            { id: 'ginkgo', name: 'Ginkgo', requiredHours: 1000, color: '#F4E409', leafShapes: ['fan'], leafColors: ['#F4E409', '#FFD23F', '#F6AE2D', '#facc15', '#eab308'], branchColor: '#8C5E24' }
+            { id: 'redwood', name: 'Redwood', requiredHours: 800, color: '#7f1d1d', leafShapes: ['rectangle', 'triangle'], leafColors: ['#7D6B91', '#B88B4A', '#A17C3A', '#450a0a', '#991b1b'], branchColor: '#4A2C2A' },
+            { id: 'ginkgo', name: 'Ginkgo', requiredHours: 1000, color: '#facc15', leafShapes: ['fan'], leafColors: ['#F4E409', '#FFD23F', '#F6AE2D', '#facc15', '#eab308'], branchColor: '#8C5E24' }
         ];
 
         // Calculate total study hours from sessions
@@ -3220,6 +3234,73 @@
                     )
                 ),
 
+                // Install App Section
+                React.createElement('div', { className: "bg-gradient-to-br from-blue-50 to-purple-50 rounded-lg shadow-sm p-6 mb-6 border border-blue-100" },
+                    React.createElement('div', { className: "flex items-start gap-4" },
+                        React.createElement('div', { className: "flex-shrink-0 mt-1" },
+                            React.createElement('svg', {
+                                xmlns: "http://www.w3.org/2000/svg",
+                                width: "32",
+                                height: "32",
+                                viewBox: "0 0 24 24",
+                                fill: "none",
+                                stroke: "#6B8DD6",
+                                strokeWidth: "2",
+                                strokeLinecap: "round",
+                                strokeLinejoin: "round"
+                            },
+                                React.createElement('path', { d: "M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" }),
+                                React.createElement('polyline', { points: "7 10 12 15 17 10" }),
+                                React.createElement('line', { x1: "12", y1: "15", x2: "12", y2: "3" })
+                            )
+                        ),
+                        React.createElement('div', { className: "flex-1" },
+                            React.createElement('h3', { className: "text-xl text-gray-800 mb-2", style: { fontWeight: 500 } }, "install nous app"),
+                            React.createElement('p', { className: "text-gray-600 text-sm mb-4", style: { fontWeight: 300 } },
+                                "Install Nous on your device for quick access, offline support, and a native app experience."
+                            ),
+                            React.createElement('div', { className: "space-y-3" },
+                                React.createElement('div', { className: "bg-white rounded-lg p-4" },
+                                    React.createElement('p', { className: "text-sm font-medium text-gray-700 mb-2" }, "📱 on mobile:"),
+                                    React.createElement('ol', { className: "text-sm text-gray-600 space-y-1 list-decimal list-inside", style: { fontWeight: 300 } },
+                                        React.createElement('li', null, "Tap the ", React.createElement('strong', null, "\"Install App\""), " button at the bottom-right"),
+                                        React.createElement('li', null, "Or use your browser menu > \"Add to Home Screen\""),
+                                        React.createElement('li', null, "Find Nous icon on your home screen!")
+                                    )
+                                ),
+                                React.createElement('div', { className: "bg-white rounded-lg p-4" },
+                                    React.createElement('p', { className: "text-sm font-medium text-gray-700 mb-2" }, "💻 on desktop:"),
+                                    React.createElement('ol', { className: "text-sm text-gray-600 space-y-1 list-decimal list-inside", style: { fontWeight: 300 } },
+                                        React.createElement('li', null, "Look for the install icon ", React.createElement('span', { className: "inline-block" }, "⊕"), " in your browser's address bar"),
+                                        React.createElement('li', null, "Or click the ", React.createElement('strong', null, "\"Install App\""), " button below"),
+                                        React.createElement('li', null, "App opens in its own window!")
+                                    )
+                                ),
+                                React.createElement('div', { className: "flex flex-wrap gap-2 mt-3" },
+                                    React.createElement('span', { className: "inline-flex items-center gap-1 text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full" },
+                                        React.createElement('svg', { width: "12", height: "12", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2" },
+                                            React.createElement('polyline', { points: "20 6 9 17 4 12" })
+                                        ),
+                                        "Works offline"
+                                    ),
+                                    React.createElement('span', { className: "inline-flex items-center gap-1 text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full" },
+                                        React.createElement('svg', { width: "12", height: "12", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2" },
+                                            React.createElement('polyline', { points: "20 6 9 17 4 12" })
+                                        ),
+                                        "Fast & responsive"
+                                    ),
+                                    React.createElement('span', { className: "inline-flex items-center gap-1 text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded-full" },
+                                        React.createElement('svg', { width: "12", height: "12", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2" },
+                                            React.createElement('polyline', { points: "20 6 9 17 4 12" })
+                                        ),
+                                        "Syncs across devices"
+                                    )
+                                )
+                            )
+                        )
+                    )
+                ),
+
                 // Account Information Section
                 React.createElement('div', { className: "bg-white rounded-lg shadow-sm p-6 mb-6" },
                     React.createElement('h3', { className: "text-xl text-gray-700 mb-4", style: { fontWeight: 400 } }, "account information"),
@@ -5661,6 +5742,124 @@
         // Render the app (React 18 syntax)
         const root = ReactDOM.createRoot(document.getElementById('root'));
         root.render(React.createElement(App));
+    </script>
+
+    <!-- Service Worker Registration & PWA Install Prompt -->
+    <script>
+        // Register Service Worker
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/service-worker.js')
+                    .then((registration) => {
+                        console.log('ServiceWorker registered successfully:', registration.scope);
+                    })
+                    .catch((error) => {
+                        console.log('ServiceWorker registration failed:', error);
+                    });
+            });
+        }
+
+        // PWA Install Prompt
+        let deferredPrompt;
+        let installButton;
+
+        window.addEventListener('beforeinstallprompt', (e) => {
+            // Prevent the mini-infobar from appearing on mobile
+            e.preventDefault();
+            // Stash the event so it can be triggered later
+            deferredPrompt = e;
+            // Update UI to show install button
+            showInstallPromotion();
+        });
+
+        function showInstallPromotion() {
+            // Create install button if it doesn't exist
+            if (!installButton) {
+                installButton = document.createElement('button');
+                installButton.id = 'installButton';
+                installButton.innerHTML = `
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                        <polyline points="7 10 12 15 17 10"></polyline>
+                        <line x1="12" y1="15" x2="12" y2="3"></line>
+                    </svg>
+                    <span>Install App</span>
+                `;
+                installButton.style.cssText = `
+                    position: fixed;
+                    bottom: 20px;
+                    right: 20px;
+                    background: #5d6b86;
+                    color: white;
+                    border: none;
+                    padding: 12px 24px;
+                    border-radius: 50px;
+                    font-family: Satoshi, sans-serif;
+                    font-size: 14px;
+                    font-weight: 500;
+                    cursor: pointer;
+                    box-shadow: 0 4px 12px rgba(93, 107, 134, 0.3);
+                    display: flex;
+                    align-items: center;
+                    gap: 8px;
+                    z-index: 9999;
+                    transition: all 0.3s ease;
+                `;
+
+                installButton.addEventListener('mouseenter', () => {
+                    installButton.style.background = '#4a5568';
+                    installButton.style.transform = 'translateY(-2px)';
+                    installButton.style.boxShadow = '0 6px 16px rgba(93, 107, 134, 0.4)';
+                });
+
+                installButton.addEventListener('mouseleave', () => {
+                    installButton.style.background = '#5d6b86';
+                    installButton.style.transform = 'translateY(0)';
+                    installButton.style.boxShadow = '0 4px 12px rgba(93, 107, 134, 0.3)';
+                });
+
+                installButton.addEventListener('click', async () => {
+                    if (!deferredPrompt) {
+                        return;
+                    }
+                    // Show the install prompt
+                    deferredPrompt.prompt();
+                    // Wait for the user to respond to the prompt
+                    const { outcome } = await deferredPrompt.userChoice;
+                    console.log(`User response to the install prompt: ${outcome}`);
+                    // Clear the deferredPrompt
+                    deferredPrompt = null;
+                    // Hide the install button
+                    hideInstallPromotion();
+                });
+
+                document.body.appendChild(installButton);
+            }
+        }
+
+        function hideInstallPromotion() {
+            if (installButton) {
+                installButton.style.opacity = '0';
+                setTimeout(() => {
+                    if (installButton && installButton.parentNode) {
+                        installButton.parentNode.removeChild(installButton);
+                        installButton = null;
+                    }
+                }, 300);
+            }
+        }
+
+        // Hide install button when app is installed
+        window.addEventListener('appinstalled', () => {
+            console.log('Nous PWA was installed');
+            hideInstallPromotion();
+            deferredPrompt = null;
+        });
+
+        // Check if app is already installed (standalone mode)
+        if (window.matchMedia('(display-mode: standalone)').matches) {
+            console.log('Running as installed PWA');
+        }
     </script>
 </body>
 </html>
