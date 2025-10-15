@@ -28,25 +28,32 @@
 
 ---
 
-### Countdown Timer Mode Icon
+### Countdown Timer Mode Icon (Hourglass)
 ```
-    ___
-   / 🕐 \  ← Clock with hands showing time
-  |  |  |
-   \___/
+  ______
+  |    |  ← Top sand container
+   \  /
+    \/    ← Narrow neck (sand flowing through)
+    /\
+   /  \
+  |____| ← Bottom sand container
 ```
 
 **Design Details:**
-- Outer circle: cx="12" cy="12" r="10"
-- Clock hands: polyline "12 6 12 12 16 14"
-  - Hour hand from center (12,12) to top (12,6)
-  - Minute hand from center to 2 o'clock position (16,14)
+- Top horizontal line: "M5 2h14" (top of hourglass)
+- Bottom horizontal line: "M5 22h14" (bottom of hourglass)
+- Upper chamber: "M7 2v4.172a2 2 0 0 0 .586 1.414L12 12..."
+  - Starts wide at top, narrows to center point (12, 12)
+- Lower chamber: "M17 22v-4.172a2 2 0 0 0-.586-1.414L12 12..."
+  - Starts narrow at center, widens to bottom
+- Creates distinctive X-shape in the middle where sand flows
 
 **Visual Characteristics:**
 - Blue background (bg-blue-100) when active
 - Blue text color (text-blue-600)
 - 18x18px size matching stopwatch
 - Hover effect: bg-blue-200
+- Perfectly represents "time running out"
 
 **Tooltip:** "Countdown mode - Click to switch to stopwatch"
 
@@ -149,10 +156,11 @@ className: p-2 rounded transition bg-purple-200 text-purple-700 hover:bg-purple-
 - The top button/knob is distinctive and instantly recognizable
 - Vertical orientation suggests "going up"
 
-**Why Clock Icon for Countdown?**
-- Clocks represent fixed time periods
-- Clock hands suggest "time moving forward"
-- Circular nature implies a cycle/completion
+**Why Hourglass Icon for Countdown?**
+- Hourglasses universally represent time running out
+- The visual of sand flowing down is intuitive for countdown
+- X-shape in middle shows the narrow passage of time
+- Classic metaphor for "time is running out"
 
 **Why Different Colors?**
 - Blue suggests "set time" / planning / structure

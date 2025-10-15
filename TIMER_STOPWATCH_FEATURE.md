@@ -49,10 +49,11 @@ Added the ability to toggle between **stopwatch mode** (count up) and **timer mo
 
 ### Icons Used
 - **Stopwatch mode**: ⏱️ Stopwatch icon with top button (circle with timer hand + top knob)
-- **Countdown mode**: 🕐 Clock icon with moving hands (circle with clock hands pointing to time)
+- **Countdown mode**: ⌛ Hourglass icon (classic sand timer showing time flowing down)
 - Icons are clean, minimal SVG graphics that match the app's aesthetic
 - Hover states provide visual feedback (background darkens slightly)
 - Tooltips explain each mode on hover
+- Hourglass perfectly represents "time running out" concept
 
 ### Nous Together Display
 ```
