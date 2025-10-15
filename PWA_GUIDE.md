@@ -51,11 +51,14 @@ A Progressive Web App allows your web application to:
 3. Tap the button and follow the prompts
 4. Or use browser menu: "Add to Home Screen" or "Install App"
 
-#### Safari (iOS) - Recommended Method
-1. Open the app in Safari
-2. Tap the **Share icon** at the **top-right** (square with arrow)
-3. Scroll down and tap **"Add to Home Screen"**
-4. Tap **"Add"** to confirm
+#### Safari/Chrome (iOS) - Recommended Method ✓
+1. Open the app in Safari or Chrome
+2. Look at the **top-right corner** next to the URL (nousi.netlify.app)
+3. Tap the **Share icon** (square with arrow pointing up)
+4. Scroll down and tap **"Add to Home Screen"**
+5. Tap **"Add"** to confirm
+
+**Important:** The share icon is located in the **top-right corner** of the browser, right next to the address bar. This works on both Chrome and Safari browsers.
 
 ### On Desktop (Mac/PC)
 
