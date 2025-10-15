@@ -29,13 +29,21 @@ sizes.forEach(size => {
     ctx.lineWidth = size * 0.03;
     ctx.stroke();
 
-    // Text 'n'
+    // Text 'n' - with perfect vertical centering
     ctx.fillStyle = '#5d6b86';
     ctx.font = `300 ${size * 0.72}px Arial, sans-serif`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    // Center the 'n' vertically and horizontally
-    ctx.fillText('n', centerX, centerY);
+
+    // Measure text to get actual bounding box for perfect centering
+    const metrics = ctx.measureText('n');
+    const actualHeight = metrics.actualBoundingBoxAscent + metrics.actualBoundingBoxDescent;
+
+    // Calculate offset to compensate for descender space (perfect vertical centering)
+    const offset = (metrics.actualBoundingBoxAscent - metrics.actualBoundingBoxDescent) / 2;
+
+    // Draw text with offset for true visual centering
+    ctx.fillText('n', centerX, centerY + offset);
 
     // Save
     const buffer = canvas.toBuffer('image/png');
