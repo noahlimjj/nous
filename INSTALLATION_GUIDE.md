@@ -38,14 +38,9 @@ Plus, in Chrome/Edge, you'll see an install icon in the address bar:
 
 ### On Your Phone (iOS/Android)
 
-#### Method 1: Install Button
-1. Open your Nous app in Safari (iOS) or Chrome (Android)
-2. Scroll to see the "Install App" button at the bottom-right
-3. Tap the button
-4. Confirm installation
-5. Find "Nous" on your home screen!
+**Important:** iOS does not support automatic install prompts. You must use the browser's Share menu.
 
-#### Method 2: Browser Menu (Safari/Chrome) - Recommended ✓
+#### Method 1: Browser Menu (Safari/Chrome) - Recommended ✓
 1. Open your Nous app in Safari or Chrome
 2. Look at the **top-right corner** next to the URL (nousi.netlify.app)
 3. Tap the **Share icon** (square with arrow pointing up)
@@ -55,7 +50,7 @@ Plus, in Chrome/Edge, you'll see an install icon in the address bar:
 
 **Note:** This works on both Chrome and Safari browsers on iOS.
 
-#### Method 3: Browser Menu (Android Chrome) - Recommended ✓
+#### Method 2: Browser Menu (Android Chrome) - May Show Install Prompt ✓
 1. Open your Nous app in Chrome
 2. Look at the **top-right corner** next to the URL
 3. Tap the **three dots menu (⋮)** or **Share icon**

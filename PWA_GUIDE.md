@@ -45,13 +45,9 @@ A Progressive Web App allows your web application to:
 
 ### On Mobile (iOS/Android)
 
-#### Chrome (Android) or Safari (iOS 16.4+)
-1. Visit your Nous app URL in the browser
-2. Look for the "Install App" button (floating button in bottom-right)
-3. Tap the button and follow the prompts
-4. Or use browser menu: "Add to Home Screen" or "Install App"
+**Note:** iOS does not support automatic install prompts. The floating "Install App" button only appears on desktop browsers (Chrome, Edge). On mobile, use the browser's Share menu.
 
-#### Safari/Chrome (iOS) - Recommended Method ✓
+#### Safari/Chrome (iOS) - Use Share Menu ✓
 1. Open the app in Safari or Chrome
 2. Look at the **top-right corner** next to the URL (nousi.netlify.app)
 3. Tap the **Share icon** (square with arrow pointing up)
