@@ -51,11 +51,11 @@ A Progressive Web App allows your web application to:
 3. Tap the button and follow the prompts
 4. Or use browser menu: "Add to Home Screen" or "Install App"
 
-#### Safari (iOS) - Alternative Method
+#### Safari (iOS) - Recommended Method
 1. Open the app in Safari
-2. Tap the Share button (square with arrow)
-3. Scroll down and tap "Add to Home Screen"
-4. Name it "Nous" and tap "Add"
+2. Tap the **Share icon** at the **top-right** (square with arrow)
+3. Scroll down and tap **"Add to Home Screen"**
+4. Tap **"Add"** to confirm
 
 ### On Desktop (Mac/PC)
 
