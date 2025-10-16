@@ -1,11 +1,11 @@
-const CACHE_NAME = 'nous-v1';
+const CACHE_NAME = 'nous-v5';
 const urlsToCache = [
   '/',
   '/index.html',
   '/style.css',
   '/script.js',
   '/config.js',
-  '/bell-click-sound-slow-smo-ocxvfkrh.wav'
+  '/public/bell-click-sound-slow-smo-ocxvfkrh.wav'
 ];
 
 // Install event - cache resources

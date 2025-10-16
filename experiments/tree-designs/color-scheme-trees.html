@@ -43,12 +43,14 @@
   /* Oak Tree */
   .oak .trunk {
     background-color: #5A3E1B;
+    height: 70px;
   }
   .oak .canopy {
-    width: 80px;
-    height: 80px;
-    background: radial-gradient(circle, #3E7C17, #5DAE49, #A1C349, #4a7c2c, #6d9f4f);
-    border-radius: 50%;
+    bottom: 70px;
+    width: 50px;
+    height: 70px;
+    background: radial-gradient(ellipse, #3E7C17, #5DAE49, #A1C349, #4a7c2c, #6d9f4f);
+    border-radius: 50% 50% 20% 20%;
   }
 
   /* Maple Tree */
@@ -58,8 +60,19 @@
   .maple .canopy {
     width: 80px;
     height: 80px;
-    background: radial-gradient(circle, #FF4C29, #FFB84C, #D94F04, #c2410c, #f97316);
     border-radius: 50%;
+    background-color: #FFB84C;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: center;
+  }
+  .maple .dot {
+    width: 12px;
+    height: 12px;
+    background-color: #D94F04;
+    border-radius: 50%;
+    margin: 2px;
   }
 
   /* Cherry Blossom Tree */
@@ -71,6 +84,166 @@
     height: 70px;
     background: radial-gradient(circle, #F8C8DC, #FADADD, #FFD6E8, #fbcfe8, #fce7f3);
     border-radius: 50%;
+  }
+
+  /* Willow Tree */
+  .willow .trunk {
+    background-color: #4E3B31;
+    height: 80px;
+  }
+  .willow .canopy {
+    bottom: 80px;
+    width: 40px;
+    height: 60px;
+    background: radial-gradient(ellipse, #A3C9A8, #6BA292, #446A46, #94a3b8, #d1d5db);
+    border-radius: 50% 50% 20% 20%;
+  }
+
+  /* Pine Tree */
+  .pine .trunk {
+    background-color: #3B2F2F;
+  }
+  .pine .canopy {
+    width: 0;
+    height: 0;
+    border-left: 40px solid transparent;
+    border-right: 40px solid transparent;
+    border-bottom: 100px solid #166534;
+  }
+
+  /* Cypress Tree */
+  .cypress .trunk {
+    background-color: #4B3D28;
+  }
+  .cypress .canopy {
+    width: 70px;
+    height: 70px;
+    border-radius: 50%;
+    background-color: #A9C46C;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: center;
+  }
+  .cypress .dot {
+    width: 10px;
+    height: 10px;
+    background-color: #557A46;
+    border-radius: 50%;
+    margin: 2px;
+  }
+
+   /* Birch Tree */
+  .birch .trunk {
+    background-color: #8E7C5D;
+  }
+  .birch .canopy {
+    width: 80px;
+    height: 80px;
+    background: radial-gradient(circle, #C7E6D7, #fef08a, #fde047, #facc15, #eab308);
+    border-radius: 50%;
+  }
+
+  /* Sakura Tree */
+  .sakura .trunk {
+    background-color: #705243;
+  }
+  .sakura .canopy {
+    width: 70px;
+    height: 70px;
+    border-radius: 50%;
+    background-color: #F2A7B9;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: center;
+  }
+  .sakura .dot {
+    width: 10px;
+    height: 10px;
+    background-color: #EFBBCF;
+    border-radius: 50%;
+    margin: 2px;
+  }
+
+  /* Baobab Tree */
+  .baobab .trunk {
+    background-color: #8B5A2B;
+    width: 20px;
+    height: 60px;
+  }
+  .baobab .canopy {
+    bottom: 60px;
+    width: 60px;
+    height: 80px;
+    background: radial-gradient(ellipse, #8ABF69, #C8E7A7, #EBF2C0, #4d7c0f, #a3e635);
+    border-radius: 50% 50% 30% 30%;
+  }
+
+  /* Magnolia Tree */
+  .magnolia .trunk {
+    background-color: #7E6651;
+  }
+  .magnolia .canopy {
+    width: 80px;
+    height: 80px;
+    background: radial-gradient(circle, #F6D6AD, #EFBBCF, #E6AACE, #f5d0fe, #f0abfc);
+    border-radius: 50%;
+  }
+
+  /* Starry Night Tree */
+  .starry-night .trunk {
+    background-color: #2C3E50;
+  }
+  .starry-night .canopy {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    background-color: #0B0B45;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: center;
+  }
+  .starry-night .star {
+    color: #FFD700;
+    font-size: 14px;
+  }
+
+  /* Redwood Tree */
+  .redwood .trunk {
+    background-color: #4A2C2A;
+    height: 100px;
+  }
+  .redwood .canopy {
+    bottom: 100px;
+    width: 0;
+    height: 0;
+    border-left: 30px solid transparent;
+    border-right: 30px solid transparent;
+    border-bottom: 120px solid #7f1d1d;
+  }
+
+  /* Ginkgo Tree */
+  .ginkgo .trunk {
+    background-color: #8C5E24;
+  }
+  .ginkgo .canopy {
+    width: 70px;
+    height: 70px;
+    border-radius: 50%;
+    background-color: #F6AE2D;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: center;
+  }
+  .ginkgo .dot {
+    width: 10px;
+    height: 10px;
+    background-color: #F4E409;
+    border-radius: 50%;
+    margin: 2px;
   }
 
 </style>
@@ -99,6 +272,94 @@
       <div class="trunk"></div>
     </div>
     <p>Cherry Blossom</p>
+  </div>
+
+  <div class="tree-container">
+    <div class="tree willow">
+      <div class="canopy"></div>
+      <div class="trunk"></div>
+    </div>
+    <p>Willow</p>
+  </div>
+
+  <div class="tree-container">
+    <div class="tree pine">
+      <div class="canopy"></div>
+      <div class="trunk"></div>
+    </div>
+    <p>Pine</p>
+  </div>
+
+  <div class="tree-container">
+    <div class="tree cypress">
+      <div class="canopy">
+        <div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div>
+      </div>
+      <div class="trunk"></div>
+    </div>
+    <p>Cypress</p>
+  </div>
+
+  <div class="tree-container">
+    <div class="tree birch">
+      <div class="canopy"></div>
+      <div class="trunk"></div>
+    </div>
+    <p>Birch</p>
+  </div>
+
+  <div class="tree-container">
+    <div class="tree sakura">
+      <div class="canopy">
+        <div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div>
+      </div>
+      <div class="trunk"></div>
+    </div>
+    <p>Sakura</p>
+  </div>
+
+  <div class="tree-container">
+    <div class="tree baobab">
+      <div class="canopy"></div>
+      <div class="trunk"></div>
+    </div>
+    <p>Baobab</p>
+  </div>
+
+  <div class="tree-container">
+    <div class="tree magnolia">
+      <div class="canopy"></div>
+      <div class="trunk"></div>
+    </div>
+    <p>Magnolia</p>
+  </div>
+
+  <div class="tree-container">
+    <div class="tree starry-night">
+      <div class="canopy">
+        <span class="star">&#9733;</span><span class="star">&#9733;</span><span class="star">&#9733;</span><span class="star">&#9733;</span><span class="star">&#9733;</span>
+      </div>
+      <div class="trunk"></div>
+    </div>
+    <p>Starry Night</p>
+  </div>
+
+  <div class="tree-container">
+    <div class="tree redwood">
+      <div class="canopy"></div>
+      <div class="trunk"></div>
+    </div>
+    <p>Redwood</p>
+  </div>
+
+  <div class="tree-container">
+    <div class="tree ginkgo">
+      <div class="canopy">
+        <div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div>
+      </div>
+      <div class="trunk"></div>
+    </div>
+    <p>Ginkgo</p>
   </div>
 
 </body>
