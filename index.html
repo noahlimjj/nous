@@ -5871,15 +5871,49 @@
     <script>
         // Register Service Worker
         if ('serviceWorker' in navigator) {
+            // Force clear ALL caches on load - nuclear option for stuck PWAs
+            const APP_VERSION = '2025-10-16-v7'; // Update this to force refresh
+            const storedVersion = localStorage.getItem('appVersion');
+
+            if (storedVersion !== APP_VERSION) {
+                console.log('Version mismatch detected! Clearing all caches...');
+                // Clear all caches
+                caches.keys().then(cacheNames => {
+                    return Promise.all(
+                        cacheNames.map(cacheName => {
+                            console.log('Deleting cache:', cacheName);
+                            return caches.delete(cacheName);
+                        })
+                    );
+                }).then(() => {
+                    // Unregister all service workers
+                    navigator.serviceWorker.getRegistrations().then(registrations => {
+                        return Promise.all(
+                            registrations.map(registration => {
+                                console.log('Unregistering service worker');
+                                return registration.unregister();
+                            })
+                        );
+                    }).then(() => {
+                        // Store new version
+                        localStorage.setItem('appVersion', APP_VERSION);
+                        console.log('Cache cleared! Reloading...');
+                        // Hard reload from server
+                        window.location.reload(true);
+                    });
+                });
+                return; // Stop here, will reload
+            }
+
             window.addEventListener('load', () => {
                 navigator.serviceWorker.register('/public/service-worker.js')
                     .then((registration) => {
                         console.log('ServiceWorker registered successfully:', registration.scope);
 
-                        // Check for updates every 60 seconds
+                        // Check for updates every 10 seconds (more aggressive)
                         setInterval(() => {
                             registration.update();
-                        }, 60000);
+                        }, 10000);
 
                         // Listen for updates
                         registration.addEventListener('updatefound', () => {
@@ -5889,7 +5923,7 @@
                                     // New service worker is installed and ready
                                     console.log('New version available! Reloading...');
                                     // Force reload to get new version
-                                    window.location.reload();
+                                    window.location.reload(true);
                                 }
                             });
                         });
