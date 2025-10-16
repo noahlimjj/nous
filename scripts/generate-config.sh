@@ -2,6 +2,12 @@
 # Generate config.js from environment variables for production deployment
 # This script is used by Netlify to inject Firebase credentials securely
 
+# If config.js already exists and env vars are not set, skip generation
+if [ -f "config.js" ] && [ -z "$FIREBASE_API_KEY" ]; then
+    echo "⚠️  config.js exists and no env vars set - using existing config"
+    exit 0
+fi
+
 cat > config.js << EOF
 // Firebase Configuration - Generated from environment variables
 window.__firebase_config = {
