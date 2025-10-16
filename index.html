@@ -1296,6 +1296,13 @@
                                     if (remaining <= 0 && !completedTimers.has(habitId)) {
                                         completedTimers.add(habitId);
 
+                                        // IMMEDIATELY remove timer from state to stop the display
+                                        setActiveTimers(prev => {
+                                            const newTimers = { ...prev };
+                                            delete newTimers[habitId];
+                                            return newTimers;
+                                        });
+
                                         // Play bell 3 times
                                         const playBell = (times, delay = 500) => {
                                             let count = 0;
@@ -1315,38 +1322,39 @@
                                         // Stop timer and save session
                                         (async () => {
                                             try {
-                                                const timerData = activeTimers[habitId];
-                                                if (timerData) {
-                                                    // Calculate exact duration (use targetDuration for countdown timers)
-                                                    const exactDuration = habit.targetDuration;
+                                                const timerData = timer; // Use timer from loop since we already removed from state
 
-                                                    // Save session to Firebase
-                                                    const sessionsCol = window.collection(db, `/artifacts/${appId}/users/${userId}/sessions`);
-                                                    const originalStartTime = timerData.originalStartTime || timerData.startTime;
+                                                // Calculate exact duration (use targetDuration for countdown timers)
+                                                const exactDuration = habit.targetDuration;
 
-                                                    await window.addDoc(sessionsCol, {
-                                                        habitId,
-                                                        habitName: habit.name,
-                                                        startTime: originalStartTime,
-                                                        endTime: window.Timestamp.now(),
-                                                        duration: Math.round(exactDuration)
-                                                    });
+                                                // Save session to Firebase
+                                                const sessionsCol = window.collection(db, `/artifacts/${appId}/users/${userId}/sessions`);
+                                                const originalStartTime = timerData.originalStartTime || timerData.startTime;
 
-                                                    // Delete from activeTimers collection
-                                                    const timerDocRef = window.doc(db, `/artifacts/${appId}/users/${userId}/activeTimers/${habitId}`);
-                                                    await window.deleteDoc(timerDocRef);
+                                                await window.addDoc(sessionsCol, {
+                                                    habitId,
+                                                    habitName: habit.name,
+                                                    startTime: originalStartTime,
+                                                    endTime: window.Timestamp.now(),
+                                                    duration: Math.round(exactDuration)
+                                                });
 
-                                                    // Clear currentTopic if no other timers active
-                                                    const remainingTimers = Object.keys(activeTimers).filter(id => id !== habitId);
-                                                    if (remainingTimers.length === 0) {
+                                                // Delete from activeTimers collection in Firebase
+                                                const timerDocRef = window.doc(db, `/artifacts/${appId}/users/${userId}/activeTimers/${habitId}`);
+                                                await window.deleteDoc(timerDocRef);
+
+                                                // Clear currentTopic if no other timers active
+                                                setActiveTimers(current => {
+                                                    if (Object.keys(current).length === 0) {
                                                         const userDocRef = window.doc(db, 'users', userId);
-                                                        await window.setDoc(userDocRef, {
+                                                        window.setDoc(userDocRef, {
                                                             currentTopic: null
                                                         }, { merge: true });
                                                     }
+                                                    return current;
+                                                });
 
-                                                    console.log(`Timer completed! Session saved: ${habit.name} - ${Math.round(exactDuration / 1000)}s`);
-                                                }
+                                                console.log(`Timer completed! Session saved: ${habit.name} - ${Math.round(exactDuration / 1000)}s`);
                                             } catch (error) {
                                                 console.error('Error auto-stopping timer:', error);
                                             }
