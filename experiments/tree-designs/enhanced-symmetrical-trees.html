@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Mathematical Trees - Enhanced Symmetry</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background-color: #f0f8ff; }
+        .tree-container { margin: 20px 0; border: 1px solid #ddd; padding: 15px; display: inline-block; background-color: white; box-shadow: 0 2px 5px rgba(0,0,0,0.1); position: relative; }
+        h3 { margin-top: 0; color: #2c3e50; }
+        .info { font-size: 0.9em; color: #7f8c8d; margin-bottom: 10px; }
+        .floor-line { position: absolute; bottom: 15px; left: 15px; right: 15px; height: 1px; background: rgba(0,0,0,0.1); }
+    </style>
+</head>
+<body>
+    <h1>Mathematical Trees — Enhanced Symmetry</h1>
+    <p>Upward curving branches with proportional leaves and floor line</p>
+    <div id="trees-container"></div>
+
+    <script>
+        // Updated TREE_TYPES with enhanced symmetrical designs
+        const TREE_TYPES = [
+            { id: 'oak', name: 'Oak - Symmetrical Logic', requiredHours: 0, color: '#4a7c2c', leafColors: ['#3E7C17', '#5DAE49', '#A1C349', '#4a7c2c', '#6d9f4f'], branchColor: '#5A3E1B' },
+            { id: 'maple', name: 'Maple - Symmetrical Fibonacci', requiredHours: 5, color: '#d94f04', leafColors: ['#FF4C29', '#FFB84C', '#D94F04', '#c2410c', '#f97316'], branchColor: '#6B2B06' },
+            { id: 'cherry', name: 'Cherry Blossom - Symmetrical Order', requiredHours: 15, color: '#f9a8d4', leafColors: ['#F8C8DC', '#FADADD', '#FFD6E8', '#fbcfe8', '#fce7f3'], branchColor: '#8B5E3C' },
+            { id: 'willow', name: 'Willow - Symmetrical Wave', requiredHours: 30, color: '#94a3b8', leafColors: ['#A3C9A8', '#6BA292', '#446A46', '#94a3b8', '#d1d5db'], branchColor: '#4E3B31' },
+            { id: 'pine', name: 'Pine - Symmetrical Repetition', requiredHours: 50, color: '#166534', leafColors: ['#2C5F2D', '#166534', '#15803d', '#052e16', '#064e3b'], branchColor: '#3B2F2F' },
+            { id: 'cypress', name: 'Cypress - Symmetrical Balance', requiredHours: 75, color: '#4d7c0f', leafColors: ['#557A46', '#A9C46C', '#7BA23F', '#65a30d', '#84cc16'], branchColor: '#4B3D28' },
+            { id: 'birch', name: 'Birch - Symmetrical Elegance', requiredHours: 100, color: '#fde047', leafColors: ['#C7E6D7', '#fef08a', '#fde047', '#facc15', '#eab308'], branchColor: '#8E7C5D' },
+            { id: 'sakura', name: 'Ancient Sakura - Symmetrical Mastery', requiredHours: 150, color: '#db2777', leafColors: ['#F8C8DC', '#FADADD', '#FFD6E8', '#fbcfe8', '#f9a8d4', '#f472b6', '#ec4899', '#e11d48'], branchColor: '#705243' },
+            { id: 'baobab', name: 'Baobab - Symmetrical Wisdom', requiredHours: 250, color: '#4d7c0f', leafColors: ['#8ABF69', '#C8E7A7', '#EBF2C0', '#4d7c0f', '#a3e635'], branchColor: '#8B5A2B' },
+            { id: 'magnolia', name: 'Magnolia - Perfect Symmetry', requiredHours: 400, color: '#e879f9', leafColors: ['#F6D6AD', '#EFBBCF', '#E6AACE', '#f5d0fe', '#f0abfc'], branchColor: '#7E6651' },
+            { id: 'starry-night', name: 'Starry Night - Symmetrical Patterns', requiredHours: 600, color: '#8A2BE2', leafColors: ['#0B0B45', '#23238E', '#4B0082', '#8A2BE2', '#FFD700'], branchColor: '#2C3E50' },
+            { id: 'redwood', name: 'Redwood - Symmetrical Stacking', requiredHours: 800, color: '#7f1d1d', leafColors: ['#7D6B91', '#B88B4A', '#A17C3A', '#450a0a', '#991b1b'], branchColor: '#4A2C2A' },
+            { id: 'ginkgo', name: 'Ginkgo - Binary Symmetry', requiredHours: 1000, color: '#facc15', leafColors: ['#F4E409', '#FFD23F', '#F6AE2D', '#facc15', '#eab308'], branchColor: '#8C5E24' }
+        ];
+
+        class EnhancedSymmetricalTreeSVG {
+            constructor(treeType, width = 400, height = 400) {
+                this.treeType = treeType;
+                this.width = width;
+                this.height = height;
+            }
+
+            draw() {
+                const svgNS = "http://www.w3.org/2000/svg";
+                const svg = document.createElementNS(svgNS, "svg");
+                svg.setAttribute("width", this.width);
+                svg.setAttribute("height", this.height);
+                svg.setAttribute("viewBox", `0 0 ${this.width} ${this.height}`);
+                svg.setAttribute("style", "background: #f8f9fa");
+                
+                // Add faint floor line
+                const floorLine = document.createElementNS(svgNS, "line");
+                floorLine.setAttribute("x1", 20);
+                floorLine.setAttribute("y1", this.height - 20);
+                floorLine.setAttribute("x2", this.width - 20);
+                floorLine.setAttribute("y2", this.height - 20);
+                floorLine.setAttribute("stroke", "rgba(0,0,0,0.1)");
+                floorLine.setAttribute("stroke-width", "1");
+                svg.appendChild(floorLine);
+                
+                // Define enhanced gradients
+                this.addEnhancedGradientDef(svg);
+                
+                // Draw enhanced swaying trunk
+                this.drawEnhancedSwayingTrunk(svg);
+                
+                // Draw upward curving symmetrical branches
+                this.drawUpwardCurvingBranches(svg);
+                
+                // Draw proportional leaves attached to branches
+                this.drawProportionalLeaves(svg);
+                
+                return svg;
+            }
+
+            addEnhancedGradientDef(svg) {
+                const svgNS = "http://www.w3.org/2000/svg";
+                
+                const defs = document.createElementNS(svgNS, "defs");
+                
+                // Create radial gradient for leaves
+                const gradient = document.createElementNS(svgNS, "radialGradient");
+                gradient.setAttribute("id", `leafGradient-${this.treeType.id}`);
+                gradient.setAttribute("cx", "40%");
+                gradient.setAttribute("cy", "40%");
+                gradient.setAttribute("r", "60%");
+                
+                // Add gradient stops for rich colors
+                const stop1 = document.createElementNS(svgNS, "stop");
+                stop1.setAttribute("offset", "0%");
+                stop1.setAttribute("stop-color", this.treeType.leafColors[0]);
+                stop1.setAttribute("stop-opacity", "0.95");
+                gradient.appendChild(stop1);
+                
+                const stop2 = document.createElementNS(svgNS, "stop");
+                stop2.setAttribute("offset", "30%");
+                stop2.setAttribute("stop-color", this.treeType.leafColors[1]);
+                stop2.setAttribute("stop-opacity", "0.88");
+                gradient.appendChild(stop2);
+                
+                const stop3 = document.createElementNS(svgNS, "stop");
+                stop3.setAttribute("offset", "60%");
+                stop3.setAttribute("stop-color", this.treeType.leafColors[2]);
+                stop3.setAttribute("stop-opacity", "0.80");
+                gradient.appendChild(stop3);
+                
+                const stop4 = document.createElementNS(svgNS, "stop");
+                stop4.setAttribute("offset", "100%");
+                stop4.setAttribute("stop-color", this.treeType.leafColors[3] || this.treeType.leafColors[0]);
+                stop4.setAttribute("stop-opacity", "0.70");
+                gradient.appendChild(stop4);
+                
+                defs.appendChild(gradient);
+                
+                svg.appendChild(defs);
+            }
+
+            drawEnhancedSwayingTrunk(svg) {
+                const svgNS = "http://www.w3.org/2000/svg";
+                
+                // Create a more enhanced curved trunk
+                const trunkPath = document.createElementNS(svgNS, "path");
+                
+                // Trunk goes from bottom to about 40% up the tree
+                const trunkHeight = this.height * 0.4;
+                const trunkBottomY = this.height - 20;  // Align with floor line
+                const trunkTopY = trunkBottomY - trunkHeight;
+                
+                // Create a gentle symmetrical curve to the side
+                const swayAmount = 12;
+                
+                trunkPath.setAttribute("d", 
+                    `M ${this.width/2} ${trunkBottomY} ` +
+                    `C ${this.width/2 + swayAmount} ${trunkBottomY - trunkHeight * 0.6}, ` +
+                    ` ${this.width/2 + swayAmount * 1.2} ${trunkTopY + 20}, ` +
+                    ` ${this.width/2} ${trunkTopY}`
+                );
+                
+                trunkPath.setAttribute("stroke", this.treeType.branchColor);
+                trunkPath.setAttribute("stroke-width", "16");
+                trunkPath.setAttribute("fill", "none");
+                trunkPath.setAttribute("stroke-linecap", "round");
+                trunkPath.setAttribute("stroke-linejoin", "round");
+                trunkPath.setAttribute("stroke-opacity", "0.95");
+                
+                svg.appendChild(trunkPath);
+            }
+
+            drawUpwardCurvingBranches(svg) {
+                const svgNS = "http://www.w3.org/2000/svg";
+                
+                // Trunk top position
+                const trunkHeight = this.height * 0.4;
+                const trunkTopY = this.height - 20 - trunkHeight;  // Align with floor
+                const trunkTopX = this.width/2;
+                
+                // Store branch endpoints to ensure all get leaves
+                this.branchEnds = [];
+                
+                // Draw symmetrical branches that curve upward
+                for (let level = 0; level < 5; level++) {
+                    const y = trunkTopY + 10 + level * 12; // Vertical levels
+                    
+                    // Left and right branches at each level
+                    for (let side = -1; side <= 1; side += 2) { // -1 for left, 1 for right
+                        if (level === 0 && side === -1) continue; // Skip left at first level to create asymmetry for sway
+                        
+                        // Branches curve upward at about 45 degrees
+                        const angle = side * (Math.PI/4 - level * 0.15); // Start at 45°, decrease with level
+                        const branchLength = 45 + level * 8;
+                        const thickness = 4 - level * 0.6;
+                        
+                        // Calculate end points with upward curve
+                        const endX = trunkTopX + Math.sin(angle) * branchLength;
+                        const endY = y - Math.cos(angle) * branchLength * 0.8; // Curve upward
+                        
+                        // Create curved path with Bézier curve for more natural upward curve
+                        const controlX = trunkTopX + Math.sin(angle) * branchLength * 0.6;
+                        const controlY = y - Math.cos(angle) * branchLength * 0.5; // More upward
+                        
+                        const branch = document.createElementNS(svgNS, "path");
+                        branch.setAttribute("d", 
+                            `M ${trunkTopX} ${y} ` +
+                            `Q ${controlX} ${controlY}, ${endX} ${endY}`
+                        );
+                        branch.setAttribute("stroke", this.treeType.branchColor);
+                        branch.setAttribute("stroke-width", thickness);
+                        branch.setAttribute("fill", "none");
+                        branch.setAttribute("stroke-linecap", "round");
+                        branch.setAttribute("stroke-linejoin", "round");
+                        branch.setAttribute("stroke-opacity", "0.92");
+                        
+                        svg.appendChild(branch);
+                        
+                        // Store branch endpoints for leaf attachment
+                        this.branchEnds.push({x: endX, y: endY, level: level, startX: trunkTopX, startY: y});
+                    }
+                }
+                
+                // Add secondary branches from primary branches to ensure all have leaves
+                const tempBranchEnds = [...this.branchEnds];
+                
+                for (let i = 0; i < tempBranchEnds.length; i++) {
+                    if (tempBranchEnds[i].level < 4) { // Only add to branches up to level 3
+                        // Add 2 small upward-curving branches from each primary branch
+                        for (let j = 0; j < 2; j++) {
+                            const branch = tempBranchEnds[i];
+                            // Small branches also curve upward
+                            const angle = (j === 0 ? -Math.PI/5 : Math.PI/5); // 36° angles
+                            const subLength = 20 + Math.random() * 10;
+                            const subThickness = 2 + Math.random() * 0.8;
+                            
+                            const subEndX = branch.x + Math.sin(angle) * subLength;
+                            const subEndY = branch.y - Math.cos(angle) * subLength * 0.9; // Curve upward
+                            
+                            const subBranch = document.createElementNS(svgNS, "line");
+                            subBranch.setAttribute("x1", branch.x);
+                            subBranch.setAttribute("y1", branch.y);
+                            subBranch.setAttribute("x2", subEndX);
+                            subBranch.setAttribute("y2", subEndY);
+                            subBranch.setAttribute("stroke", this.treeType.branchColor);
+                            subBranch.setAttribute("stroke-width", subThickness);
+                            subBranch.setAttribute("stroke-linecap", "round");
+                            subBranch.setAttribute("stroke-opacity", "0.88");
+                            
+                            svg.appendChild(subBranch);
+                            
+                            this.branchEnds.push({x: subEndX, y: subEndY, level: branch.level + 1, startX: branch.x, startY: branch.y});
+                        }
+                    }
+                }
+            }
+
+            drawProportionalLeaves(svg) {
+                const svgNS = "http://www.w3.org/2000/svg";
+                
+                // Ensure every branch has leaves by placing them directly on or near branches
+                for (const branch of this.branchEnds) {
+                    // Place multiple leaves per branch endpoint
+                    for (let i = 0; i < 8; i++) {
+                        // Position leaves near the branch endpoint with slight variation
+                        const offsetX = (Math.random() - 0.5) * 15;
+                        const offsetY = (Math.random() - 0.5) * 12;
+                        const x = branch.x + offsetX;
+                        const y = branch.y + offsetY;
+                        
+                        // Make sure leaves are closer to branches and larger
+                        const distanceFromBranch = Math.sqrt(offsetX*offsetX + offsetY*offsetY);
+                        
+                        // Only place leaf if it's reasonably close to the branch
+                        if (distanceFromBranch < 20) {
+                            // Larger leaves than before
+                            const sizeFactor = 1.2 + Math.random() * 0.6;
+                            this.drawProportionalLeaf(svg, x, y, sizeFactor, branch.level * 8 + i);
+                        }
+                    }
+                    
+                    // Add some leaves along the branch length as well
+                    if (branch.level > 0) { // Skip for primary trunk branches to avoid overcrowding
+                        for (let j = 0; j < 5; j++) {
+                            // Place along the branch length
+                            const t = 0.2 + Math.random() * 0.6; // Position along branch (20% to 80%)
+                            const x = branch.startX + (branch.x - branch.startX) * t + (Math.random() - 0.5) * 8;
+                            const y = branch.startY + (branch.y - branch.startY) * t + (Math.random() - 0.5) * 6;
+                            
+                            const sizeFactor = 1.0 + Math.random() * 0.5; // Slightly smaller on branch lengths
+                            this.drawProportionalLeaf(svg, x, y, sizeFactor, branch.level * 5 + j + 100);
+                        }
+                    }
+                }
+                
+                // Add some additional pattern-based leaves for fuller look
+                // But ensure they're still attached to branches by finding nearest branch
+                switch(this.treeType.id) {
+                    case 'oak': // Additional symmetrical radial pattern
+                        for (let ring = 0; ring < 6; ring++) {
+                            const radius = 25 + ring * 10;
+                            const leafCount = 8 + ring * 3;
+                            
+                            for (let i = 0; i < leafCount; i++) {
+                                const angle = (i / leafCount) * Math.PI * 2;
+                                const x = this.width/2 + 5 + Math.cos(angle) * radius;
+                                const y = this.height/2 - 50 + Math.sin(angle) * radius * 0.8;
+                                
+                                // Only place if near a branch
+                                if (this.findNearestBranchDistance(x, y) < 30) {
+                                    if (Math.random() > 0.2) { // High density
+                                        const sizeFactor = 1.1 + Math.random() * 0.5;
+                                        this.drawProportionalLeaf(svg, x, y, sizeFactor, angle);
+                                    }
+                                }
+                            }
+                        }
+                        break;
+                        
+                    case 'sakura': // Additional sakura clusters
+                        for (let cluster = 0; cluster < 8; cluster++) {
+                            const centerX = this.width/2 + 5 + (Math.random() - 0.5) * 35;
+                            const centerY = this.height/2 - 50 + (Math.random() - 0.5) * 30;
+                            
+                            for (let j = 0; j < 10; j++) {
+                                const angle = (j / 10) * Math.PI * 2;
+                                const radius = Math.random() * 12;
+                                const x = centerX + Math.cos(angle) * radius;
+                                const y = centerY + Math.sin(angle) * radius * 0.8;
+                                
+                                if (this.findNearestBranchDistance(x, y) < 25) {
+                                    const sizeFactor = 1.1 + Math.random() * 0.4;
+                                    this.drawProportionalSakuraLeaf(svg, x, y, sizeFactor, cluster * 10 + j);
+                                }
+                            }
+                        }
+                        break;
+                        
+                    default: // General additional pattern
+                        for (let i = 0; i < 60; i++) {
+                            const angle = Math.random() * Math.PI * 2;
+                            const radius = 20 + Math.random() * 50;
+                            const x = this.width/2 + 5 + Math.cos(angle) * radius;
+                            const y = this.height/2 - 50 + Math.sin(angle) * radius * 0.8;
+                            
+                            if (this.findNearestBranchDistance(x, y) < 35) {
+                                const sizeFactor = 1.0 + Math.random() * 0.5;
+                                this.drawProportionalLeaf(svg, x, y, sizeFactor, i + 200);
+                            }
+                        }
+                        break;
+                }
+            }
+            
+            // Helper function to find distance to nearest branch
+            findNearestBranchDistance(x, y) {
+                if (!this.branchEnds) return Infinity;
+                
+                let minDist = Infinity;
+                
+                for (const branch of this.branchEnds) {
+                    const dist = this.distance(x, y, branch.x, branch.y);
+                    if (dist < minDist) {
+                        minDist = dist;
+                    }
+                    
+                    // Also check distance to branch segment (not just endpoint)
+                    const distToSegment = this.distanceToSegment(x, y, branch.startX, branch.startY, branch.x, branch.y);
+                    if (distToSegment < minDist) {
+                        minDist = distToSegment;
+                    }
+                }
+                
+                return minDist;
+            }
+            
+            // Helper function to calculate distance from point to line segment
+            distanceToSegment(px, py, x1, y1, x2, y2) {
+                const A = px - x1;
+                const B = py - y1;
+                const C = x2 - x1;
+                const D = y2 - y1;
+                
+                const dot = A * C + B * D;
+                const lenSq = C * C + D * D;
+                
+                if (lenSq === 0) return this.distance(px, py, x1, y1);
+                
+                let param = dot / lenSq;
+                
+                if (param < 0) {
+                    return this.distance(px, py, x1, y1);
+                } else if (param > 1) {
+                    return this.distance(px, py, x2, y2);
+                }
+                
+                const xx = x1 + param * C;
+                const yy = y1 + param * D;
+                
+                return this.distance(px, py, xx, yy);
+            }
+            
+            // Helper function to calculate distance between two points
+            distance(x1, y1, x2, y2) {
+                return Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2));
+            }
+
+            drawProportionalLeaf(svg, x, y, sizeFactor = 1.0, valueForColor = 0) {
+                const svgNS = "http://www.w3.org/2000/svg";
+                
+                // Larger proportional leaves
+                const baseSize = sizeFactor * (3 + Math.random() * 1.5);
+                
+                // Create circular leaf with gradient
+                const leaf = document.createElementNS(svgNS, "circle");
+                leaf.setAttribute("cx", x);
+                leaf.setAttribute("cy", y);
+                leaf.setAttribute("r", baseSize);
+                leaf.setAttribute("fill", `url(#leafGradient-${this.treeType.id})`);
+                leaf.setAttribute("opacity", "0.9");
+                
+                svg.appendChild(leaf);
+            }
+
+            drawProportionalSakuraLeaf(svg, x, y, sizeFactor = 1.0, valueForColor = 0) {
+                const svgNS = "http://www.w3.org/2000/svg";
+                
+                // Create sakura blossom
+                const leaf = document.createElementNS(svgNS, "circle");
+                leaf.setAttribute("cx", x);
+                leaf.setAttribute("cy", y);
+                leaf.setAttribute("r", sizeFactor * (2.8 + Math.random() * 1.2));
+                leaf.setAttribute("fill", `url(#leafGradient-${this.treeType.id})`);
+                leaf.setAttribute("opacity", "0.92");
+                
+                svg.appendChild(leaf);
+            }
+        }
+
+        // Render all trees with enhanced symmetrical patterns
+        const container = document.getElementById('trees-container');
+        
+        TREE_TYPES.forEach(treeType => {
+            const treeContainer = document.createElement('div');
+            treeContainer.className = 'tree-container';
+            
+            // Add floor line to container
+            const floorLine = document.createElement('div');
+            floorLine.className = 'floor-line';
+            treeContainer.appendChild(floorLine);
+            
+            const title = document.createElement('h3');
+            title.textContent = `${treeType.name} (Unlock at ${treeType.requiredHours} hours)`;
+            treeContainer.appendChild(title);
+            
+            const info = document.createElement('div');
+            info.className = 'info';
+            info.textContent = `Upward curving branches, proportional leaves, all branches have leaves`;
+            treeContainer.appendChild(info);
+            
+            const tree = new EnhancedSymmetricalTreeSVG(treeType);
+            treeContainer.appendChild(tree.draw());
+            
+            container.appendChild(treeContainer);
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Image Inspired Trees</title>
+<style>
+  body {
+    font-family: sans-serif;
+    background-color: #f4f4f4;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: flex-end;
+    gap: 40px;
+    padding: 20px;
+  }
+  .tree-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+  .tree {
+    position: relative;
+    height: 150px;
+    width: 100px;
+    display: flex;
+    justify-content: center;
+    align-items: flex-end;
+  }
+  .trunk {
+    width: 10px;
+    height: 50px;
+    background-color: #6b4f3a;
+    position: absolute;
+    bottom: 0;
+  }
+  .canopy {
+    position: absolute;
+    bottom: 50px;
+  }
+
+  /* Tree 1: Simple Oval */
+  .tree-1 .canopy {
+    width: 50px;
+    height: 80px;
+    background-color: #9ccc65;
+    border-radius: 50%;
+  }
+  .tree-1 .trunk {
+    height: 70px;
+  }
+
+  /* Tree 2: Bare branches */
+  .tree-2 .canopy {
+    width: 60px;
+    height: 80px;
+  }
+  .tree-2 .branch {
+    position: absolute;
+    width: 2px;
+    height: 40px;
+    background-color: #6b4f3a;
+    bottom: 0;
+    transform-origin: bottom center;
+  }
+  .tree-2 .leaf {
+      width: 8px;
+      height: 8px;
+      background-color: #9ccc65;
+      border-radius: 50%;
+      position: absolute;
+  }
+  .tree-2 .branch:nth-child(1) { transform: rotate(-30deg); }
+  .tree-2 .branch:nth-child(2) { transform: rotate(30deg); }
+  .tree-2 .branch:nth-child(3) { transform: rotate(-50deg) scaleY(0.6); bottom: 20px; left: -15px; }
+  .tree-2 .branch:nth-child(4) { transform: rotate(50deg) scaleY(0.6); bottom: 20px; right: -15px; }
+  .tree-2 .leaf:nth-child(5) { top: -5px; left: -15px; }
+  .tree-2 .leaf:nth-child(6) { top: 10px; left: -25px; }
+  .tree-2 .leaf:nth-child(7) { top: -5px; right: -15px; }
+  .tree-2 .leaf:nth-child(8) { top: 10px; right: -25px; }
+
+
+  /* Tree 4: Dotted Tree */
+  .tree-4 .canopy {
+    width: 70px;
+    height: 70px;
+    border-radius: 50%;
+    background-color: #c5e1a5;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: center;
+  }
+  .tree-4 .dot {
+    width: 10px;
+    height: 10px;
+    background-color: #9ccc65;
+    border-radius: 50%;
+    margin: 2px;
+  }
+
+  /* Tree 7: Tall Thin Tree */
+  .tree-7 .trunk {
+      background-color: #8d6e63;
+      width: 8px;
+      height: 80px;
+  }
+  .tree-7 .canopy {
+      bottom: 80px;
+      width: 40px;
+      height: 60px;
+      background-color: #a5d6a7;
+      border-radius: 50% 50% 20% 20%;
+  }
+
+  /* Tree 13: Pine Tree */
+  .tree-13 .canopy {
+    width: 0;
+    height: 0;
+    border-left: 30px solid transparent;
+    border-right: 30px solid transparent;
+    border-bottom: 70px solid #558b2f;
+  }
+
+  /* Tree 14: Fruit Tree */
+  .tree-14 .canopy {
+    width: 70px;
+    height: 70px;
+    background-color: #a5d6a7;
+    border-radius: 50%;
+  }
+  .tree-14 .fruit {
+    position: absolute;
+    width: 12px;
+    height: 12px;
+    background-color: #ef5350;
+    border-radius: 50%;
+  }
+  .tree-14 .fruit:nth-child(1) { top: 10px; left: 10px; }
+  .tree-14 .fruit:nth-child(2) { top: 30px; right: 5px; }
+  .tree-14 .fruit:nth-child(3) { bottom: 10px; left: 20px; }
+
+</style>
+</head>
+<body>
+
+  <div class="tree-container">
+    <div class="tree tree-1">
+      <div class="canopy"></div>
+      <div class="trunk"></div>
+    </div>
+    <p>Tree 1: Simple Oval</p>
+  </div>
+
+  <div class="tree-container">
+    <div class="tree tree-2">
+      <div class="canopy">
+          <div class="branch"><div class="leaf"></div></div>
+          <div class="branch"><div class="leaf"></div></div>
+          <div class="branch"><div class="leaf"></div></div>
+          <div class="branch"><div class="leaf"></div></div>
+          <div class="leaf"></div>
+          <div class="leaf"></div>
+          <div class="leaf"></div>
+          <div class="leaf"></div>
+      </div>
+      <div class="trunk"></div>
+    </div>
+    <p>Tree 2: Bare Branches</p>
+  </div>
+
+  <div class="tree-container">
+    <div class="tree tree-4">
+      <div class="canopy">
+        <div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div>
+      </div>
+      <div class="trunk"></div>
+    </div>
+    <p>Tree 4: Dotted Tree</p>
+  </div>
+
+    <div class="tree-container">
+    <div class="tree tree-7">
+      <div class="canopy"></div>
+      <div class="trunk"></div>
+    </div>
+    <p>Tree 7: Tall Thin Tree</p>
+  </div>
+
+  <div class="tree-container">
+    <div class="tree tree-13">
+      <div class="canopy"></div>
+      <div class="trunk"></div>
+    </div>
+    <p>Tree 13: Pine Tree</p>
+  </div>
+
+  <div class="tree-container">
+    <div class="tree tree-14">
+      <div class="canopy">
+        <div class="fruit"></div>
+        <div class="fruit"></div>
+        <div class="fruit"></div>
+      </div>
+      <div class="trunk"></div>
+    </div>
+    <p>Tree 14: Fruit Tree</p>
+  </div>
+
+</body>
+</html>

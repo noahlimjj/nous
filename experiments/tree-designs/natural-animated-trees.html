@@ -1,0 +1,750 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Mathematical Growth Trees - Natural Animated Design</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background-color: #f0f8ff; }
+        .tree-container { margin: 20px 0; border: 1px solid #ddd; padding: 15px; display: inline-block; background-color: white; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        h3 { margin-top: 0; color: #2c3e50; }
+        .info { font-size: 0.9em; color: #7f8c8d; margin-bottom: 10px; }
+        
+        /* Add subtle animation for natural swaying */
+        .tree-sway {
+            animation: sway 8s ease-in-out infinite;
+            transform-origin: center bottom;
+        }
+        
+        @keyframes sway {
+            0%, 100% { transform: rotate(-1deg); }
+            50% { transform: rotate(1deg); }
+        }
+        
+        .leaf-pulse {
+            animation: pulse 4s ease-in-out infinite;
+            animation-delay: calc(var(--delay) * 1s);
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 0.85; }
+            50% { opacity: 0.95; }
+        }
+    </style>
+</head>
+<body>
+    <h1>Mathematical Growth Trees — Natural Animated Design</h1>
+    <p>With varied branches, centralized natural appearance, and subtle animations</p>
+    <div id="trees-container"></div>
+
+    <script>
+        // Updated TREE_TYPES with natural designs
+        const TREE_TYPES = [
+            { id: 'oak', name: 'Oak - Logic & Beginnings', requiredHours: 0, color: '#4a7c2c', leafShapes: ['oval'], leafColors: ['#3E7C17', '#5DAE49', '#A1C349', '#4a7c2c', '#6d9f4f'], branchColor: '#5A3E1B' },
+            { id: 'maple', name: 'Maple - Discovery & Fibonacci', requiredHours: 5, color: '#d94f04', leafShapes: ['star'], leafColors: ['#FF4C29', '#FFB84C', '#D94F04', '#c2410c', '#f97316'], branchColor: '#6B2B06' },
+            { id: 'cherry', name: 'Cherry Blossom - Mindfulness & Order', requiredHours: 15, color: '#f9a8d4', leafShapes: ['circle'], leafColors: ['#F8C8DC', '#FADADD', '#FFD6E8', '#fbcfe8', '#fce7f3'], branchColor: '#8B5E3C' },
+            { id: 'willow', name: 'Willow - Adaptability & Wave Function', requiredHours: 30, color: '#94a3b8', leafShapes: ['oval'], leafColors: ['#A3C9A8', '#6BA292', '#446A46', '#94a3b8', '#d1d5db'], branchColor: '#4E3B31' },
+            { id: 'pine', name: 'Pine - Discipline & Repetition', requiredHours: 50, color: '#166534', leafShapes: ['triangle'], leafColors: ['#2C5F2D', '#166534', '#15803d', '#052e16', '#064e3b'], branchColor: '#3B2F2F' },
+            { id: 'cypress', name: 'Cypress - Balance & Continuous Growth', requiredHours: 75, color: '#4d7c0f', leafShapes: ['hexagon'], leafColors: ['#557A46', '#A9C46C', '#7BA23F', '#65a30d', '#84cc16'], branchColor: '#4B3D28' },
+            { id: 'birch', name: 'Birch - Elegance & Structured Randomness', requiredHours: 100, color: '#fde047', leafShapes: ['diamond'], leafColors: ['#C7E6D7', '#fef08a', '#fde047', '#facc15', '#eab308'], branchColor: '#8E7C5D' },
+            { id: 'sakura', name: 'Ancient Sakura - Mastery & Natural Beauty', requiredHours: 150, color: '#db2777', leafShapes: ['circle'], leafColors: ['#F8C8DC', '#FADADD', '#FFD6E8', '#fbcfe8', '#f9a8d4', '#f472b6', '#ec4899', '#e11d48'], branchColor: '#705243' },
+            { id: 'baobab', name: 'Baobab - Wisdom & Chaotic Order', requiredHours: 250, color: '#4d7c0f', leafShapes: ['star'], leafColors: ['#8ABF69', '#C8E7A7', '#EBF2C0', '#4d7c0f', '#a3e635'], branchColor: '#8B5A2B' },
+            { id: 'magnolia', name: 'Magnolia - Harmony & Symmetry', requiredHours: 400, color: '#e879f9', leafShapes: ['oval'], leafColors: ['#F6D6AD', '#EFBBCF', '#E6AACE', '#f5d0fe', '#f0abfc'], branchColor: '#7E6651' },
+            { 
+                id: 'starry-night', 
+                name: 'Starry Night - Cosmic Order & Patterns', 
+                requiredHours: 600, 
+                color: '#8A2BE2', 
+                branchColor: '#2C3E50', 
+                leafColors: ['#0B0B45', '#23238E', '#4B0082', '#8A2BE2', '#FFD700'], 
+                leafShapes: ['star'] 
+            },
+            { id: 'redwood', name: 'Redwood - Endurance & Stacked Growth', requiredHours: 800, color: '#7f1d1d', leafShapes: ['triangle'], leafColors: ['#7D6B91', '#B88B4A', '#A17C3A', '#450a0a', '#991b1b'], branchColor: '#4A2C2A' },
+            { id: 'ginkgo', name: 'Ginkgo - Ancient Wisdom & Binary', requiredHours: 1000, color: '#facc15', leafShapes: ['fan'], leafColors: ['#F4E409', '#FFD23F', '#F6AE2D', '#facc15', '#eab308'], branchColor: '#8C5E24' }
+        ];
+
+        class NaturalAnimatedTreeSVG {
+            constructor(treeType, width = 400, height = 400) {
+                this.treeType = treeType;
+                this.width = width;
+                this.height = height;
+            }
+
+            draw() {
+                const svgNS = "http://www.w3.org/2000/svg";
+                const svg = document.createElementNS(svgNS, "svg");
+                svg.setAttribute("width", this.width);
+                svg.setAttribute("height", this.height);
+                svg.setAttribute("viewBox", `0 0 ${this.width} ${this.height}`);
+                svg.setAttribute("style", "background: #f8f9fa");
+                svg.setAttribute("class", "tree-sway");
+                
+                // Define natural gradients for leaves
+                this.addNaturalGradientDef(svg);
+                
+                // Draw natural swaying trunk
+                this.drawNaturalSwayingTrunk(svg);
+                
+                // Draw varied branching pattern
+                this.drawVariedBranching(svg);
+                
+                // Draw centralized natural leaves
+                this.drawNaturalCentralizedLeaves(svg);
+                
+                return svg;
+            }
+
+            addNaturalGradientDef(svg) {
+                const svgNS = "http://www.w3.org/2000/svg";
+                
+                // Create natural gradient definition
+                const defs = document.createElementNS(svgNS, "defs");
+                
+                if (this.treeType.id !== 'sakura') {
+                    // Regular tree gradient
+                    const gradient = document.createElementNS(svgNS, "radialGradient");
+                    gradient.setAttribute("id", `leafGradient-${this.treeType.id}`);
+                    gradient.setAttribute("cx", "40%");
+                    gradient.setAttribute("cy", "40%");
+                    gradient.setAttribute("r", "60%");
+                    
+                    // Add multiple gradient stops for rich color transitions
+                    const stop1 = document.createElementNS(svgNS, "stop");
+                    stop1.setAttribute("offset", "0%");
+                    stop1.setAttribute("stop-color", this.treeType.leafColors[0]);
+                    stop1.setAttribute("stop-opacity", "0.95");
+                    gradient.appendChild(stop1);
+                    
+                    const stop2 = document.createElementNS(svgNS, "stop");
+                    stop2.setAttribute("offset", "25%");
+                    stop2.setAttribute("stop-color", this.treeType.leafColors[1]);
+                    stop2.setAttribute("stop-opacity", "0.88");
+                    gradient.appendChild(stop2);
+                    
+                    const stop3 = document.createElementNS(svgNS, "stop");
+                    stop3.setAttribute("offset", "50%");
+                    stop3.setAttribute("stop-color", this.treeType.leafColors[2]);
+                    stop3.setAttribute("stop-opacity", "0.82");
+                    gradient.appendChild(stop3);
+                    
+                    const stop4 = document.createElementNS(svgNS, "stop");
+                    stop4.setAttribute("offset", "75%");
+                    stop4.setAttribute("stop-color", this.treeType.leafColors[3] || this.treeType.leafColors[0]);
+                    stop4.setAttribute("stop-opacity", "0.75");
+                    gradient.appendChild(stop4);
+                    
+                    const stop5 = document.createElementNS(svgNS, "stop");
+                    stop5.setAttribute("offset", "100%");
+                    stop5.setAttribute("stop-color", this.treeType.leafColors[4] || this.treeType.leafColors[1]);
+                    stop5.setAttribute("stop-opacity", "0.65");
+                    gradient.appendChild(stop5);
+                    
+                    defs.appendChild(gradient);
+                } else {
+                    // Special sakura gradient with multiple pink shades
+                    const sakuraGradient1 = document.createElementNS(svgNS, "radialGradient");
+                    sakuraGradient1.setAttribute("id", `sakuraGradient1`);
+                    sakuraGradient1.setAttribute("cx", "40%");
+                    sakuraGradient1.setAttribute("cy", "40%");
+                    sakuraGradient1.setAttribute("r", "60%");
+                    
+                    const s1Stop1 = document.createElementNS(svgNS, "stop");
+                    s1Stop1.setAttribute("offset", "0%");
+                    s1Stop1.setAttribute("stop-color", this.treeType.leafColors[0]);
+                    s1Stop1.setAttribute("stop-opacity", "0.98");
+                    sakuraGradient1.appendChild(s1Stop1);
+                    
+                    const s1Stop2 = document.createElementNS(svgNS, "stop");
+                    s1Stop2.setAttribute("offset", "25%");
+                    s1Stop2.setAttribute("stop-color", this.treeType.leafColors[1]);
+                    s1Stop2.setAttribute("stop-opacity", "0.92");
+                    sakuraGradient1.appendChild(s1Stop2);
+                    
+                    const s1Stop3 = document.createElementNS(svgNS, "stop");
+                    s1Stop3.setAttribute("offset", "50%");
+                    s1Stop3.setAttribute("stop-color", this.treeType.leafColors[2]);
+                    s1Stop3.setAttribute("stop-opacity", "0.85");
+                    sakuraGradient1.appendChild(s1Stop3);
+                    
+                    const s1Stop4 = document.createElementNS(svgNS, "stop");
+                    s1Stop4.setAttribute("offset", "75%");
+                    s1Stop4.setAttribute("stop-color", this.treeType.leafColors[3]);
+                    s1Stop4.setAttribute("stop-opacity", "0.78");
+                    sakuraGradient1.appendChild(s1Stop4);
+                    
+                    const s1Stop5 = document.createElementNS(svgNS, "stop");
+                    s1Stop5.setAttribute("offset", "100%");
+                    s1Stop5.setAttribute("stop-color", this.treeType.leafColors[4]);
+                    s1Stop5.setAttribute("stop-opacity", "0.70");
+                    sakuraGradient1.appendChild(s1Stop5);
+                    
+                    defs.appendChild(sakuraGradient1);
+                    
+                    // Additional sakura gradients for variety
+                    for (let i = 2; i <= 4; i++) {
+                        const sakuraGradient = document.createElementNS(svgNS, "radialGradient");
+                        sakuraGradient.setAttribute("id", `sakuraGradient${i}`);
+                        sakuraGradient.setAttribute("cx", `${30 + i * 5}%`);
+                        sakuraGradient.setAttribute("cy", `${30 + i * 5}%`);
+                        sakuraGradient.setAttribute("r", "55%");
+                        
+                        const sStop1 = document.createElementNS(svgNS, "stop");
+                        sStop1.setAttribute("offset", "0%");
+                        sStop1.setAttribute("stop-color", this.treeType.leafColors[i+3] || this.treeType.leafColors[i-1]);
+                        sStop1.setAttribute("stop-opacity", "0.97");
+                        sakuraGradient.appendChild(sStop1);
+                        
+                        const sStop2 = document.createElementNS(svgNS, "stop");
+                        sStop2.setAttribute("offset", "30%");
+                        sStop2.setAttribute("stop-color", this.treeType.leafColors[i] || this.treeType.leafColors[1]);
+                        sStop2.setAttribute("stop-opacity", "0.88");
+                        sakuraGradient.appendChild(sStop2);
+                        
+                        const sStop3 = document.createElementNS(svgNS, "stop");
+                        sStop3.setAttribute("offset", "60%");
+                        sStop3.setAttribute("stop-color", this.treeType.leafColors[i+1] || this.treeType.leafColors[2]);
+                        sStop3.setAttribute("stop-opacity", "0.80");
+                        sakuraGradient.appendChild(sStop3);
+                        
+                        const sStop4 = document.createElementNS(svgNS, "stop");
+                        sStop4.setAttribute("offset", "100%");
+                        sStop4.setAttribute("stop-color", this.treeType.leafColors[i+2] || this.treeType.leafColors[3]);
+                        sStop4.setAttribute("stop-opacity", "0.70");
+                        sakuraGradient.appendChild(sStop4);
+                        
+                        defs.appendChild(sakuraGradient);
+                    }
+                }
+                
+                svg.appendChild(defs);
+            }
+
+            drawNaturalSwayingTrunk(svg) {
+                const svgNS = "http://www.w3.org/2000/svg";
+                
+                // Create a more natural curved trunk
+                let trunkPath;
+                
+                if (this.treeType.id === 'willow' || this.treeType.id === 'sakura') {
+                    // More natural sway for willow and sakura
+                    trunkPath = document.createElementNS(svgNS, "path");
+                    trunkPath.setAttribute("d", `M${this.width/2} ${this.height - 50} C${this.width/2 + 15} ${this.height - 180} ${this.width/2 + 25} ${this.height - 120} ${this.width/2 + 18} ${this.height/2 - 35}`);
+                } else if (this.treeType.id === 'cypress' || this.treeType.id === 'pine') {
+                    // More straight with slight curve for conifers
+                    trunkPath = document.createElementNS(svgNS, "path");
+                    trunkPath.setAttribute("d", `M${this.width/2} ${this.height - 50} C${this.width/2 + 5} ${this.height - 150} ${this.width/2 + 8} ${this.height - 100} ${this.width/2} ${this.height/2 - 35}`);
+                } else {
+                    // Natural curve with multiple control points
+                    trunkPath = document.createElementNS(svgNS, "path");
+                    trunkPath.setAttribute("d", `M${this.width/2} ${this.height - 50} C${this.width/2 + 10} ${this.height - 180} ${this.width/2 + 15} ${this.height - 120} ${this.width/2 + 8} ${this.height/2 - 35}`);
+                }
+                
+                trunkPath.setAttribute("stroke", this.treeType.branchColor);
+                trunkPath.setAttribute("stroke-width", "16");
+                trunkPath.setAttribute("fill", "none");
+                trunkPath.setAttribute("stroke-linecap", "round");
+                trunkPath.setAttribute("stroke-linejoin", "round");
+                trunkPath.setAttribute("stroke-opacity", "0.95");
+                svg.appendChild(trunkPath);
+            }
+
+            drawVariedBranching(svg) {
+                const svgNS = "http://www.w3.org/2000/svg";
+                
+                const trunkEndX = this.treeType.id === 'willow' || this.treeType.id === 'sakura' ? this.width/2 + 18 : this.width/2;
+                const trunkEndY = this.height/2 - 35;
+                
+                // Create varied branching pattern with different types of branches
+                for (let i = 0; i < 15; i++) {
+                    // Random angle but more centralized for natural look
+                    const angle = (i - 7) * 0.2 + (Math.random() - 0.5) * 0.3;
+                    const branchLength = 40 + Math.random() * 40;
+                    const thickness = 3 + Math.random() * 3;
+                    
+                    // Calculate end point using angle
+                    const endX = trunkEndX + Math.sin(angle) * branchLength;
+                    const endY = trunkEndY - Math.cos(angle) * branchLength;
+                    
+                    // Create natural curved branch path with Bezier curve
+                    const controlX = trunkEndX + Math.sin(angle) * branchLength * 0.5 + (Math.random() - 0.5) * 20;
+                    const controlY = trunkEndY - Math.cos(angle) * branchLength * 0.6 + (Math.random() - 0.5) * 15;
+                    
+                    const branch = document.createElementNS(svgNS, "path");
+                    branch.setAttribute("d", `M${trunkEndX} ${trunkEndY} Q${controlX} ${controlY} ${endX} ${endY}`);
+                    branch.setAttribute("stroke", this.treeType.branchColor);
+                    branch.setAttribute("stroke-width", thickness);
+                    branch.setAttribute("fill", "none");
+                    branch.setAttribute("stroke-linecap", "round");
+                    branch.setAttribute("stroke-linejoin", "round");
+                    branch.setAttribute("stroke-opacity", "0.9");
+                    svg.appendChild(branch);
+                    
+                    // Add secondary branches with varying patterns
+                    if (Math.random() > 0.3) { // 70% chance of secondary branch
+                        // Branch from main branch
+                        const subStartX = trunkEndX + Math.sin(angle) * branchLength * (0.4 + Math.random() * 0.3);
+                        const subStartY = trunkEndY - Math.cos(angle) * branchLength * (0.4 + Math.random() * 0.3);
+                        
+                        const subAngle = angle + (Math.random() - 0.5) * 1.2; // More varied angles
+                        const subLength = 15 + Math.random() * 25;
+                        const subThickness = 1.5 + Math.random() * 1.8;
+                        
+                        const subEndX = subStartX + Math.sin(subAngle) * subLength;
+                        const subEndY = subStartY - Math.cos(subAngle) * subLength;
+                        
+                        const subBranch = document.createElementNS(svgNS, "line");
+                        subBranch.setAttribute("x1", subStartX);
+                        subBranch.setAttribute("y1", subStartY);
+                        subBranch.setAttribute("x2", subEndX);
+                        subBranch.setAttribute("y2", subEndY);
+                        subBranch.setAttribute("stroke", this.treeType.branchColor);
+                        subBranch.setAttribute("stroke-width", subThickness);
+                        subBranch.setAttribute("stroke-linecap", "round");
+                        subBranch.setAttribute("stroke-opacity", "0.85");
+                        svg.appendChild(subBranch);
+                        
+                        // Tertiary branches for more complexity
+                        if (Math.random() > 0.5) { // 50% chance of tertiary branch
+                            const subSubAngle = subAngle + (Math.random() - 0.5) * 1.5;
+                            const subSubLength = 8 + Math.random() * 15;
+                            const subSubThickness = 1 + Math.random() * 1.2;
+                            
+                            const subSubEndX = subEndX + Math.sin(subSubAngle) * subSubLength;
+                            const subSubEndY = subEndY - Math.cos(subSubAngle) * subSubLength;
+                            
+                            const subSubBranch = document.createElementNS(svgNS, "line");
+                            subSubBranch.setAttribute("x1", subEndX);
+                            subSubBranch.setAttribute("y1", subEndY);
+                            subSubBranch.setAttribute("x2", subSubEndX);
+                            subSubBranch.setAttribute("y2", subSubEndY);
+                            subSubBranch.setAttribute("stroke", this.treeType.branchColor);
+                            subSubBranch.setAttribute("stroke-width", subSubThickness);
+                            subSubBranch.setAttribute("stroke-linecap", "round");
+                            subSubBranch.setAttribute("stroke-opacity", "0.8");
+                            svg.appendChild(subSubBranch);
+                        }
+                    }
+                    
+                    // Add some branches that curve more naturally
+                    if (Math.random() > 0.7) { // 30% chance of curved branch
+                        const curvedAngle = (i - 7) * 0.15;
+                        const curvedLength = 30 + Math.random() * 25;
+                        const curvedThickness = 2 + Math.random() * 1.5;
+                        
+                        const curvedEndX = trunkEndX + Math.sin(curvedAngle) * curvedLength;
+                        const curvedEndY = trunkEndY - Math.cos(curvedAngle) * curvedLength;
+                        
+                        // Create more curved path
+                        const curvedControlX = trunkEndX + Math.sin(curvedAngle) * curvedLength * 0.3;
+                        const curvedControlY = trunkEndY - Math.cos(curvedAngle) * curvedLength * 0.7;
+                        
+                        const curvedControlX2 = trunkEndX + Math.sin(curvedAngle) * curvedLength * 0.7;
+                        const curvedControlY2 = trunkEndY - Math.cos(curvedAngle) * curvedLength * 0.4;
+                        
+                        const curvedBranch = document.createElementNS(svgNS, "path");
+                        curvedBranch.setAttribute("d", `M${trunkEndX} ${trunkEndY} C${curvedControlX} ${curvedControlY}, ${curvedControlX2} ${curvedControlY2}, ${curvedEndX} ${curvedEndY}`);
+                        curvedBranch.setAttribute("stroke", this.treeType.branchColor);
+                        curvedBranch.setAttribute("stroke-width", curvedThickness);
+                        curvedBranch.setAttribute("fill", "none");
+                        curvedBranch.setAttribute("stroke-linecap", "round");
+                        curvedBranch.setAttribute("stroke-opacity", "0.85");
+                        svg.appendChild(curvedBranch);
+                    }
+                }
+            }
+
+            drawNaturalCentralizedLeaves(svg) {
+                const svgNS = "http://www.w3.org/2000/svg";
+                
+                // Adjust center position based on trunk sway
+                const centerX = this.treeType.id === 'willow' || this.treeType.id === 'sakura' ? this.width/2 + 22 : this.width/2;
+                const centerY = this.height / 2 - 60; // Centralized leaf area
+                
+                // Create unique natural pattern for each tree type
+                switch(this.treeType.id) {
+                    case 'sakura': // Natural sakura with many centralized pink leaves
+                        this.drawNaturalSakuraLeaves(svg, centerX, centerY);
+                        break;
+                        
+                    case 'oak': // Natural oak pattern
+                        for (let i = 0; i < 100; i++) {
+                            const angle = Math.random() * Math.PI * 2;
+                            const radius = 5 + Math.sqrt(i) * 3.5;
+                            // Limit to natural canopy shape
+                            if (radius < 70) {
+                                const x = centerX + Math.cos(angle) * radius;
+                                const y = centerY + Math.sin(angle) * radius * 0.7;
+                                const sizeFactor = 1.5 + Math.random() * 0.5;
+                                // Only place about 60% of leaves for natural spacing
+                                if (Math.random() > 0.4) {
+                                    this.drawNaturalLeaf(svg, x, y, sizeFactor, i);
+                                }
+                            }
+                        }
+                        break;
+                        
+                    case 'maple': // Natural maple pattern
+                        const goldenAngle = Math.PI * (3 - Math.sqrt(5));
+                        for (let i = 0; i < 150; i++) {
+                            const radius = 6 * Math.sqrt(i);
+                            const theta = i * goldenAngle;
+                            const x = centerX + radius * Math.cos(theta);
+                            const y = centerY + radius * Math.sin(theta) * 0.7;
+                            
+                            if (radius < 75) {
+                                const sizeFactor = 1.8 - Math.min(1.0, radius/100);
+                                // Add some randomness for natural look
+                                if (Math.random() > 0.2) {
+                                    this.drawNaturalLeaf(svg, x, y, sizeFactor, i);
+                                }
+                            }
+                        }
+                        break;
+                        
+                    case 'cherry': // Natural cherry blossom pattern
+                        for (let i = 0; i < 120; i++) {
+                            const angle = Math.random() * Math.PI * 2;
+                            const radius = 5 + Math.sqrt(i) * 3;
+                            if (radius < 65) {
+                                const x = centerX + Math.cos(angle) * radius;
+                                const y = centerY + Math.sin(angle) * radius * 0.75;
+                                const sizeFactor = 1.4 + Math.random() * 0.4;
+                                if (Math.random() > 0.3) { // Sparse blossoms
+                                    this.drawNaturalLeaf(svg, x, y, sizeFactor, i);
+                                }
+                            }
+                        }
+                        break;
+                        
+                    case 'willow': // Natural willow drooping pattern
+                        for (let i = 0; i < 200; i++) {
+                            const x = centerX - 80 + (i * 0.8);
+                            const offsetX = x - centerX;
+                            const y = centerY + 30 + Math.sin(offsetX * 0.05) * 20 + Math.abs(offsetX) * 0.25;
+                            const sizeFactor = 1.2 + Math.random() * 0.4;
+                            if (Math.abs(offsetX) < 75 && Math.random() > 0.5) {
+                                this.drawNaturalLeaf(svg, x, y, sizeFactor, i);
+                            }
+                        }
+                        break;
+                        
+                    case 'pine': // Natural pine needle pattern
+                        for (let row = 0; row < 15; row++) {
+                            for (let col = 0; col < 10; col++) {
+                                if (Math.random() > 0.6) { // Sparse needles
+                                    const x = centerX - 40 + col * 7 + (row % 2) * 3;
+                                    const y = centerY - 50 + row * 5;
+                                    if (Math.abs(x - centerX) < 50 && y < centerY + 20) {
+                                        const sizeFactor = 1.2 + Math.random() * 0.3;
+                                        this.drawNaturalLeaf(svg, x, y, sizeFactor, row * 10 + col);
+                                    }
+                                }
+                            }
+                        }
+                        break;
+                        
+                    case 'cypress': // Natural cypress pattern
+                        for (let i = 0; i < 100; i++) {
+                            const angle = i * 0.4;
+                            const radius = 5 * Math.exp(0.03 * angle);
+                            if (radius < 50) {
+                                const x = centerX + Math.cos(angle) * radius;
+                                const y = centerY + Math.sin(angle) * radius * 0.7;
+                                const sizeFactor = 1.1 + Math.random() * 0.3;
+                                if (Math.random() > 0.4) {
+                                    this.drawNaturalLeaf(svg, x, y, sizeFactor, i);
+                                }
+                            }
+                        }
+                        break;
+                        
+                    case 'birch': // Natural birch pattern
+                        for (let i = 0; i < 120; i++) {
+                            const angle = Math.random() * Math.PI * 2;
+                            const radius = 10 + Math.random() * 50;
+                            if (Math.random() > 0.4) { // Sparse leaves
+                                const x = centerX + Math.cos(angle) * radius;
+                                const y = centerY + Math.sin(angle) * radius * 0.7;
+                                const sizeFactor = 1.4 + Math.random() * 0.4;
+                                this.drawNaturalLeaf(svg, x, y, sizeFactor, i);
+                            }
+                        }
+                        break;
+                        
+                    case 'baobab': // Natural baobab pattern
+                        for (let i = 0; i < 100; i++) {
+                            let x = 0, y = 0;
+                            let a = 1.4, b = 0.3;
+                            
+                            for (let j = 0; j < i * 2; j++) {
+                                const oldX = x;
+                                x = 1 - a * x * x + y;
+                                y = b * oldX;
+                            }
+                            
+                            const finalX = centerX + x * 30;
+                            const finalY = centerY + y * 30;
+                            
+                            if (Math.abs(finalX - centerX) < 70 && Math.abs(finalY - centerY) < 60) {
+                                const sizeFactor = 1.3 + Math.random() * 0.5;
+                                if (Math.random() > 0.3) {
+                                    this.drawNaturalLeaf(svg, finalX, finalY, sizeFactor, i);
+                                }
+                            }
+                        }
+                        break;
+                        
+                    default: // Natural default pattern
+                        for (let i = 0; i < 100; i++) {
+                            const angle = (i / 100) * Math.PI * 2 * 3;
+                            const radius = 55 * Math.cos(3 * angle);
+                            const x = centerX + Math.cos(angle) * Math.abs(radius);
+                            const y = centerY + Math.sin(angle) * Math.abs(radius) * 0.7;
+                            
+                            const sizeFactor = 1.5 + 0.4 * Math.abs(Math.cos(angle));
+                            if (Math.random() > 0.3 && radius > 0) {
+                                this.drawNaturalLeaf(svg, x, y, sizeFactor, angle);
+                            }
+                        }
+                        break;
+                }
+            }
+            
+            drawNaturalSakuraLeaves(svg, centerX, centerY) {
+                const svgNS = "http://www.w3.org/2000/svg";
+                
+                // Create abundant sakura blossoms in a natural, centralized pattern
+                for (let i = 0; i < 200; i++) { // Many more sakura leaves
+                    // Natural distribution in a rounded canopy
+                    const angle = Math.random() * Math.PI * 2;
+                    const radius = 5 + Math.sqrt(i) * 2.5; // Dense centralization
+                    
+                    if (radius < 55) { // Limit to natural canopy
+                        const x = centerX + Math.cos(angle) * radius;
+                        const y = centerY + Math.sin(angle) * radius * 0.8;
+                        const sizeFactor = 1.3 + Math.random() * 0.4;
+                        
+                        // Always place sakura leaves for full appearance
+                        this.drawNaturalSakuraLeaf(svg, x, y, sizeFactor, i);
+                    }
+                }
+                
+                // Add some clusters for natural grouping effect
+                for (let cluster = 0; cluster < 10; cluster++) {
+                    const clusterX = centerX + (Math.random() - 0.5) * 40;
+                    const clusterY = centerY + (Math.random() - 0.5) * 35;
+                    
+                    for (let j = 0; j < 15; j++) {
+                        const offsetX = (Math.random() - 0.5) * 15;
+                        const offsetY = (Math.random() - 0.5) * 12;
+                        const x = clusterX + offsetX;
+                        const y = clusterY + offsetY;
+                        const sizeFactor = 1.2 + Math.random() * 0.5;
+                        
+                        // Ensure within bounds
+                        if (Math.abs(x - centerX) < 60 && Math.abs(y - centerY) < 50) {
+                            this.drawNaturalSakuraLeaf(svg, x, y, sizeFactor, cluster * 15 + j);
+                        }
+                    }
+                }
+            }
+
+            drawNaturalLeaf(svg, x, y, sizeFactor = 1.0, valueForColor = 0) {
+                const svgNS = "http://www.w3.org/2000/svg";
+                
+                const leafShape = this.treeType.leafShapes[0];
+                const baseSize = sizeFactor * (4.5 + Math.random() * 1.5);
+                
+                let leaf;
+                switch (leafShape) {
+                    case 'circle':
+                        leaf = document.createElementNS(svgNS, "circle");
+                        leaf.setAttribute("cx", x);
+                        leaf.setAttribute("cy", y);
+                        leaf.setAttribute("r", baseSize);
+                        leaf.setAttribute("fill", `url(#leafGradient-${this.treeType.id})`);
+                        leaf.setAttribute("opacity", "0.9");
+                        leaf.setAttribute("class", "leaf-pulse");
+                        leaf.style.setProperty("--delay", (valueForColor % 10).toString());
+                        break;
+                    case 'oval':
+                        leaf = document.createElementNS(svgNS, "ellipse");
+                        leaf.setAttribute("cx", x);
+                        leaf.setAttribute("cy", y);
+                        leaf.setAttribute("rx", baseSize * 1.2);
+                        leaf.setAttribute("ry", baseSize * 0.8);
+                        leaf.setAttribute("fill", `url(#leafGradient-${this.treeType.id})`);
+                        leaf.setAttribute("opacity", "0.9");
+                        leaf.setAttribute("class", "leaf-pulse");
+                        leaf.style.setProperty("--delay", (valueForColor % 10).toString());
+                        break;
+                    case 'rectangle':
+                        leaf = document.createElementNS(svgNS, "rect");
+                        leaf.setAttribute("x", x - baseSize * 0.8);
+                        leaf.setAttribute("y", y - baseSize * 0.6);
+                        leaf.setAttribute("width", baseSize * 1.6);
+                        leaf.setAttribute("height", baseSize * 1.2);
+                        leaf.setAttribute("fill", `url(#leafGradient-${this.treeType.id})`);
+                        leaf.setAttribute("opacity", "0.9");
+                        leaf.setAttribute("class", "leaf-pulse");
+                        leaf.style.setProperty("--delay", (valueForColor % 10).toString());
+                        break;
+                    case 'triangle':
+                        leaf = document.createElementNS(svgNS, "polygon");
+                        const height = baseSize * 1.8;
+                        const width = baseSize * 1.5;
+                        const points = [
+                            [x, y - height * 0.6],
+                            [x - width * 0.6, y + height * 0.4],
+                            [x + width * 0.6, y + height * 0.4]
+                        ];
+                        leaf.setAttribute("points", points.map(p => p.join(',')).join(' '));
+                        leaf.setAttribute("fill", `url(#leafGradient-${this.treeType.id})`);
+                        leaf.setAttribute("opacity", "0.9");
+                        leaf.setAttribute("class", "leaf-pulse");
+                        leaf.style.setProperty("--delay", (valueForColor % 10).toString());
+                        break;
+                    case 'star':
+                        leaf = this.createNaturalGradientStar(svgNS, x, y, baseSize * 1.2, baseSize * 0.7);
+                        leaf.setAttribute("opacity", "0.9");
+                        leaf.setAttribute("class", "leaf-pulse");
+                        leaf.style.setProperty("--delay", (valueForColor % 10).toString());
+                        break;
+                    case 'diamond':
+                        leaf = document.createElementNS(svgNS, "polygon");
+                        const size = baseSize * 1.2;
+                        const diamondPoints = [
+                            [x, y - size * 0.8],
+                            [x + size * 0.6, y],
+                            [x, y + size * 0.8],
+                            [x - size * 0.6, y]
+                        ];
+                        leaf.setAttribute("points", diamondPoints.map(p => p.join(',')).join(' '));
+                        leaf.setAttribute("fill", `url(#leafGradient-${this.treeType.id})`);
+                        leaf.setAttribute("opacity", "0.9");
+                        leaf.setAttribute("class", "leaf-pulse");
+                        leaf.style.setProperty("--delay", (valueForColor % 10).toString());
+                        break;
+                    case 'hexagon':
+                        leaf = this.createNaturalGradientHexagon(svgNS, x, y, baseSize * 1.1);
+                        leaf.setAttribute("opacity", "0.9");
+                        leaf.setAttribute("class", "leaf-pulse");
+                        leaf.style.setProperty("--delay", (valueForColor % 10).toString());
+                        break;
+                    case 'heart':
+                        leaf = this.createNaturalGradientHeart(svgNS, x, y, baseSize * 1.2);
+                        leaf.setAttribute("opacity", "0.9");
+                        leaf.setAttribute("class", "leaf-pulse");
+                        leaf.style.setProperty("--delay", (valueForColor % 10).toString());
+                        break;
+                    case 'fan':
+                        leaf = this.createNaturalGradientFan(svgNS, x, y, baseSize * 1.3);
+                        leaf.setAttribute("opacity", "0.9");
+                        leaf.setAttribute("class", "leaf-pulse");
+                        leaf.style.setProperty("--delay", (valueForColor % 10).toString());
+                        break;
+                }
+                
+                svg.appendChild(leaf);
+            }
+
+            drawNaturalSakuraLeaf(svg, x, y, sizeFactor = 1.0, valueForColor = 0) {
+                const svgNS = "http://www.w3.org/2000/svg";
+                
+                const baseSize = sizeFactor * (4 + Math.random() * 1.2);
+                
+                // Create sakura with one of the multiple pink gradients for variety
+                const gradientIndex = Math.floor(Math.random() * 4) + 1;
+                const gradientId = `sakuraGradient${gradientIndex}`;
+                
+                const leaf = document.createElementNS(svgNS, "circle");
+                leaf.setAttribute("cx", x);
+                leaf.setAttribute("cy", y);
+                leaf.setAttribute("r", baseSize);
+                leaf.setAttribute("fill", `url(#${gradientId})`);
+                leaf.setAttribute("opacity", "0.92");
+                leaf.setAttribute("class", "leaf-pulse");
+                leaf.style.setProperty("--delay", (valueForColor % 12).toString());
+                
+                svg.appendChild(leaf);
+            }
+
+            createNaturalGradientStar(svgNS, cx, cy, outerRadius, innerRadius) {
+                const points = [];
+                for (let i = 0; i < 10; i++) {
+                    const angle = (i * Math.PI) / 5 - Math.PI / 2;
+                    const radius = i % 2 === 0 ? outerRadius : innerRadius;
+                    const x = cx + Math.cos(angle) * radius;
+                    const y = cy + Math.sin(angle) * radius;
+                    points.push([x, y]);
+                }
+                const star = document.createElementNS(svgNS, "polygon");
+                star.setAttribute("points", points.map(p => p.join(',')).join(' '));
+                star.setAttribute("fill", `url(#leafGradient-${this.treeType.id})`);
+                return star;
+            }
+
+            createNaturalGradientHexagon(svgNS, cx, cy, size) {
+                const points = [];
+                for (let i = 0; i < 6; i++) {
+                    const angle = (i * Math.PI) / 3 - Math.PI / 6;
+                    const x = cx + Math.cos(angle) * size;
+                    const y = cy + Math.sin(angle) * size;
+                    points.push([x, y]);
+                }
+                const hexagon = document.createElementNS(svgNS, "polygon");
+                hexagon.setAttribute("points", points.map(p => p.join(',')).join(' '));
+                hexagon.setAttribute("fill", `url(#leafGradient-${this.treeType.id})`);
+                return hexagon;
+            }
+
+            createNaturalGradientHeart(svgNS, cx, cy, size) {
+                const heart = document.createElementNS(svgNS, "path");
+                const scale = size / 5;
+                const d = `M ${cx} ${cy + scale * 2} 
+                           C ${cx} ${cy + scale * 1}, ${cx - scale * 2} ${cy - scale * 1}, 
+                             ${cx} ${cy - scale * 3}
+                           C ${cx + scale * 2} ${cy - scale * 1}, ${cx} ${cy + scale * 1}, 
+                             ${cx} ${cy + scale * 2} 
+                           Z`;
+                heart.setAttribute("d", d);
+                heart.setAttribute("fill", `url(#leafGradient-${this.treeType.id})`);
+                return heart;
+            }
+
+            createNaturalGradientFan(svgNS, cx, cy, size) {
+                const path = document.createElementNS(svgNS, "path");
+                const r = size;
+                const d = `M ${cx - r} ${cy} 
+                           A ${r} ${r} 0 0 1 ${cx + r} ${cy}
+                           L ${cx} ${cy - r}
+                           Z`;
+                path.setAttribute("d", d);
+                path.setAttribute("fill", `url(#leafGradient-${this.treeType.id})`);
+                return path;
+            }
+        }
+
+        // Render all trees with natural animated patterns
+        const container = document.getElementById('trees-container');
+        
+        TREE_TYPES.forEach(treeType => {
+            const treeContainer = document.createElement('div');
+            treeContainer.className = 'tree-container';
+            
+            const title = document.createElement('h3');
+            title.textContent = `${treeType.name} (Unlock at ${treeType.requiredHours} hours)`;
+            treeContainer.appendChild(title);
+            
+            const info = document.createElement('div');
+            info.className = 'info';
+            info.textContent = `Pattern: Natural centralized | Leaf shape: ${treeType.leafShapes[0]} | Colors: [${treeType.leafColors.join(', ')}]`;
+            treeContainer.appendChild(info);
+            
+            const tree = new NaturalAnimatedTreeSVG(treeType);
+            treeContainer.appendChild(tree.draw());
+            
+            container.appendChild(treeContainer);
+        });
+    </script>
+</body>
+</html>

@@ -11,13 +11,13 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <meta name="apple-mobile-web-app-title" content="Nous">
-    <link rel="manifest" href="/public/manifest.json">
+    <link rel="manifest" href="/manifest.json">
 
     <!-- Apple Touch Icons -->
-    <link rel="apple-touch-icon" href="/public/icons/icon-152x152.png">
-    <link rel="apple-touch-icon" sizes="152x152" href="/public/icons/icon-152x152.png">
-    <link rel="apple-touch-icon" sizes="180x180" href="/public/icons/icon-192x192.png">
-    <link rel="apple-touch-icon" sizes="167x167" href="/public/icons/icon-192x192.png">
+    <link rel="apple-touch-icon" href="/icons/icon-152x152.png">
+    <link rel="apple-touch-icon" sizes="152x152" href="/icons/icon-152x152.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="/icons/icon-192x192.png">
+    <link rel="apple-touch-icon" sizes="167x167" href="/icons/icon-192x192.png">
 
     <!-- Favicon -->
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cstyle%3Etext%7Bfont-family:Satoshi,sans-serif;font-weight:300;font-size:72px;fill:%235d6b86%7D%3C/style%3E%3Ccircle cx='50' cy='50' r='35' fill='none' stroke='%23000000' stroke-width='3'/%3E%3Ctext x='50' y='72' text-anchor='middle' letter-spacing='1.5'%3En%3C/text%3E%3C/svg%3E">
@@ -2057,7 +2057,7 @@
             // Play ping sound
             const playPingSound = () => {
                 try {
-                    const audio = new Audio('public/bell-click-sound-slow-smo-ocxvfkrh.wav');
+                    const audio = new Audio('bell-click-sound-slow-smo-ocxvfkrh.wav');
                     audio.volume = 0.5;
                     audio.play().catch(err => console.log('Audio play prevented:', err));
                 } catch (error) {
@@ -5752,7 +5752,7 @@
         // Register Service Worker
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('/public/service-worker.js')
+                navigator.serviceWorker.register('/service-worker.js')
                     .then((registration) => {
                         console.log('ServiceWorker registered successfully:', registration.scope);
                     })

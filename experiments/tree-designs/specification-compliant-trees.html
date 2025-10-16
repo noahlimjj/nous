@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Tree Design Prompt - Specification Compliant</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background-color: #f0f8ff; }
+        .tree-container { margin: 20px 0; border: 1px solid #ddd; padding: 15px; display: inline-block; background-color: white; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        h3 { margin-top: 0; color: #2c3e50; }
+        .info { font-size: 0.9em; color: #7f8c8d; margin-bottom: 10px; }
+    </style>
+</head>
+<body>
+    <h1>Tree Design - Specification Compliant</h1>
+    <p>Following the Tree Design Prompt specification with proper proportions</p>
+    <div id="trees-container"></div>
+
+    <script>
+        // Updated TREE_TYPES with specification-compliant designs
+        const TREE_TYPES = [
+            { id: 'oak', name: 'Oak - Specification Compliant', requiredHours: 0, color: '#a8d08d', leafColors: ['#a8d08d', '#d4e8c1', '#98c379'], branchColor: '#c9a67a', outlineColor: '#2d3436' },
+            { id: 'maple', name: 'Maple - Specification Compliant', requiredHours: 5, color: '#c19a6b', leafColors: ['#c19a6b', '#d4a574', '#b87333'], branchColor: '#a0522d', outlineColor: '#2d3436' },
+            { id: 'cherry', name: 'Cherry Blossom - Specification Compliant', requiredHours: 15, color: '#f8c8dc', leafColors: ['#f8c8dc', '#f9a8d4', '#f472b6'], branchColor: '#8b4513', outlineColor: '#2d3436' },
+            { id: 'willow', name: 'Willow - Specification Compliant', requiredHours: 30, color: '#90a955', leafColors: ['#90a955', '#a4c064', '#83964d'], branchColor: '#8b7355', outlineColor: '#2d3436' },
+            { id: 'pine', name: 'Pine - Specification Compliant', requiredHours: 50, color: '#006400', leafColors: ['#006400', '#228b22', '#3d8b3d'], branchColor: '#553b08', outlineColor: '#2d3436' },
+            { id: 'cypress', name: 'Cypress - Specification Compliant', requiredHours: 75, color: '#556b2f', leafColors: ['#556b2f', '#6b8e23', '#8fbc8f'], branchColor: '#654321', outlineColor: '#2d3436' },
+            { id: 'birch', name: 'Birch - Specification Compliant', requiredHours: 100, color: '#c4e596', leafColors: ['#c4e596', '#d4e8c1', '#b5d99c'], branchColor: '#e6d3a7', outlineColor: '#2d3436' },
+            { id: 'sakura', name: 'Ancient Sakura - Specification Compliant', requiredHours: 150, color: '#f8c8dc', leafColors: ['#f8c8dc', '#f9a8d4', '#f472b6', '#ec4899', '#e11d48'], branchColor: '#705243', outlineColor: '#2d3436' },
+            { id: 'baobab', name: 'Baobab - Specification Compliant', requiredHours: 250, color: '#99b388', leafColors: ['#99b388', '#b5d99c', '#a8d08d'], branchColor: '#8b5a2b', outlineColor: '#2d3436' },
+            { id: 'magnolia', name: 'Magnolia - Specification Compliant', requiredHours: 400, color: '#f6d6ad', leafColors: ['#f6d6ad', '#fbcbb9', '#f9a8d4'], branchColor: '#7e6651', outlineColor: '#2d3436' },
+            { id: 'starry-night', name: 'Starry Night - Specification Compliant', requiredHours: 600, color: '#0b0b45', leafColors: ['#0b0b45', '#23238e', '#4b0082'], branchColor: '#2c3e50', outlineColor: '#2d3436' },
+            { id: 'redwood', name: 'Redwood - Specification Compliant', requiredHours: 800, color: '#7d6b91', leafColors: ['#7d6b91', '#8b6f9d', '#9a7da9'], branchColor: '#4a2c2a', outlineColor: '#2d3436' },
+            { id: 'ginkgo', name: 'Ginkgo - Specification Compliant', requiredHours: 1000, color: '#f4e409', leafColors: ['#f4e409', '#ffd23f', '#f6ae2d'], branchColor: '#8c5e24', outlineColor: '#2d3436' }
+        ];
+
+        class SpecificationTreeSVG {
+            constructor(treeType, width = 400, height = 400) {
+                this.treeType = treeType;
+                this.width = width;
+                this.height = height;
+                this.centerX = width / 2;
+                this.centerY = height / 2;
+            }
+
+            draw() {
+                const svgNS = "http://www.w3.org/2000/svg";
+                const svg = document.createElementNS(svgNS, "svg");
+                svg.setAttribute("width", this.width);
+                svg.setAttribute("height", this.height);
+                svg.setAttribute("viewBox", `0 0 ${this.width} ${this.height}`);
+                svg.setAttribute("style", "background: #f8f9fa");
+                
+                // Define gradients for specification compliance
+                this.addSpecificationGradientDef(svg);
+                
+                // Draw canopy following specification
+                this.drawSpecificationCanopy(svg);
+                
+                // Draw trunk following specification
+                this.drawSpecificationTrunk(svg);
+                
+                // Draw connecting branches
+                this.drawSpecificationBranches(svg);
+                
+                return svg;
+            }
+
+            addSpecificationGradientDef(svg) {
+                const svgNS = "http://www.w3.org/2000/svg";
+                
+                // Create gradients for specification compliance
+                const defs = document.createElementNS(svgNS, "defs");
+                
+                // Canopy gradient
+                const canopyGradient = document.createElementNS(svgNS, "linearGradient");
+                canopyGradient.setAttribute("id", `canopyGradient-${this.treeType.id}`);
+                canopyGradient.setAttribute("x1", "0%");
+                canopyGradient.setAttribute("y1", "0%");
+                canopyGradient.setAttribute("x2", "0%");
+                canopyGradient.setAttribute("y2", "100%");
+                
+                const cStop1 = document.createElementNS(svgNS, "stop");
+                cStop1.setAttribute("offset", "0%");
+                cStop1.setAttribute("stop-color", this.treeType.leafColors[1]); // Lighter at top
+                canopyGradient.appendChild(cStop1);
+                
+                const cStop2 = document.createElementNS(svgNS, "stop");
+                cStop2.setAttribute("offset", "100%");
+                cStop2.setAttribute("stop-color", this.treeType.leafColors[2]); // Darker at bottom
+                canopyGradient.appendChild(cStop2);
+                
+                defs.appendChild(canopyGradient);
+                
+                // Trunk gradient
+                const trunkGradient = document.createElementNS(svgNS, "linearGradient");
+                trunkGradient.setAttribute("id", `trunkGradient-${this.treeType.id}`);
+                trunkGradient.setAttribute("x1", "0%");
+                trunkGradient.setAttribute("y1", "0%");
+                trunkGradient.setAttribute("x2", "100%");
+                trunkGradient.setAttribute("y2", "0%");
+                
+                const tStop1 = document.createElementNS(svgNS, "stop");
+                tStop1.setAttribute("offset", "0%");
+                tStop1.setAttribute("stop-color", this.treeType.branchColor);
+                trunkGradient.appendChild(tStop1);
+                
+                const tStop2 = document.createElementNS(svgNS, "stop");
+                tStop2.setAttribute("offset", "100%");
+                tStop2.setAttribute("stop-color", this.treeType.leafColors[2] || this.treeType.branchColor); // Slightly darker
+                trunkGradient.appendChild(tStop2);
+                
+                defs.appendChild(trunkGradient);
+                
+                svg.appendChild(defs);
+            }
+
+            drawSpecificationCanopy(svg) {
+                const svgNS = "http://www.w3.org/2000/svg";
+                
+                // Following specification: canopy is 60% of tree height
+                const canopyHeight = this.height * 0.6;
+                const canopyWidth = this.width * 0.8; // 80% of tree width
+                
+                // Create a cloud-like canopy with 7-9 rounded bumps
+                // Positioning canopy center at appropriate height
+                const canopyCenterY = this.height * 0.3; // Top 60% of tree
+                const canopyCenterX = this.width / 2;
+                
+                // Create path for the canopy with rounded bumps
+                const path = document.createElementNS(svgNS, "path");
+                
+                // Create a path with multiple rounded lobes for the cloud-like appearance
+                let d = `M ${canopyCenterX - canopyWidth/2} ${canopyCenterY} `;
+                
+                // Create a cloud-like shape with 7-9 bumps
+                const bumps = 8; // 8 bumps
+                const bumpAngle = (Math.PI * 2) / bumps;
+                
+                for (let i = 0; i <= bumps; i++) {
+                    // Calculate the angle for this point
+                    const angle = i * bumpAngle;
+                    // Vary the radius slightly for natural look
+                    const radiusX = (canopyWidth / 2) * (0.9 + 0.1 * Math.sin(angle * 2));
+                    const radiusY = (canopyHeight / 2) * (0.9 + 0.1 * Math.cos(angle * 1.5));
+                    
+                    const x = canopyCenterX + Math.cos(angle) * radiusX;
+                    const y = canopyCenterY + Math.sin(angle) * radiusY * 0.7; // Flatten vertically
+                    
+                    if (i === 0) {
+                        d += `C ${x} ${y} `;
+                    } else {
+                        d += `${x} ${y} `;
+                    }
+                    
+                    // Add control points for smooth curves between points
+                    if (i < bumps) {
+                        const nextAngle = (i + 1) * bumpAngle;
+                        const midAngle = (angle + nextAngle) / 2;
+                        const midRadiusX = (canopyWidth / 2) * (0.9 + 0.1 * Math.sin(midAngle * 2));
+                        const midRadiusY = (canopyHeight / 2) * (0.9 + 0.1 * Math.cos(midAngle * 1.5));
+                        
+                        const midX = canopyCenterX + Math.cos(midAngle) * midRadiusX;
+                        const midY = canopyCenterY + Math.sin(midAngle) * midRadiusY * 0.7;
+                        
+                        d += `${midX} ${midY} `;
+                    }
+                }
+                
+                d += "Z";
+                
+                path.setAttribute("d", d);
+                path.setAttribute("fill", `url(#canopyGradient-${this.treeType.id})`);
+                path.setAttribute("stroke", this.treeType.outlineColor);
+                path.setAttribute("stroke-width", "3");
+                path.setAttribute("stroke-linejoin", "round");
+                
+                svg.appendChild(path);
+            }
+
+            drawSpecificationTrunk(svg) {
+                const svgNS = "http://www.w3.org/2000/svg";
+                
+                // Following specification: trunk is 40% of tree height, tapers from base
+                const trunkHeight = this.height * 0.4;
+                const trunkBottomWidth = this.width * 0.25; // 25% of canopy width
+                const trunkTopWidth = trunkBottomWidth * 0.6; // Tapers to 60% of base width
+                
+                // Positioning trunk at the bottom
+                const trunkBottomY = this.height - 20;
+                const trunkTopY = trunkBottomY - trunkHeight;
+                
+                // Create a tapered trunk shape with flared base
+                const path = document.createElementNS(svgNS, "path");
+                
+                // Create a path with flared base
+                const centerX = this.width / 2;
+                
+                // Starting from bottom center, flare out, then taper up
+                let d = `M ${centerX - trunkBottomWidth/2} ${trunkBottomY} `;
+                
+                // Bottom flare
+                d += `C ${centerX - trunkBottomWidth/1.8} ${trunkBottomY - 10}, `;
+                d += `${centerX - trunkBottomWidth/1.6} ${trunkBottomY - 20}, `;
+                d += `${centerX - trunkTopWidth/2} ${trunkTopY + 30} `;
+                
+                // Continue to top with taper
+                d += `L ${centerX + trunkTopWidth/2} ${trunkTopY + 30} `;
+                
+                // Taper back down to bottom with flare
+                d += `C ${centerX + trunkBottomWidth/1.6} ${trunkBottomY - 20}, `;
+                d += `${centerX + trunkBottomWidth/1.8} ${trunkBottomY - 10}, `;
+                d += `${centerX + trunkBottomWidth/2} ${trunkBottomY} `;
+                
+                d += "Z";
+                
+                path.setAttribute("d", d);
+                path.setAttribute("fill", `url(#trunkGradient-${this.treeType.id})`);
+                path.setAttribute("stroke", this.treeType.outlineColor);
+                path.setAttribute("stroke-width", "3");
+                path.setAttribute("stroke-linejoin", "round");
+                
+                svg.appendChild(path);
+                
+                // Draw base flare/roots
+                this.drawBaseFlare(svg, centerX, trunkBottomY);
+            }
+            
+            drawBaseFlare(svg, centerX, trunkBottomY) {
+                const svgNS = "http://www.w3.org/2000/svg";
+                
+                // Add small rounded feet/roots at the base
+                for (let i = -1; i <= 1; i++) {
+                    if (i === 0) continue; // Skip center, only sides
+                    
+                    const root = document.createElementNS(svgNS, "ellipse");
+                    root.setAttribute("cx", centerX + i * 10);
+                    root.setAttribute("cy", trunkBottomY + 5);
+                    root.setAttribute("rx", "6");
+                    root.setAttribute("ry", "4");
+                    root.setAttribute("fill", this.treeType.branchColor);
+                    root.setAttribute("stroke", this.treeType.outlineColor);
+                    root.setAttribute("stroke-width", "2");
+                    
+                    svg.appendChild(root);
+                }
+            }
+            
+            drawSpecificationBranches(svg) {
+                const svgNS = "http://www.w3.org/2000/svg";
+                
+                // Draw 2-3 visible branches connecting trunk to canopy
+                const trunkHeight = this.height * 0.4;
+                const trunkTopY = this.height - 20 - trunkHeight + 30;
+                
+                // Branches should angle upward at 30-45 degrees
+                for (let i = 0; i < 3; i++) {
+                    if (i > 1) break; // Only 2 branches as specified
+                    
+                    const angle = (i === 0 ? -40 : 40) * Math.PI / 180; // -40° and 40°
+                    const branchLength = this.height * 0.15; // 15% of tree height
+                    
+                    // Branch starts from top of trunk
+                    const startX = this.width / 2;
+                    const startY = trunkTopY;
+                    
+                    // Calculate end point with angle
+                    const endX = startX + Math.sin(angle) * branchLength;
+                    const endY = startY - Math.cos(angle) * branchLength;
+                    
+                    const branch = document.createElementNS(svgNS, "line");
+                    branch.setAttribute("x1", startX);
+                    branch.setAttribute("y1", startY);
+                    branch.setAttribute("x2", endX);
+                    branch.setAttribute("y2", endY);
+                    branch.setAttribute("stroke", this.treeType.branchColor);
+                    branch.setAttribute("stroke-width", "4");
+                    branch.setAttribute("stroke-linecap", "round");
+                    
+                    svg.appendChild(branch);
+                }
+            }
+        }
+
+        // Render all trees following the specification
+        const container = document.getElementById('trees-container');
+        
+        TREE_TYPES.forEach(treeType => {
+            const treeContainer = document.createElement('div');
+            treeContainer.className = 'tree-container';
+            
+            const title = document.createElement('h3');
+            title.textContent = `${treeType.name} (Unlock at ${treeType.requiredHours} hours)`;
+            treeContainer.appendChild(title);
+            
+            const info = document.createElement('div');
+            info.className = 'info';
+            info.textContent = `Specification-compliant tree with proper proportions`;
+            treeContainer.appendChild(info);
+            
+            const tree = new SpecificationTreeSVG(treeType);
+            treeContainer.appendChild(tree.draw());
+            
+            container.appendChild(treeContainer);
+        });
+    </script>
+</body>
+</html>

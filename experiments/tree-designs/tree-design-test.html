@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Tree Design Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .tree-container { margin: 20px 0; border: 1px solid #ccc; padding: 10px; display: inline-block; }
+        h3 { margin-top: 0; }
+    </style>
+</head>
+<body>
+    <h1>Tree Design Test - Updated Designs</h1>
+    <p>Each tree now has unique leaf shapes and colors based on real tree characteristics</p>
+    <div id="trees-container"></div>
+
+    <script>
+        // The updated TREE_TYPES array with more distinct designs
+        const TREE_TYPES = [
+            { id: 'oak', name: 'Oak', requiredHours: 0, color: '#4a7c2c', leafShapes: ['oval', 'diamond'], leafColors: ['#3E7C17', '#5DAE49', '#A1C349', '#4a7c2c', '#6d9f4f'], branchColor: '#5A3E1B' },
+            { id: 'maple', name: 'Maple', requiredHours: 5, color: '#d94f04', leafShapes: ['star', 'triangle'], leafColors: ['#FF4C29', '#FFB84C', '#D94F04', '#c2410c', '#f97316'], branchColor: '#6B2B06' },
+            { id: 'cherry', name: 'Cherry Blossom', requiredHours: 15, color: '#f9a8d4', leafShapes: ['heart', 'circle'], leafColors: ['#F8C8DC', '#FADADD', '#FFD6E8', '#fbcfe8', '#fce7f3'], branchColor: '#8B5E3C' },
+            { id: 'willow', name: 'Willow', requiredHours: 30, color: '#94a3b8', leafShapes: ['oval', 'rectangle'], leafColors: ['#A3C9A8', '#6BA292', '#446A46', '#94a3b8', '#d1d5db'], branchColor: '#4E3B31' },
+            { id: 'pine', name: 'Pine', requiredHours: 50, color: '#166534', leafShapes: ['rectangle', 'hexagon'], leafColors: ['#2C5F2D', '#166534', '#15803d', '#052e16', '#064e3b'], branchColor: '#3B2F2F' },
+            { id: 'cypress', name: 'Cypress', requiredHours: 75, color: '#4d7c0f', leafShapes: ['hexagon', 'diamond'], leafColors: ['#557A46', '#A9C46C', '#7BA23F', '#65a30d', '#84cc16'], branchColor: '#4B3D28' },
+            { id: 'birch', name: 'Birch', requiredHours: 100, color: '#fde047', leafShapes: ['diamond', 'triangle'], leafColors: ['#C7E6D7', '#fef08a', '#fde047', '#facc15', '#eab308'], branchColor: '#8E7C5D' },
+            { id: 'sakura', name: 'Ancient Sakura', requiredHours: 150, color: '#db2777', leafShapes: ['heart', 'fan'], leafColors: ['#EFBBCF', '#F2A7B9', '#FFCBDD', '#f472b6', '#ec4899'], branchColor: '#705243' },
+            { id: 'baobab', name: 'Baobab', requiredHours: 250, color: '#4d7c0f', leafShapes: ['star', 'circle'], leafColors: ['#8ABF69', '#C8E7A7', '#EBF2C0', '#4d7c0f', '#a3e635'], branchColor: '#8B5A2B' },
+            { id: 'magnolia', name: 'Magnolia', requiredHours: 400, color: '#e879f9', leafShapes: ['oval', 'heart'], leafColors: ['#F6D6AD', '#EFBBCF', '#E6AACE', '#f5d0fe', '#f0abfc'], branchColor: '#7E6651' },
+            { 
+                id: 'starry-night', 
+                name: 'Starry Night Tree', 
+                requiredHours: 600, 
+                color: '#8A2BE2', 
+                branchColor: '#2C3E50', 
+                leafColors: ['#0B0B45', '#23238E', '#4B0082', '#8A2BE2', '#FFD700'], 
+                leafShapes: ['star', 'diamond', 'circle'] 
+            },
+            { id: 'redwood', name: 'Redwood', requiredHours: 800, color: '#7f1d1d', leafShapes: ['rectangle', 'triangle'], leafColors: ['#7D6B91', '#B88B4A', '#A17C3A', '#450a0a', '#991b1b'], branchColor: '#4A2C2A' },
+            { id: 'ginkgo', name: 'Ginkgo', requiredHours: 1000, color: '#facc15', leafShapes: ['fan'], leafColors: ['#F4E409', '#FFD23F', '#F6AE2D', '#facc15', '#eab308'], branchColor: '#8C5E24' }
+        ];
+
+        // Tree rendering functions
+        class TreeSVG {
+            constructor(treeType, width = 400, height = 400) {
+                this.treeType = treeType;
+                this.width = width;
+                this.height = height;
+            }
+
+            draw() {
+                const svgNS = "http://www.w3.org/2000/svg";
+                const svg = document.createElementNS(svgNS, "svg");
+                svg.setAttribute("width", this.width);
+                svg.setAttribute("height", this.height);
+                
+                // Draw trunk and branches
+                this.drawTrunkAndBranches(svg);
+                
+                // Draw leaves with more distinct distribution
+                this.drawLeaves(svg);
+                
+                return svg;
+            }
+
+            drawTrunkAndBranches(svg) {
+                const svgNS = "http://www.w3.org/2000/svg";
+                
+                // Draw central trunk
+                const trunk = document.createElementNS(svgNS, "path");
+                trunk.setAttribute("d", `M${this.width/2},${this.height-50} C${this.width/2-10},${this.height-100} ${this.width/2+10},${this.height-200} ${this.width/2},${this.height-250}`);
+                trunk.setAttribute("stroke", this.treeType.branchColor);
+                trunk.setAttribute("stroke-width", "8");
+                trunk.setAttribute("fill", "none");
+                svg.appendChild(trunk);
+
+                // Draw branches in a more tree-specific pattern
+                for (let i = 0; i < 10; i++) {
+                    const angle = (i / 10) * Math.PI * 2;
+                    const length = 60 + Math.random() * 40;
+                    const x1 = this.width/2 + Math.cos(angle) * 20;
+                    const y1 = this.height - 80 - Math.sin(angle) * 30;
+                    const x2 = x1 + Math.cos(angle) * length;
+                    const y2 = y1 - Math.sin(angle) * length;
+                    
+                    const branch = document.createElementNS(svgNS, "line");
+                    branch.setAttribute("x1", x1);
+                    branch.setAttribute("y1", y1);
+                    branch.setAttribute("x2", x2);
+                    branch.setAttribute("y2", y2);
+                    branch.setAttribute("stroke", this.treeType.branchColor);
+                    branch.setAttribute("stroke-width", "3");
+                    svg.appendChild(branch);
+                }
+            }
+
+            drawLeaves(svg) {
+                const svgNS = "http://www.w3.org/2000/svg";
+                
+                // Draw leaves with more tree-specific distribution
+                for (let i = 0; i < 200; i++) {
+                    // Create more natural tree canopy shape
+                    let angle = Math.random() * Math.PI * 2;
+                    let distance = Math.random() * 100 * (0.7 + Math.random() * 0.3);
+                    
+                    // Adjust position based on tree type for different canopy shapes
+                    let x, y;
+                    if (this.treeType.id === 'willow') {
+                        // Willow has a drooping shape
+                        x = this.width/2 + Math.cos(angle) * distance * 0.8;
+                        y = this.height/2 + Math.sin(angle) * 40 + (Math.sin(angle) * distance * 0.5);
+                    } else if (this.treeType.id === 'cypress') {
+                        // Cypress has a conical shape
+                        const verticalPos = (Math.random() - 0.3) * 150;
+                        x = this.width/2 + (Math.random() - 0.5) * 40;
+                        y = this.height/2 - 80 - verticalPos * 0.7;
+                    } else if (this.treeType.id === 'pine') {
+                        // Pine has a triangular/conical shape
+                        const verticalPos = Math.random() * 140;
+                        const maxWidth = (1 - verticalPos/140) * 80;
+                        x = this.width/2 + (Math.random() - 0.5) * maxWidth;
+                        y = this.height/2 - 40 - verticalPos;
+                    } else {
+                        // Default tree shape
+                        x = this.width/2 + Math.cos(angle) * distance;
+                        y = this.height/2 - 40 - Math.abs(Math.sin(angle) * distance * 0.7);
+                    }
+                    
+                    // Skip if too low
+                    if (y > this.height - 80) continue;
+                    
+                    const leafColor = this.treeType.leafColors[Math.floor(Math.random() * this.treeType.leafColors.length)];
+                    const leafShape = this.treeType.leafShapes[Math.floor(Math.random() * this.treeType.leafShapes.length)];
+                    
+                    let leaf;
+                    switch (leafShape) {
+                        case 'circle':
+                            leaf = document.createElementNS(svgNS, "circle");
+                            leaf.setAttribute("cx", x);
+                            leaf.setAttribute("cy", y);
+                            leaf.setAttribute("r", 4 + Math.random() * 3);
+                            leaf.setAttribute("fill", leafColor);
+                            break;
+                        case 'oval':
+                            leaf = document.createElementNS(svgNS, "ellipse");
+                            leaf.setAttribute("cx", x);
+                            leaf.setAttribute("cy", y);
+                            leaf.setAttribute("rx", 5 + Math.random() * 3);
+                            leaf.setAttribute("ry", 3 + Math.random() * 2);
+                            leaf.setAttribute("fill", leafColor);
+                            break;
+                        case 'rectangle':
+                            leaf = document.createElementNS(svgNS, "rect");
+                            leaf.setAttribute("x", x - 4);
+                            leaf.setAttribute("y", y - 3);
+                            leaf.setAttribute("width", 6 + Math.random() * 4);
+                            leaf.setAttribute("height", 4 + Math.random() * 3);
+                            leaf.setAttribute("fill", leafColor);
+                            break;
+                        case 'triangle':
+                            leaf = document.createElementNS(svgNS, "polygon");
+                            const points = [
+                                [x, y - 6],
+                                [x - 5, y + 3],
+                                [x + 5, y + 3]
+                            ];
+                            leaf.setAttribute("points", points.map(p => p.join(',')).join(' '));
+                            leaf.setAttribute("fill", leafColor);
+                            break;
+                        case 'star':
+                            leaf = this.createStar(svgNS, x, y, 5, 5, 2.5, leafColor);
+                            break;
+                        case 'diamond':
+                            leaf = document.createElementNS(svgNS, "polygon");
+                            const diamondPoints = [
+                                [x, y - 5],
+                                [x + 4, y],
+                                [x, y + 5],
+                                [x - 4, y]
+                            ];
+                            leaf.setAttribute("points", diamondPoints.map(p => p.join(',')).join(' '));
+                            leaf.setAttribute("fill", leafColor);
+                            break;
+                        case 'hexagon':
+                            leaf = this.createHexagon(svgNS, x, y, 5, leafColor);
+                            break;
+                        case 'heart':
+                            leaf = this.createHeart(svgNS, x, y, 5, leafColor);
+                            break;
+                        case 'fan':
+                            leaf = this.createFan(svgNS, x, y, 6, leafColor);
+                            break;
+                    }
+                    
+                    svg.appendChild(leaf);
+                }
+            }
+
+            createStar(svgNS, cx, cy, outerRadius, innerRadius, color) {
+                const points = [];
+                for (let i = 0; i < 10; i++) {
+                    const angle = (i * Math.PI) / 5 - Math.PI / 2;
+                    const radius = i % 2 === 0 ? outerRadius : innerRadius;
+                    const x = cx + Math.cos(angle) * radius;
+                    const y = cy + Math.sin(angle) * radius;
+                    points.push([x, y]);
+                }
+                const star = document.createElementNS(svgNS, "polygon");
+                star.setAttribute("points", points.map(p => p.join(',')).join(' '));
+                star.setAttribute("fill", color);
+                return star;
+            }
+
+            createHexagon(svgNS, cx, cy, size, color) {
+                const points = [];
+                for (let i = 0; i < 6; i++) {
+                    const angle = (i * Math.PI) / 3 - Math.PI / 6;
+                    const x = cx + Math.cos(angle) * size;
+                    const y = cy + Math.sin(angle) * size;
+                    points.push([x, y]);
+                }
+                const hexagon = document.createElementNS(svgNS, "polygon");
+                hexagon.setAttribute("points", points.map(p => p.join(',')).join(' '));
+                hexagon.setAttribute("fill", color);
+                return hexagon;
+            }
+
+            createHeart(svgNS, cx, cy, size, color) {
+                const heart = document.createElementNS(svgNS, "path");
+                const scale = size / 5;
+                const d = `M ${cx} ${cy + scale * 2} 
+                           C ${cx} ${cy + scale * 1}, ${cx - scale * 2} ${cy - scale * 1}, 
+                             ${cx} ${cy - scale * 3}
+                           C ${cx + scale * 2} ${cy - scale * 1}, ${cx} ${cy + scale * 1}, 
+                             ${cx} ${cy + scale * 2} 
+                           Z`;
+                heart.setAttribute("d", d);
+                heart.setAttribute("fill", color);
+                return heart;
+            }
+
+            createFan(svgNS, cx, cy, size, color) {
+                const path = document.createElementNS(svgNS, "path");
+                const r = size;
+                const d = `M ${cx - r} ${cy} 
+                           A ${r} ${r} 0 0 1 ${cx + r} ${cy}
+                           L ${cx} ${cy - r}
+                           Z`;
+                path.setAttribute("d", d);
+                path.setAttribute("fill", color);
+                return path;
+            }
+        }
+
+        // Render all trees with distinct shapes and colors
+        const container = document.getElementById('trees-container');
+        TREE_TYPES.forEach(treeType => {
+            const treeContainer = document.createElement('div');
+            treeContainer.className = 'tree-container';
+            
+            const title = document.createElement('h3');
+            title.textContent = `${treeType.name} (Unlock at ${treeType.requiredHours} hours)`;
+            treeContainer.appendChild(title);
+            
+            const description = document.createElement('p');
+            description.textContent = `Leaf shapes: ${treeType.leafShapes.join(', ')} | Colors: [${treeType.leafColors.join(', ')}]`;
+            treeContainer.appendChild(description);
+            
+            const tree = new TreeSVG(treeType);
+            treeContainer.appendChild(tree.draw());
+            
+            container.appendChild(treeContainer);
+        });
+    </script>
+</body>
+</html>

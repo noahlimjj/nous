@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Reference Screenshot Trees</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background-color: #f0f8ff; }
+        .tree-container { margin: 20px 0; border: 1px solid #ddd; padding: 15px; display: inline-block; background-color: white; box-shadow: 0 2px 5px rgba(0,0,0,0.1); position: relative; }
+        h3 { margin-top: 0; color: #2c3e50; }
+        .info { font-size: 0.9em; color: #7f8c8d; margin-bottom: 10px; }
+        .floor-line { position: absolute; bottom: 15px; left: 15px; right: 15px; height: 1px; background: rgba(0,0,0,0.1); }
+    </style>
+</head>
+<body>
+    <h1>Reference Screenshot Trees</h1>
+    <p>Copied exactly from the reference screenshot</p>
+    <div id="trees-container"></div>
+
+    <script>
+        // TREE_TYPES based on the reference screenshot aesthetic
+        const TREE_TYPES = [
+            { id: 'oak', name: 'Oak - Reference Style', requiredHours: 0, color: '#4a7c2c', leafColors: ['#3E7C17', '#5DAE49', '#A1C349', '#4a7c2c', '#6d9f4f'], branchColor: '#5A3E1B' },
+            { id: 'maple', name: 'Maple - Reference Style', requiredHours: 5, color: '#d94f04', leafColors: ['#FF4C29', '#FFB84C', '#D94F04', '#c2410c', '#f97316'], branchColor: '#6B2B06' },
+            { id: 'cherry', name: 'Cherry Blossom - Reference Style', requiredHours: 15, color: '#f9a8d4', leafColors: ['#F8C8DC', '#FADADD', '#FFD6E8', '#fbcfe8', '#fce7f3'], branchColor: '#8B5E3C' },
+            { id: 'willow', name: 'Willow - Reference Style', requiredHours: 30, color: '#94a3b8', leafColors: ['#A3C9A8', '#6BA292', '#446A46', '#94a3b8', '#d1d5db'], branchColor: '#4E3B31' },
+            { id: 'pine', name: 'Pine - Reference Style', requiredHours: 50, color: '#166534', leafColors: ['#2C5F2D', '#166534', '#15803d', '#052e16', '#064e3b'], branchColor: '#3B2F2F' },
+            { id: 'cypress', name: 'Cypress - Reference Style', requiredHours: 75, color: '#4d7c0f', leafColors: ['#557A46', '#A9C46C', '#7BA23F', '#65a30d', '#84cc16'], branchColor: '#4B3D28' },
+            { id: 'birch', name: 'Birch - Reference Style', requiredHours: 100, color: '#fde047', leafColors: ['#C7E6D7', '#fef08a', '#fde047', '#facc15', '#eab308'], branchColor: '#8E7C5D' },
+            { id: 'sakura', name: 'Ancient Sakura - Reference Style', requiredHours: 150, color: '#db2777', leafColors: ['#F8C8DC', '#FADADD', '#FFD6E8', '#fbcfe8', '#f9a8d4', '#f472b6', '#ec4899', '#e11d48'], branchColor: '#705243' },
+            { id: 'baobab', name: 'Baobab - Reference Style', requiredHours: 250, color: '#4d7c0f', leafColors: ['#8ABF69', '#C8E7A7', '#EBF2C0', '#4d7c0f', '#a3e635'], branchColor: '#8B5A2B' },
+            { id: 'magnolia', name: 'Magnolia - Reference Style', requiredHours: 400, color: '#e879f9', leafColors: ['#F6D6AD', '#EFBBCF', '#E6AACE', '#f5d0fe', '#f0abfc'], branchColor: '#7E6651' },
+            { id: 'starry-night', name: 'Starry Night - Reference Style', requiredHours: 600, color: '#8A2BE2', leafColors: ['#0B0B45', '#23238E', '#4B0082', '#8A2BE2', '#FFD700'], branchColor: '#2C3E50' },
+            { id: 'redwood', name: 'Redwood - Reference Style', requiredHours: 800, color: '#7f1d1d', leafColors: ['#7D6B91', '#B88B4A', '#A17C3A', '#450a0a', '#991b1b'], branchColor: '#4A2C2A' },
+            { id: 'ginkgo', name: 'Ginkgo - Reference Style', requiredHours: 1000, color: '#facc15', leafColors: ['#F4E409', '#FFD23F', '#F6AE2D', '#facc15', '#eab308'], branchColor: '#8C5E24' }
+        ];
+
+        class ReferenceStyleTreeSVG {
+            constructor(treeType, width = 400, height = 400) {
+                this.treeType = treeType;
+                this.width = width;
+                this.height = height;
+            }
+
+            draw() {
+                const svgNS = "http://www.w3.org/2000/svg";
+                const svg = document.createElementNS(svgNS, "svg");
+                svg.setAttribute("width", this.width);
+                svg.setAttribute("height", this.height);
+                svg.setAttribute("viewBox", `0 0 ${this.width} ${this.height}`);
+                svg.setAttribute("style", "background: #f8f9fa");
+                
+                // Add faint floor line
+                const floorLine = document.createElementNS(svgNS, "line");
+                floorLine.setAttribute("x1", 20);
+                floorLine.setAttribute("y1", this.height - 20);
+                floorLine.setAttribute("x2", this.width - 20);
+                floorLine.setAttribute("y2", this.height - 20);
+                floorLine.setAttribute("stroke", "rgba(0,0,0,0.1)");
+                floorLine.setAttribute("stroke-width", "1");
+                svg.appendChild(floorLine);
+                
+                // Define gradients for reference style
+                this.addReferenceGradientDef(svg);
+                
+                // Draw trunk in reference style (simple, slightly curved)
+                this.drawReferenceTrunk(svg);
+                
+                // Draw branches in reference style (upward curved, symmetrical)
+                this.drawReferenceBranches(svg);
+                
+                // Draw leaves in reference style (evenly spaced, attached to branches)
+                this.drawReferenceLeaves(svg);
+                
+                return svg;
+            }
+
+            addReferenceGradientDef(svg) {
+                const svgNS = "http://www.w3.org/2000/svg";
+                
+                const defs = document.createElementNS(svgNS, "defs");
+                
+                // Create radial gradient for leaves
+                const gradient = document.createElementNS(svgNS, "radialGradient");
+                gradient.setAttribute("id", `leafGradient-${this.treeType.id}`);
+                gradient.setAttribute("cx", "40%");
+                gradient.setAttribute("cy", "40%");
+                gradient.setAttribute("r", "60%");
+                
+                // Add gradient stops for rich colors
+                const stop1 = document.createElementNS(svgNS, "stop");
+                stop1.setAttribute("offset", "0%");
+                stop1.setAttribute("stop-color", this.treeType.leafColors[0]);
+                stop1.setAttribute("stop-opacity", "0.95");
+                gradient.appendChild(stop1);
+                
+                const stop2 = document.createElementNS(svgNS, "stop");
+                stop2.setAttribute("offset", "30%");
+                stop2.setAttribute("stop-color", this.treeType.leafColors[1]);
+                stop2.setAttribute("stop-opacity", "0.88");
+                gradient.appendChild(stop2);
+                
+                const stop3 = document.createElementNS(svgNS, "stop");
+                stop3.setAttribute("offset", "60%");
+                stop3.setAttribute("stop-color", this.treeType.leafColors[2]);
+                stop3.setAttribute("stop-opacity", "0.80");
+                gradient.appendChild(stop3);
+                
+                const stop4 = document.createElementNS(svgNS, "stop");
+                stop4.setAttribute("offset", "100%");
+                stop4.setAttribute("stop-color", this.treeType.leafColors[3] || this.treeType.leafColors[0]);
+                stop4.setAttribute("stop-opacity", "0.70");
+                gradient.appendChild(stop4);
+                
+                defs.appendChild(gradient);
+                
+                svg.appendChild(defs);
+            }
+
+            drawReferenceTrunk(svg) {
+                const svgNS = "http://www.w3.org/2000/svg";
+                
+                // Draw a simple, slightly curved trunk in reference style
+                const trunkPath = document.createElementNS(svgNS, "path");
+                
+                // Trunk goes from bottom to about 40% up the tree, with a gentle curve
+                const trunkHeight = this.height * 0.4;
+                const trunkBottomY = this.height - 20;
+                const trunkTopY = trunkBottomY - trunkHeight;
+                
+                // Gentle sway to the side
+                const swayAmount = 8;
+                
+                trunkPath.setAttribute("d", 
+                    `M ${this.width/2} ${trunkBottomY} ` +
+                    `C ${this.width/2 + swayAmount} ${trunkBottomY - trunkHeight * 0.7}, ` +
+                    ` ${this.width/2 + swayAmount * 0.8} ${trunkTopY + 15}, ` +
+                    ` ${this.width/2} ${trunkTopY}`
+                );
+                
+                trunkPath.setAttribute("stroke", this.treeType.branchColor);
+                trunkPath.setAttribute("stroke-width", "14");
+                trunkPath.setAttribute("fill", "none");
+                trunkPath.setAttribute("stroke-linecap", "round");
+                trunkPath.setAttribute("stroke-linejoin", "round");
+                trunkPath.setAttribute("stroke-opacity", "0.95");
+                
+                svg.appendChild(trunkPath);
+            }
+
+            drawReferenceBranches(svg) {
+                const svgNS = "http://www.w3.org/2000/svg";
+                
+                // Trunk top position
+                const trunkHeight = this.height * 0.4;
+                const trunkTopY = this.height - 20 - trunkHeight;
+                const trunkTopX = this.width/2;
+                
+                // Store branch positions for leaf attachment
+                this.branches = [];
+                
+                // Draw 5-6 symmetrical branches in reference style
+                // The pattern mimics the reference screenshot: upward curved branches
+                for (let i = 0; i < 6; i++) {
+                    // Alternate sides in a balanced way
+                    const side = i % 2 === 0 ? -1 : 1;
+                    const level = Math.floor(i / 2);
+                    
+                    // Position branches at different heights
+                    const y = trunkTopY + 5 + level * 18;
+                    
+                    // Branches curve upward in a gentle arc
+                    const branchLength = 50 + level * 5;
+                    const angle = side * (Math.PI/4 - level * 0.1); // Start at 45°, decrease with level
+                    const thickness = 3.5 - level * 0.4;
+                    
+                    // Calculate end points
+                    const endX = trunkTopX + Math.sin(angle) * branchLength;
+                    const endY = y - Math.cos(angle) * branchLength * 0.9; // Curve upward
+                    
+                    // Create curved path with Bézier curve for natural arc
+                    const controlX = trunkTopX + Math.sin(angle) * branchLength * 0.6;
+                    const controlY = y - Math.cos(angle) * branchLength * 0.5; // Curve upward
+                    
+                    const branch = document.createElementNS(svgNS, "path");
+                    branch.setAttribute("d", 
+                        `M ${trunkTopX} ${y} ` +
+                        `Q ${controlX} ${controlY}, ${endX} ${endY}`
+                    );
+                    branch.setAttribute("stroke", this.treeType.branchColor);
+                    branch.setAttribute("stroke-width", thickness);
+                    branch.setAttribute("fill", "none");
+                    branch.setAttribute("stroke-linecap", "round");
+                    branch.setAttribute("stroke-linejoin", "round");
+                    branch.setAttribute("stroke-opacity", "0.92");
+                    
+                    svg.appendChild(branch);
+                    
+                    // Store branch for leaf placement
+                    this.branches.push({
+                        startX: trunkTopX,
+                        startY: y,
+                        endX: endX,
+                        endY: endY,
+                        controlX: controlX,
+                        controlY: controlY
+                    });
+                }
+                
+                // Add some secondary branches to mimic the reference style
+                for (let i = 0; i < 4; i++) {
+                    // Attach to primary branches
+                    const primary = this.branches[Math.floor(Math.random() * this.branches.length)];
+                    
+                    // Secondary branches are smaller and continue the upward curve
+                    const angle = (Math.random() - 0.5) * Math.PI/3; // Small angle variation
+                    const subLength = 20 + Math.random() * 15;
+                    const subThickness = 2 + Math.random() * 0.8;
+                    
+                    // Start from somewhere along the primary branch
+                    const t = 0.4 + Math.random() * 0.4; // 40-80% along the branch
+                    const subStartX = primary.startX + (primary.endX - primary.startX) * t;
+                    const subStartY = primary.startY + (primary.endY - primary.startY) * t;
+                    
+                    const subEndX = subStartX + Math.sin(angle) * subLength;
+                    const subEndY = subStartY - Math.cos(angle) * subLength * 0.9;
+                    
+                    const subBranch = document.createElementNS(svgNS, "line");
+                    subBranch.setAttribute("x1", subStartX);
+                    subBranch.setAttribute("y1", subStartY);
+                    subBranch.setAttribute("x2", subEndX);
+                    subBranch.setAttribute("y2", subEndY);
+                    subBranch.setAttribute("stroke", this.treeType.branchColor);
+                    subBranch.setAttribute("stroke-width", subThickness);
+                    subBranch.setAttribute("stroke-linecap", "round");
+                    subBranch.setAttribute("stroke-opacity", "0.88");
+                    
+                    svg.appendChild(subBranch);
+                    
+                    // Store secondary branch too
+                    this.branches.push({
+                        startX: subStartX,
+                        startY: subStartY,
+                        endX: subEndX,
+                        endY: subEndY
+                    });
+                }
+            }
+
+            drawReferenceLeaves(svg) {
+                const svgNS = "http://www.w3.org/2000/svg";
+                
+                // Place leaves in the reference screenshot style:
+                // - Evenly spaced
+                // - Attached to branches (not floating)
+                // - Consistent size
+                // - Symmetrical distribution
+                
+                for (const branch of this.branches) {
+                    // Place 6-10 leaves per branch
+                    const leafCount = 8;
+                    
+                    for (let i = 0; i < leafCount; i++) {
+                        // Position along the branch length
+                        const t = 0.1 + (i / leafCount) * 0.8; // 10% to 90% along branch
+                        
+                        let x, y;
+                        
+                        // If it's a curved branch (has control points), use quadratic formula
+                        if (branch.controlX !== undefined) {
+                            // Quadratic Bézier curve calculation
+                            x = Math.pow(1-t, 2) * branch.startX + 
+                                2 * (1-t) * t * branch.controlX + 
+                                Math.pow(t, 2) * branch.endX;
+                            
+                            y = Math.pow(1-t, 2) * branch.startY + 
+                                2 * (1-t) * t * branch.controlY + 
+                                Math.pow(t, 2) * branch.endY;
+                        } else {
+                            // Linear branch
+                            x = branch.startX + (branch.endX - branch.startX) * t;
+                            y = branch.startY + (branch.endY - branch.startY) * t;
+                        }
+                        
+                        // Add slight offset perpendicular to branch for natural look
+                        let dx = branch.endX - branch.startX;
+                        let dy = branch.endY - branch.startY;
+                        const length = Math.sqrt(dx*dx + dy*dy);
+                        
+                        if (length > 0) {
+                            dx /= length;
+                            dy /= length;
+                            
+                            // Perpendicular vector
+                            const perpX = -dy;
+                            const perpY = dx;
+                            
+                            // Add small offset perpendicular to branch
+                            const offset = (Math.random() - 0.5) * 12;
+                            x += perpX * offset;
+                            y += perpY * offset;
+                        }
+                        
+                        // Draw leaf
+                        const sizeFactor = 1.1 + Math.random() * 0.4;
+                        this.drawReferenceLeaf(svg, x, y, sizeFactor, branch.startX + i);
+                    }
+                }
+                
+                // Add some additional leaves in symmetrical positions to match reference style
+                // Create a general canopy area with evenly spaced leaves
+                const centerX = this.width/2 + 5;
+                const centerY = this.height/2 - 40;
+                
+                for (let ring = 0; ring < 5; ring++) {
+                    const radius = 20 + ring * 12;
+                    const leafCount = 10 + ring * 4;
+                    
+                    for (let i = 0; i < leafCount; i++) {
+                        const angle = (i / leafCount) * Math.PI * 2;
+                        const x = centerX + Math.cos(angle) * radius;
+                        const y = centerY + Math.sin(angle) * radius * 0.8;
+                        
+                        // Only place if near a branch
+                        if (this.isNearBranch(x, y, 35)) {
+                            if (Math.random() > 0.3) { // Space out evenly
+                                const sizeFactor = 1.0 + Math.random() * 0.3;
+                                this.drawReferenceLeaf(svg, x, y, sizeFactor, ring * 100 + i);
+                            }
+                        }
+                    }
+                }
+                
+                // Add some additional cluster patterns to match reference abundance
+                for (let cluster = 0; cluster < 6; cluster++) {
+                    const clusterX = centerX + (Math.random() - 0.5) * 40;
+                    const clusterY = centerY + (Math.random() - 0.5) * 30;
+                    
+                    for (let j = 0; j < 8; j++) {
+                        const angle = (j / 8) * Math.PI * 2;
+                        const radius = Math.random() * 15;
+                        const x = clusterX + Math.cos(angle) * radius;
+                        const y = clusterY + Math.sin(angle) * radius * 0.8;
+                        
+                        if (this.isNearBranch(x, y, 30)) {
+                            const sizeFactor = 1.0 + Math.random() * 0.3;
+                            this.drawReferenceLeaf(svg, x, y, sizeFactor, cluster * 100 + j + 500);
+                        }
+                    }
+                }
+            }
+            
+            // Helper function to check if point is near any branch
+            isNearBranch(x, y, maxDistance) {
+                if (!this.branches) return false;
+                
+                for (const branch of this.branches) {
+                    // Check distance to line segment of the branch
+                    const dist = this.distanceToSegment(
+                        x, y, 
+                        branch.startX, branch.startY, 
+                        branch.endX, branch.endY
+                    );
+                    
+                    if (dist < maxDistance) {
+                        return true;
+                    }
+                }
+                
+                return false;
+            }
+            
+            // Helper function to calculate distance from point to line segment
+            distanceToSegment(px, py, x1, y1, x2, y2) {
+                const A = px - x1;
+                const B = py - y1;
+                const C = x2 - x1;
+                const D = y2 - y1;
+                
+                const dot = A * C + B * D;
+                const lenSq = C * C + D * D;
+                
+                if (lenSq === 0) return Math.sqrt(A * A + B * B);
+                
+                let param = dot / lenSq;
+                
+                if (param < 0) {
+                    return Math.sqrt((px - x1) * (px - x1) + (py - y1) * (py - y1));
+                } else if (param > 1) {
+                    return Math.sqrt((px - x2) * (px - x2) + (py - y2) * (py - y2));
+                }
+                
+                const xx = x1 + param * C;
+                const yy = y1 + param * D;
+                
+                return Math.sqrt((px - xx) * (px - xx) + (py - yy) * (py - yy));
+            }
+
+            drawReferenceLeaf(svg, x, y, sizeFactor = 1.0, valueForColor = 0) {
+                const svgNS = "http://www.w3.org/2000/svg";
+                
+                // Consistent leaf size in reference style
+                const baseSize = sizeFactor * (3.2 + Math.random() * 1.0);
+                
+                // Create circular leaf with gradient
+                const leaf = document.createElementNS(svgNS, "circle");
+                leaf.setAttribute("cx", x);
+                leaf.setAttribute("cy", y);
+                leaf.setAttribute("r", baseSize);
+                leaf.setAttribute("fill", `url(#leafGradient-${this.treeType.id})`);
+                leaf.setAttribute("opacity", "0.9");
+                
+                svg.appendChild(leaf);
+            }
+        }
+
+        // Render all trees in reference screenshot style
+        const container = document.getElementById('trees-container');
+        
+        TREE_TYPES.forEach(treeType => {
+            const treeContainer = document.createElement('div');
+            treeContainer.className = 'tree-container';
+            
+            // Add floor line to container
+            const floorLine = document.createElement('div');
+            floorLine.className = 'floor-line';
+            treeContainer.appendChild(floorLine);
+            
+            const title = document.createElement('h3');
+            title.textContent = `${treeType.name} (Unlock at ${treeType.requiredHours} hours)`;
+            treeContainer.appendChild(title);
+            
+            const info = document.createElement('div');
+            info.className = 'info';
+            info.textContent = `Reference screenshot style - curved branches with evenly spaced leaves`;
+            treeContainer.appendChild(info);
+            
+            const tree = new ReferenceStyleTreeSVG(treeType);
+            treeContainer.appendChild(tree.draw());
+            
+            container.appendChild(treeContainer);
+        });
+    </script>
+</body>
+</html>
