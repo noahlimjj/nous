@@ -1929,6 +1929,8 @@
                                     habitName: 'Nous Together'
                                 };
 
+                                console.log(`[NOUS] Saving session for participant ${participantId} with habit:`, participantHabit);
+
                                 // Save session for this participant with their habit
                                 const sessionsCol = window.collection(db, `/artifacts/${appId}/users/${participantId}/sessions`);
                                 await window.addDoc(sessionsCol, {
@@ -1941,26 +1943,26 @@
                                     sharedWith: otherParticipants
                                 });
 
-                                // Update stats for this participant
-                                const allSessionsSnapshot = await window.getDocs(sessionsCol);
-                                const allSessions = allSessionsSnapshot.docs.map(doc => ({
-                                    id: doc.id,
-                                    ...doc.data()
-                                }));
-                                await updateUserStats(db, participantId, allSessions);
+                                console.log(`[NOUS] ✅ Successfully saved session for participant ${participantId}`);
+
+                                // Note: Stats will be automatically updated for each participant
+                                // when they load their own sessions (see sessions listener)
 
                                 return { success: true, participantId };
                             } catch (error) {
-                                console.error(`Error saving session for participant ${participantId}:`, error);
+                                console.error(`[NOUS] ❌ Error saving session for participant ${participantId}:`, error);
                                 return { success: false, participantId, error };
                             }
                         });
 
                         const results = await Promise.allSettled(savePromises);
+                        const successes = results.filter(r => r.status === 'fulfilled' && r.value.success);
                         const failures = results.filter(r => r.status === 'rejected' || (r.status === 'fulfilled' && !r.value.success));
 
+                        console.log(`[NOUS] Session save results: ${successes.length}/${session.participants.length} participants saved successfully`);
+
                         if (failures.length > 0) {
-                            console.warn(`Failed to save sessions for ${failures.length} participant(s)`);
+                            console.warn(`[NOUS] Failed to save sessions for ${failures.length} participant(s):`, failures);
                         }
                     }
 

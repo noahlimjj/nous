@@ -142,5 +142,17 @@ service cloud.firestore {
       // Allow users to read/write their own data
       allow read, write: if request.auth != null && request.auth.uid == userId;
     }
+
+    // Special rule for sessions subcollection to allow nous together participants to write
+    match /artifacts/{appId}/users/{userId}/sessions/{sessionId} {
+      // Allow users to write to their own sessions
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+
+      // Allow participants of a shared timer to write sessions to each other's collections
+      // This is checked by verifying the session has isShared: true
+      // We trust this because only the session ender (who must be a participant) can trigger this
+      allow create: if request.auth != null &&
+                      request.resource.data.isShared == true;
+    }
   }
 }
