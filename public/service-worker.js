@@ -1,4 +1,4 @@
-const CACHE_NAME = 'nous-v7';
+const CACHE_NAME = 'nous-v8';
 const urlsToCache = [
   '/',
   '/index.html',
@@ -10,16 +10,27 @@ const urlsToCache = [
 
 // Install event - cache resources
 self.addEventListener('install', (event) => {
+  console.log('New service worker installing, version:', CACHE_NAME);
   event.waitUntil(
-    caches.open(CACHE_NAME)
-      .then((cache) => {
-        console.log('Opened cache');
-        return cache.addAll(urlsToCache.map(url => new Request(url, {cache: 'reload'})));
-      })
-      .catch((error) => {
-        console.error('Cache installation failed:', error);
-      })
+    // First, delete ALL old caches
+    caches.keys().then((cacheNames) => {
+      return Promise.all(
+        cacheNames.map((cacheName) => {
+          console.log('Deleting old cache during install:', cacheName);
+          return caches.delete(cacheName);
+        })
+      );
+    }).then(() => {
+      // Then create fresh cache with new content
+      return caches.open(CACHE_NAME);
+    }).then((cache) => {
+      console.log('Creating fresh cache:', CACHE_NAME);
+      return cache.addAll(urlsToCache.map(url => new Request(url, {cache: 'reload'})));
+    }).catch((error) => {
+      console.error('Cache installation failed:', error);
+    })
   );
+  // Force this new SW to activate immediately
   self.skipWaiting();
 });
 
