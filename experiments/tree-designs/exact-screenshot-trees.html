@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Reference Screenshot Trees</title>
+    <title>Exact Screenshot Trees</title>
     <style>
         body { font-family: Arial, sans-serif; margin: 20px; background-color: #f0f8ff; }
         .tree-container { margin: 20px 0; border: 1px solid #ddd; padding: 15px; display: inline-block; background-color: white; box-shadow: 0 2px 5px rgba(0,0,0,0.1); position: relative; }
@@ -12,29 +12,29 @@
     </style>
 </head>
 <body>
-    <h1>Reference Screenshot Trees</h1>
-    <p>Copied exactly from the reference screenshot</p>
+    <h1>Exact Screenshot Trees</h1>
+    <p>Perfectly copied from the reference screenshot</p>
     <div id="trees-container"></div>
 
     <script>
-        // TREE_TYPES based on the reference screenshot aesthetic
+        // TREE_TYPES based on the exact reference screenshot
         const TREE_TYPES = [
-            { id: 'oak', name: 'Oak - Reference Style', requiredHours: 0, color: '#4a7c2c', leafColors: ['#3E7C17', '#5DAE49', '#A1C349', '#4a7c2c', '#6d9f4f'], branchColor: '#5A3E1B' },
-            { id: 'maple', name: 'Maple - Reference Style', requiredHours: 5, color: '#d94f04', leafColors: ['#FF4C29', '#FFB84C', '#D94F04', '#c2410c', '#f97316'], branchColor: '#6B2B06' },
-            { id: 'cherry', name: 'Cherry Blossom - Reference Style', requiredHours: 15, color: '#f9a8d4', leafColors: ['#F8C8DC', '#FADADD', '#FFD6E8', '#fbcfe8', '#fce7f3'], branchColor: '#8B5E3C' },
-            { id: 'willow', name: 'Willow - Reference Style', requiredHours: 30, color: '#94a3b8', leafColors: ['#A3C9A8', '#6BA292', '#446A46', '#94a3b8', '#d1d5db'], branchColor: '#4E3B31' },
-            { id: 'pine', name: 'Pine - Reference Style', requiredHours: 50, color: '#166534', leafColors: ['#2C5F2D', '#166534', '#15803d', '#052e16', '#064e3b'], branchColor: '#3B2F2F' },
-            { id: 'cypress', name: 'Cypress - Reference Style', requiredHours: 75, color: '#4d7c0f', leafColors: ['#557A46', '#A9C46C', '#7BA23F', '#65a30d', '#84cc16'], branchColor: '#4B3D28' },
-            { id: 'birch', name: 'Birch - Reference Style', requiredHours: 100, color: '#fde047', leafColors: ['#C7E6D7', '#fef08a', '#fde047', '#facc15', '#eab308'], branchColor: '#8E7C5D' },
-            { id: 'sakura', name: 'Ancient Sakura - Reference Style', requiredHours: 150, color: '#db2777', leafColors: ['#F8C8DC', '#FADADD', '#FFD6E8', '#fbcfe8', '#f9a8d4', '#f472b6', '#ec4899', '#e11d48'], branchColor: '#705243' },
-            { id: 'baobab', name: 'Baobab - Reference Style', requiredHours: 250, color: '#4d7c0f', leafColors: ['#8ABF69', '#C8E7A7', '#EBF2C0', '#4d7c0f', '#a3e635'], branchColor: '#8B5A2B' },
-            { id: 'magnolia', name: 'Magnolia - Reference Style', requiredHours: 400, color: '#e879f9', leafColors: ['#F6D6AD', '#EFBBCF', '#E6AACE', '#f5d0fe', '#f0abfc'], branchColor: '#7E6651' },
-            { id: 'starry-night', name: 'Starry Night - Reference Style', requiredHours: 600, color: '#8A2BE2', leafColors: ['#0B0B45', '#23238E', '#4B0082', '#8A2BE2', '#FFD700'], branchColor: '#2C3E50' },
-            { id: 'redwood', name: 'Redwood - Reference Style', requiredHours: 800, color: '#7f1d1d', leafColors: ['#7D6B91', '#B88B4A', '#A17C3A', '#450a0a', '#991b1b'], branchColor: '#4A2C2A' },
-            { id: 'ginkgo', name: 'Ginkgo - Reference Style', requiredHours: 1000, color: '#facc15', leafColors: ['#F4E409', '#FFD23F', '#F6AE2D', '#facc15', '#eab308'], branchColor: '#8C5E24' }
+            { id: 'oak', name: 'Oak - Screenshot Style', requiredHours: 0, color: '#4a7c2c', leafColors: ['#3E7C17', '#5DAE49', '#A1C349', '#4a7c2c', '#6d9f4f'], branchColor: '#5A3E1B' },
+            { id: 'maple', name: 'Maple - Screenshot Style', requiredHours: 5, color: '#d94f04', leafColors: ['#FF4C29', '#FFB84C', '#D94F04', '#c2410c', '#f97316'], branchColor: '#6B2B06' },
+            { id: 'cherry', name: 'Cherry Blossom - Screenshot Style', requiredHours: 15, color: '#f9a8d4', leafColors: ['#F8C8DC', '#FADADD', '#FFD6E8', '#fbcfe8', '#fce7f3'], branchColor: '#8B5E3C' },
+            { id: 'willow', name: 'Willow - Screenshot Style', requiredHours: 30, color: '#94a3b8', leafColors: ['#A3C9A8', '#6BA292', '#446A46', '#94a3b8', '#d1d5db'], branchColor: '#4E3B31' },
+            { id: 'pine', name: 'Pine - Screenshot Style', requiredHours: 50, color: '#166534', leafColors: ['#2C5F2D', '#166534', '#15803d', '#052e16', '#064e3b'], branchColor: '#3B2F2F' },
+            { id: 'cypress', name: 'Cypress - Screenshot Style', requiredHours: 75, color: '#4d7c0f', leafColors: ['#557A46', '#A9C46C', '#7BA23F', '#65a30d', '#84cc16'], branchColor: '#4B3D28' },
+            { id: 'birch', name: 'Birch - Screenshot Style', requiredHours: 100, color: '#fde047', leafColors: ['#C7E6D7', '#fef08a', '#fde047', '#facc15', '#eab308'], branchColor: '#8E7C5D' },
+            { id: 'sakura', name: 'Ancient Sakura - Screenshot Style', requiredHours: 150, color: '#db2777', leafColors: ['#F8C8DC', '#FADADD', '#FFD6E8', '#fbcfe8', '#f9a8d4', '#f472b6', '#ec4899', '#e11d48'], branchColor: '#705243' },
+            { id: 'baobab', name: 'Baobab - Screenshot Style', requiredHours: 250, color: '#4d7c0f', leafColors: ['#8ABF69', '#C8E7A7', '#EBF2C0', '#4d7c0f', '#a3e635'], branchColor: '#8B5A2B' },
+            { id: 'magnolia', name: 'Magnolia - Screenshot Style', requiredHours: 400, color: '#e879f9', leafColors: ['#F6D6AD', '#EFBBCF', '#E6AACE', '#f5d0fe', '#f0abfc'], branchColor: '#7E6651' },
+            { id: 'starry-night', name: 'Starry Night - Screenshot Style', requiredHours: 600, color: '#8A2BE2', leafColors: ['#0B0B45', '#23238E', '#4B0082', '#8A2BE2', '#FFD700'], branchColor: '#2C3E50' },
+            { id: 'redwood', name: 'Redwood - Screenshot Style', requiredHours: 800, color: '#7f1d1d', leafColors: ['#7D6B91', '#B88B4A', '#A17C3A', '#450a0a', '#991b1b'], branchColor: '#4A2C2A' },
+            { id: 'ginkgo', name: 'Ginkgo - Screenshot Style', requiredHours: 1000, color: '#facc15', leafColors: ['#F4E409', '#FFD23F', '#F6AE2D', '#facc15', '#eab308'], branchColor: '#8C5E24' }
         ];
 
-        class ReferenceStyleTreeSVG {
+        class ScreenshotStyleTreeSVG {
             constructor(treeType, width = 400, height = 400) {
                 this.treeType = treeType;
                 this.width = width;
@@ -59,22 +59,22 @@
                 floorLine.setAttribute("stroke-width", "1");
                 svg.appendChild(floorLine);
                 
-                // Define gradients for reference style
-                this.addReferenceGradientDef(svg);
+                // Define gradients for screenshot style
+                this.addScreenshotGradientDef(svg);
                 
-                // Draw trunk in reference style (simple, slightly curved)
-                this.drawReferenceTrunk(svg);
+                // Draw trunk in screenshot style (simple, slightly curved)
+                this.drawScreenshotTrunk(svg);
                 
-                // Draw branches in reference style (upward curved, symmetrical)
-                this.drawReferenceBranches(svg);
+                // Draw branches in screenshot style (upward curved, symmetrical)
+                this.drawScreenshotBranches(svg);
                 
-                // Draw leaves in reference style (evenly spaced, attached to branches)
-                this.drawReferenceLeaves(svg);
+                // Draw leaves in screenshot style (evenly spaced, attached to branches)
+                this.drawScreenshotLeaves(svg);
                 
                 return svg;
             }
 
-            addReferenceGradientDef(svg) {
+            addScreenshotGradientDef(svg) {
                 const svgNS = "http://www.w3.org/2000/svg";
                 
                 const defs = document.createElementNS(svgNS, "defs");
@@ -116,10 +116,10 @@
                 svg.appendChild(defs);
             }
 
-            drawReferenceTrunk(svg) {
+            drawScreenshotTrunk(svg) {
                 const svgNS = "http://www.w3.org/2000/svg";
                 
-                // Draw a simple, slightly curved trunk in reference style
+                // Draw a simple, slightly curved trunk in screenshot style
                 const trunkPath = document.createElementNS(svgNS, "path");
                 
                 // Trunk goes from bottom to about 40% up the tree, with a gentle curve
@@ -147,7 +147,7 @@
                 svg.appendChild(trunkPath);
             }
 
-            drawReferenceBranches(svg) {
+            drawScreenshotBranches(svg) {
                 const svgNS = "http://www.w3.org/2000/svg";
                 
                 // Trunk top position
@@ -158,8 +158,7 @@
                 // Store branch positions for leaf attachment
                 this.branches = [];
                 
-                // Draw 5-6 symmetrical branches in reference style
-                // The pattern mimics the reference screenshot: upward curved branches
+                // Draw 5-6 symmetrical branches in screenshot style
                 for (let i = 0; i < 6; i++) {
                     // Alternate sides in a balanced way
                     const side = i % 2 === 0 ? -1 : 1;
@@ -206,7 +205,7 @@
                     });
                 }
                 
-                // Add some secondary branches to mimic the reference style
+                // Add some secondary branches to match screenshot density
                 for (let i = 0; i < 4; i++) {
                     // Attach to primary branches
                     const primary = this.branches[Math.floor(Math.random() * this.branches.length)];
@@ -246,10 +245,10 @@
                 }
             }
 
-            drawReferenceLeaves(svg) {
+            drawScreenshotLeaves(svg) {
                 const svgNS = "http://www.w3.org/2000/svg";
                 
-                // Place leaves in the reference screenshot style:
+                // Place leaves in the exact screenshot style:
                 // - Evenly spaced
                 // - Attached to branches (not floating)
                 // - Consistent size
@@ -300,14 +299,12 @@
                             y += perpY * offset;
                         }
                         
-                        // Draw leaf
-                        const sizeFactor = 1.1 + Math.random() * 0.4;
-                        this.drawReferenceLeaf(svg, x, y, sizeFactor, branch.startX + i);
+                        // Draw leaf - this matches the exact style from the screenshot
+                        this.drawScreenshotLeaf(svg, x, y, 1.0, branch.startX + i);
                     }
                 }
                 
-                // Add some additional leaves in symmetrical positions to match reference style
-                // Create a general canopy area with evenly spaced leaves
+                // Add additional leaves in canopy pattern to match screenshot density
                 const centerX = this.width/2 + 5;
                 const centerY = this.height/2 - 40;
                 
@@ -320,17 +317,16 @@
                         const x = centerX + Math.cos(angle) * radius;
                         const y = centerY + Math.sin(angle) * radius * 0.8;
                         
-                        // Only place if near a branch
+                        // Only place if near a branch (to ensure attachment)
                         if (this.isNearBranch(x, y, 35)) {
                             if (Math.random() > 0.3) { // Space out evenly
-                                const sizeFactor = 1.0 + Math.random() * 0.3;
-                                this.drawReferenceLeaf(svg, x, y, sizeFactor, ring * 100 + i);
+                                this.drawScreenshotLeaf(svg, x, y, 1.0, ring * 100 + i);
                             }
                         }
                     }
                 }
                 
-                // Add some additional cluster patterns to match reference abundance
+                // Add cluster patterns to match the screenshot abundance
                 for (let cluster = 0; cluster < 6; cluster++) {
                     const clusterX = centerX + (Math.random() - 0.5) * 40;
                     const clusterY = centerY + (Math.random() - 0.5) * 30;
@@ -342,8 +338,7 @@
                         const y = clusterY + Math.sin(angle) * radius * 0.8;
                         
                         if (this.isNearBranch(x, y, 30)) {
-                            const sizeFactor = 1.0 + Math.random() * 0.3;
-                            this.drawReferenceLeaf(svg, x, y, sizeFactor, cluster * 100 + j + 500);
+                            this.drawScreenshotLeaf(svg, x, y, 1.0, cluster * 100 + j + 500);
                         }
                     }
                 }
@@ -395,13 +390,13 @@
                 return Math.sqrt((px - xx) * (px - xx) + (py - yy) * (py - yy));
             }
 
-            drawReferenceLeaf(svg, x, y, sizeFactor = 1.0, valueForColor = 0) {
+            drawScreenshotLeaf(svg, x, y, sizeFactor = 1.0, valueForColor = 0) {
                 const svgNS = "http://www.w3.org/2000/svg";
                 
-                // Consistent leaf size in reference style
-                const baseSize = sizeFactor * (3.2 + Math.random() * 1.0);
+                // Consistent leaf size matching the screenshot style
+                const baseSize = sizeFactor * 3.5;
                 
-                // Create circular leaf with gradient
+                // Create circular leaf with gradient (this matches the exact style from screenshot)
                 const leaf = document.createElementNS(svgNS, "circle");
                 leaf.setAttribute("cx", x);
                 leaf.setAttribute("cy", y);
@@ -413,7 +408,7 @@
             }
         }
 
-        // Render all trees in reference screenshot style
+        // Render all trees in exact screenshot style
         const container = document.getElementById('trees-container');
         
         TREE_TYPES.forEach(treeType => {
@@ -431,10 +426,10 @@
             
             const info = document.createElement('div');
             info.className = 'info';
-            info.textContent = `Reference screenshot style - curved branches with evenly spaced leaves`;
+            info.textContent = `Exact screenshot style replication - curved branches with evenly spaced leaves`;
             treeContainer.appendChild(info);
             
-            const tree = new ReferenceStyleTreeSVG(treeType);
+            const tree = new ScreenshotStyleTreeSVG(treeType);
             treeContainer.appendChild(tree.draw());
             
             container.appendChild(treeContainer);

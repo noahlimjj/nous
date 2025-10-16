@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Color Scheme Trees</title>
+<style>
+  body {
+    font-family: sans-serif;
+    background-color: #f4f4f4;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: flex-end;
+    gap: 40px;
+    padding: 20px;
+  }
+  .tree-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+  .tree {
+    position: relative;
+    height: 150px;
+    width: 100px;
+    display: flex;
+    justify-content: center;
+    align-items: flex-end;
+  }
+  .trunk {
+    width: 10px;
+    height: 50px;
+    position: absolute;
+    bottom: 0;
+  }
+  .canopy {
+    position: absolute;
+    bottom: 50px;
+  }
+
+  /* Oak Tree */
+  .oak .trunk {
+    background-color: #5A3E1B;
+  }
+  .oak .canopy {
+    width: 80px;
+    height: 80px;
+    background: radial-gradient(circle, #3E7C17, #5DAE49, #A1C349, #4a7c2c, #6d9f4f);
+    border-radius: 50%;
+  }
+
+  /* Maple Tree */
+  .maple .trunk {
+    background-color: #6B2B06;
+  }
+  .maple .canopy {
+    width: 80px;
+    height: 80px;
+    background: radial-gradient(circle, #FF4C29, #FFB84C, #D94F04, #c2410c, #f97316);
+    border-radius: 50%;
+  }
+
+  /* Cherry Blossom Tree */
+  .cherry .trunk {
+    background-color: #8B5E3C;
+  }
+  .cherry .canopy {
+    width: 70px;
+    height: 70px;
+    background: radial-gradient(circle, #F8C8DC, #FADADD, #FFD6E8, #fbcfe8, #fce7f3);
+    border-radius: 50%;
+  }
+
+</style>
+</head>
+<body>
+
+  <div class="tree-container">
+    <div class="tree oak">
+      <div class="canopy"></div>
+      <div class="trunk"></div>
+    </div>
+    <p>Oak</p>
+  </div>
+
+  <div class="tree-container">
+    <div class="tree maple">
+      <div class="canopy"></div>
+      <div class="trunk"></div>
+    </div>
+    <p>Maple</p>
+  </div>
+
+  <div class="tree-container">
+    <div class="tree cherry">
+      <div class="canopy"></div>
+      <div class="trunk"></div>
+    </div>
+    <p>Cherry Blossom</p>
+  </div>
+
+</body>
+</html>
