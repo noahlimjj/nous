@@ -1,4 +1,4 @@
-const CACHE_NAME = 'nous-v6';
+const CACHE_NAME = 'nous-v7';
 const urlsToCache = [
   '/',
   '/index.html',
@@ -35,12 +35,22 @@ self.addEventListener('activate', (event) => {
           }
         })
       );
+    }).then(() => {
+      // Notify all clients that new version is active
+      return self.clients.matchAll().then((clients) => {
+        clients.forEach((client) => {
+          client.postMessage({
+            type: 'UPDATE_AVAILABLE',
+            version: CACHE_NAME
+          });
+        });
+      });
     })
   );
   self.clients.claim();
 });
 
-// Fetch event - serve from cache, fallback to network
+// Fetch event - network-first for HTML, cache-first for assets
 self.addEventListener('fetch', (event) => {
   // Skip cross-origin requests
   if (!event.request.url.startsWith(self.location.origin)) {
@@ -48,6 +58,27 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
+  // Network-first strategy for HTML files to ensure updates
+  if (event.request.headers.get('accept').includes('text/html')) {
+    event.respondWith(
+      fetch(event.request)
+        .then((response) => {
+          // Cache the new version
+          const responseToCache = response.clone();
+          caches.open(CACHE_NAME).then((cache) => {
+            cache.put(event.request, responseToCache);
+          });
+          return response;
+        })
+        .catch(() => {
+          // Fallback to cache if offline
+          return caches.match(event.request);
+        })
+    );
+    return;
+  }
+
+  // Cache-first for all other resources (CSS, JS, images, etc.)
   event.respondWith(
     caches.match(event.request)
       .then((response) => {
