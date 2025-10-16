@@ -1311,6 +1311,9 @@
                                                 }, delay);
                                             };
                                             playBell(3);
+
+                                            // Auto-stop the timer and save as session
+                                            stopTimer(habitId, habit.name);
                                         } catch (error) {
                                             console.error('Error playing timer completion sound:', error);
                                         }
@@ -5872,10 +5875,34 @@
                 navigator.serviceWorker.register('/public/service-worker.js')
                     .then((registration) => {
                         console.log('ServiceWorker registered successfully:', registration.scope);
+
+                        // Check for updates every 60 seconds
+                        setInterval(() => {
+                            registration.update();
+                        }, 60000);
+
+                        // Listen for updates
+                        registration.addEventListener('updatefound', () => {
+                            const newWorker = registration.installing;
+                            newWorker.addEventListener('statechange', () => {
+                                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                                    // New service worker is installed and ready
+                                    console.log('New version available! Reloading...');
+                                    // Force reload to get new version
+                                    window.location.reload();
+                                }
+                            });
+                        });
                     })
                     .catch((error) => {
                         console.log('ServiceWorker registration failed:', error);
                     });
+            });
+
+            // Handle controller change (when new SW takes over)
+            navigator.serviceWorker.addEventListener('controllerchange', () => {
+                console.log('New service worker activated, reloading...');
+                window.location.reload();
             });
         }
 
