@@ -1290,33 +1290,67 @@
                                 if (habit && habit.timerMode === 'timer') {
                                     const sessionElapsed = Date.now() - timer.startTime.toMillis();
                                     const totalElapsed = (timer.elapsedBeforePause || 0) + sessionElapsed;
-                                    const remaining = Math.max(0, habit.targetDuration - totalElapsed);
+                                    const remaining = habit.targetDuration - totalElapsed;
 
-                                    // Play sound when timer reaches 0 (only once per timer)
-                                    if (remaining === 0 && !completedTimers.has(habitId)) {
+                                    // Timer has reached or passed 0 - stop it!
+                                    if (remaining <= 0 && !completedTimers.has(habitId)) {
                                         completedTimers.add(habitId);
-                                        try {
-                                            // Play bell 3 times with delay between each ring
-                                            const playBell = (times, delay = 500) => {
-                                                let count = 0;
-                                                const interval = setInterval(() => {
-                                                    if (count < times) {
-                                                        const audio = new Audio('public/bell-click-sound-slow-smo-ocxvfkrh.wav');
-                                                        audio.volume = 0.7;
-                                                        audio.play().catch(err => console.log('Timer completion audio prevented:', err));
-                                                        count++;
-                                                    } else {
-                                                        clearInterval(interval);
-                                                    }
-                                                }, delay);
-                                            };
-                                            playBell(3);
 
-                                            // Auto-stop the timer and save as session
-                                            stopTimer(habitId, habit.name);
-                                        } catch (error) {
-                                            console.error('Error playing timer completion sound:', error);
-                                        }
+                                        // Play bell 3 times
+                                        const playBell = (times, delay = 500) => {
+                                            let count = 0;
+                                            const interval = setInterval(() => {
+                                                if (count < times) {
+                                                    const audio = new Audio('public/bell-click-sound-slow-smo-ocxvfkrh.wav');
+                                                    audio.volume = 0.7;
+                                                    audio.play().catch(err => console.log('Timer completion audio prevented:', err));
+                                                    count++;
+                                                } else {
+                                                    clearInterval(interval);
+                                                }
+                                            }, delay);
+                                        };
+                                        playBell(3);
+
+                                        // Stop timer and save session
+                                        (async () => {
+                                            try {
+                                                const timerData = activeTimers[habitId];
+                                                if (timerData) {
+                                                    // Calculate exact duration (use targetDuration for countdown timers)
+                                                    const exactDuration = habit.targetDuration;
+
+                                                    // Save session to Firebase
+                                                    const sessionsCol = window.collection(db, `/artifacts/${appId}/users/${userId}/sessions`);
+                                                    const originalStartTime = timerData.originalStartTime || timerData.startTime;
+
+                                                    await window.addDoc(sessionsCol, {
+                                                        habitId,
+                                                        habitName: habit.name,
+                                                        startTime: originalStartTime,
+                                                        endTime: window.Timestamp.now(),
+                                                        duration: Math.round(exactDuration)
+                                                    });
+
+                                                    // Delete from activeTimers collection
+                                                    const timerDocRef = window.doc(db, `/artifacts/${appId}/users/${userId}/activeTimers/${habitId}`);
+                                                    await window.deleteDoc(timerDocRef);
+
+                                                    // Clear currentTopic if no other timers active
+                                                    const remainingTimers = Object.keys(activeTimers).filter(id => id !== habitId);
+                                                    if (remainingTimers.length === 0) {
+                                                        const userDocRef = window.doc(db, 'users', userId);
+                                                        await window.setDoc(userDocRef, {
+                                                            currentTopic: null
+                                                        }, { merge: true });
+                                                    }
+
+                                                    console.log(`Timer completed! Session saved: ${habit.name} - ${Math.round(exactDuration / 1000)}s`);
+                                                }
+                                            } catch (error) {
+                                                console.error('Error auto-stopping timer:', error);
+                                            }
+                                        })();
                                     }
                                 }
                             }
