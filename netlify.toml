@@ -1,6 +1,6 @@
 [build]
   publish = "."
-  command = "./generate-config.sh"
+  command = "./scripts/generate-config.sh"
 
 [[redirects]]
   from = "/*"
