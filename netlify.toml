@@ -1,6 +1,6 @@
 [build]
   publish = "."
-  command = "./scripts/generate-config.sh"
+  command = "npm run build && ./scripts/generate-config.sh"
 
 [[redirects]]
   from = "/*"

@@ -8,6 +8,7 @@
     <!-- PWA Meta Tags -->
     <meta name="description" content="A modern study habit tracker and time management app">
     <meta name="theme-color" content="#5d6b86">
+    <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <meta name="apple-mobile-web-app-title" content="Nous">
@@ -26,51 +27,18 @@
     <link rel="preconnect" href="https://unpkg.com" crossorigin>
     <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
     <link rel="preconnect" href="https://api.fontshare.com" crossorigin>
-    <link rel="preconnect" href="https://cdn.tailwindcss.com" crossorigin>
     <link rel="dns-prefetch" href="https://unpkg.com">
     <link rel="dns-prefetch" href="https://www.gstatic.com">
     <link rel="dns-prefetch" href="https://api.fontshare.com">
-    <link rel="dns-prefetch" href="https://cdn.tailwindcss.com">
 
     <!-- Satoshi font -->
     <link href="https://api.fontshare.com/v2/css?f[]=satoshi@300,400,500,700&display=swap" rel="stylesheet">
 
+    <!-- Tailwind CSS (built from src/input.css) -->
+    <link rel="stylesheet" href="tailwind-output.css">
+
     <!-- External Styles -->
     <link rel="stylesheet" href="style.css">
-
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    fontFamily: {
-                        'sans': ['"Satoshi"', '-apple-system', 'BlinkMacSystemFont', 'system-ui', 'sans-serif'],
-                        'title': ['"Satoshi"', '-apple-system', 'BlinkMacSystemFont', 'system-ui', 'sans-serif'],
-                        'body': ['"Satoshi"', '-apple-system', 'BlinkMacSystemFont', 'system-ui', 'sans-serif']
-                    },
-                    colors: {
-                        'calm': {
-                            50: '#f8f9fb',
-                            100: '#f1f3f7',
-                            200: '#e4e8ee',
-                            300: '#d1d7e3',
-                            400: '#a8b3c7',
-                            500: '#7d8ca8',
-                            600: '#5d6b86',
-                            700: '#4a5568',
-                            800: '#363f51',
-                            900: '#252d3d',
-                        },
-                        'accent': {
-                            blue: '#6B8DD6',
-                            purple: '#8B7FB8',
-                            teal: '#5FA8A3',
-                        }
-                    }
-                }
-            }
-        }
-    </script>
     <!-- Firebase Configuration - Must load first -->
     <script src="config.js"></script>
 
