@@ -775,6 +775,7 @@
                         startTime: window.Timestamp.fromDate(sessionDate),
                         endTime: window.Timestamp.fromDate(new Date(sessionDate.getTime() + totalMinutes * 60000)),
                         duration: totalMinutes * 60 * 1000, // store in milliseconds
+                        createdAt: window.Timestamp.now(), // Add current timestamp for sorting
                     });
                     setNotification({ type: 'success', message: 'Manual session added successfully.' });
                     onClose();
@@ -1000,8 +1001,12 @@
 
                 const unsubscribeSessions = window.onSnapshot(sessionsCol, (snapshot) => {
                     const sessionsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                    // Sort sessions by start time, descending
-                    sessionsData.sort((a, b) => b.startTime.toMillis() - a.startTime.toMillis());
+                    // Sort sessions by createdAt (if available) or startTime, descending (most recent first)
+                    sessionsData.sort((a, b) => {
+                        const aTime = a.createdAt || a.startTime;
+                        const bTime = b.createdAt || b.startTime;
+                        return bTime.toMillis() - aTime.toMillis();
+                    });
                     setSessions(sessionsData);
 
                     // Update user stats whenever sessions change
@@ -1314,7 +1319,8 @@
                                                     habitName: habit.name,
                                                     startTime: originalStartTime,
                                                     endTime: window.Timestamp.now(),
-                                                    duration: Math.round(exactDuration)
+                                                    duration: Math.round(exactDuration),
+                                                    createdAt: window.Timestamp.now()
                                                 });
 
                                                 // Delete from activeTimers collection in Firebase
@@ -1684,7 +1690,8 @@
                                 habitName,
                                 startTime: originalStartTime,
                                 endTime: window.Timestamp.now(),
-                                duration: Math.round(totalElapsed)
+                                duration: Math.round(totalElapsed),
+                                createdAt: window.Timestamp.now()
                             });
                             setNotification({ type: 'success', message: `Session for ${habitName} saved.` });
                         }
@@ -1918,7 +1925,8 @@
                                     endTime: endTime,
                                     duration: Math.round(totalElapsed),
                                     isShared: true,
-                                    sharedWith: otherParticipants
+                                    sharedWith: otherParticipants,
+                                    createdAt: window.Timestamp.now()
                                 });
 
                                 console.log(`[NOUS] ✅ Successfully saved session for participant ${participantId}`);
