@@ -4448,6 +4448,7 @@
             const [friendRequests, setFriendRequests] = useState([]);
             const [nousRequests, setNousRequests] = useState([]);
             const [friends, setFriends] = useState([]);
+            const [suggestedFriends, setSuggestedFriends] = useState([]);
             const [searchTerm, setSearchTerm] = useState('');
             const [searchResult, setSearchResult] = useState(null);
             const [showNousModal, setShowNousModal] = useState(false);
@@ -4568,6 +4569,270 @@
                 };
             }, [db, userId, setNotification]);
 
+            // Load suggested friends (active users and NoahLim)
+            useEffect(() => {
+                if (!db || !userId) return;
+
+                const fetchSuggestedFriends = async () => {
+                    try {
+                        // Calculate the date for 14 days ago (more lenient)
+                        const twoWeeksAgo = window.Timestamp.fromDate(new Date(Date.now() - 14 * 24 * 60 * 60 * 1000));
+                        
+                        // First, get all users to identify NoahLim
+                        const usersRef = window.collection(db, 'users');
+                        const allUsersSnapshot = await window.getDocs(usersRef);
+                        const allUsers = allUsersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                        
+                        // Get friends IDs to exclude them from suggestions
+                        const friendIds = friends.map(f => f.userId);
+                        
+                        // Find users who have used the timer/stopwatch in the past 14 days
+                        // Query all session collections to find recent activity
+                        let activeUsers = [];
+                        
+                        // We'll check each user to see if they have recent sessions
+                        for (const user of allUsers) {
+                            if (user.id === userId || friendIds.includes(user.id) || !user.username || user.username.trim() === '') {
+                                continue; // Skip current user, friends, and users without usernames
+                            }
+                            
+                            try {
+                                const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+                                const sessionsQuery = window.query(
+                                    window.collection(db, `/artifacts/${appId}/users/${user.id}/sessions`),
+                                    window.where('startTime', '>=', twoWeeksAgo) // Sessions from the last 14 days
+                                );
+                                
+                                const sessionsSnapshot = await window.getDocs(sessionsQuery);
+                                
+                                // If the user has sessions in the past 14 days, they are active
+                                if (!sessionsSnapshot.empty) {
+                                    activeUsers.push({
+                                        id: user.id,
+                                        username: user.username,
+                                        isFounder: false,
+                                        stats: user.stats || {}
+                                    });
+                                }
+                            } catch (sessionError) {
+                                // If we can't access a user's sessions (maybe due to security rules), 
+                                // skip them but don't break the entire process
+                                console.warn(`Could not access sessions for user ${user.id}:`, sessionError.message);
+                            }
+                        }
+                        
+                        // Sort active users by their total hours to show more active users first
+                        activeUsers.sort((a, b) => {
+                            const bHours = b.stats?.totalHours || 0;
+                            const aHours = a.stats?.totalHours || 0;
+                            return bHours - aHours; // Descending order (higher hours first)
+                        });
+                        
+                        // Limit to 5 suggestions
+                        const limitedActiveUsers = activeUsers.slice(0, 5);
+                        
+                        // Find NoahLim separately
+                        const noahLimUser = allUsers.find(u => u.username === 'noahlim');
+                        
+                        if (noahLimUser && !friendIds.includes(noahLimUser.id)) {
+                            // Add NoahLim at the beginning of suggestions
+                            setSuggestedFriends([{
+                                id: noahLimUser.id,
+                                username: 'noahlim',
+                                isFounder: true,
+                                stats: noahLimUser.stats || {}
+                            }, ...limitedActiveUsers]);
+                        } else {
+                            setSuggestedFriends(limitedActiveUsers);
+                        }
+                    } catch (error) {
+                        console.error("Error fetching suggested friends:", error);
+                        // Show NoahLim as a fallback if there are any errors
+                        setSuggestedFriends([{
+                            id: 'noahlim',
+                            username: 'noahlim',
+                            isFounder: true,
+                            stats: {}
+                        }]);
+                    }
+                };
+
+                fetchSuggestedFriends();
+            }, [db, userId, friends]);
+
+            // Update the fetchSuggestedFriends function to include friends of friends
+            useEffect(() => {
+                if (!db || !userId) return;
+
+                const fetchSuggestedFriends = async () => {
+                    try {
+                        // Calculate the date for 14 days ago (more lenient)
+                        const twoWeeksAgo = window.Timestamp.fromDate(new Date(Date.now() - 14 * 24 * 60 * 60 * 1000));
+                        
+                        // First, get all users to identify NoahLim
+                        const usersRef = window.collection(db, 'users');
+                        const allUsersSnapshot = await window.getDocs(usersRef);
+                        const allUsers = allUsersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                        
+                        // Get friends IDs to exclude them from suggestions
+                        const friendIds = friends.map(f => f.userId);
+                        
+                        // Find users who have used the timer/stopwatch in the past 14 days
+                        // Query all session collections to find recent activity
+                        let activeUsers = [];
+                        
+                        // We'll check each user to see if they have recent sessions
+                        for (const user of allUsers) {
+                            if (user.id === userId || friendIds.includes(user.id) || !user.username || user.username.trim() === '') {
+                                continue; // Skip current user, friends, and users without usernames
+                            }
+                            
+                            try {
+                                const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+                                const sessionsQuery = window.query(
+                                    window.collection(db, `/artifacts/${appId}/users/${user.id}/sessions`),
+                                    window.where('startTime', '>=', twoWeeksAgo) // Sessions from the last 14 days
+                                );
+                                
+                                const sessionsSnapshot = await window.getDocs(sessionsQuery);
+                                
+                                // If the user has sessions in the past 14 days, they are active
+                                if (!sessionsSnapshot.empty) {
+                                    activeUsers.push({
+                                        id: user.id,
+                                        username: user.username,
+                                        isFounder: false,
+                                        stats: user.stats || {}
+                                    });
+                                }
+                            } catch (sessionError) {
+                                // If we can't access a user's sessions (maybe due to security rules), 
+                                // skip them but don't break the entire process
+                                console.warn(`Could not access sessions for user ${user.id}:`, sessionError.message);
+                            }
+                        }
+                        
+                        // Find friends of friends to include them in suggestions
+                        let friendsOfFriends = [];
+                        if (friends.length > 0) {
+                            for (const friend of friends) {
+                                const friendId = friend.userId;
+                                
+                                // Find friendships where the friend is user1
+                                const friendships1Query = window.query(
+                                    window.collection(db, 'friendships'),
+                                    window.where('user1Id', '==', friendId)
+                                );
+                                
+                                // Find friendships where the friend is user2
+                                const friendships2Query = window.query(
+                                    window.collection(db, 'friendships'),
+                                    window.where('user2Id', '==', friendId)
+                                );
+                                
+                                const [snap1, snap2] = await Promise.all([
+                                    window.getDocs(friendships1Query),
+                                    window.getDocs(friendships2Query)
+                                ]);
+                                
+                                // Process both sets of friendships
+                                for (const doc of [...snap1.docs, ...snap2.docs]) {
+                                    const data = doc.data();
+                                    
+                                    // Get the other user in each friendship (not our friend)
+                                    let friendOfFriendId;
+                                    if (data.user1Id === friendId) {
+                                        friendOfFriendId = data.user2Id;
+                                    } else {
+                                        friendOfFriendId = data.user1Id;
+                                    }
+                                    
+                                    // Exclude current user and existing direct friends
+                                    if (friendOfFriendId !== userId && !friendIds.includes(friendOfFriendId)) {
+                                        // Get profile of friend of friend
+                                        const friendOfFriendDoc = await window.getDoc(window.doc(db, 'users', friendOfFriendId));
+                                        
+                                        if (friendOfFriendDoc.exists()) {
+                                            const friendOfFriendData = {
+                                                id: friendOfFriendId,
+                                                username: data.user1Id === friendId ? data.user2Username : data.user1Username,
+                                                isFriendOfFriend: true,
+                                                mutualFriend: friend.username, // The friend they're connected through
+                                                stats: friendOfFriendDoc.data().stats || {}
+                                            };
+                                            
+                                            // Only add if not already in the list
+                                            if (!friendsOfFriends.some(fof => fof.id === friendOfFriendId)) {
+                                                friendsOfFriends.push(friendOfFriendData);
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        
+                        // Combine active users and friends of friends
+                        let combinedSuggestions = [...activeUsers, ...friendsOfFriends];
+                        
+                        // Remove duplicates by user id
+                        const uniqueSuggestions = [];
+                        const seenIds = new Set();
+                        for (const suggestion of combinedSuggestions) {
+                            if (!seenIds.has(suggestion.id)) {
+                                seenIds.add(suggestion.id);
+                                uniqueSuggestions.push(suggestion);
+                            }
+                        }
+                        
+                        // Sort suggestions: NoahLim first, then friends of friends, then active users
+                        uniqueSuggestions.sort((a, b) => {
+                            // NoahLim should come first
+                            if (a.username === 'noahlim') return -1;
+                            if (b.username === 'noahlim') return 1;
+                            
+                            // Friends of friends should come next
+                            if (a.isFriendOfFriend && !b.isFriendOfFriend) return -1;
+                            if (!a.isFriendOfFriend && b.isFriendOfFriend) return 1;
+                            
+                            // Then by total hours
+                            const bHours = b.stats?.totalHours || 0;
+                            const aHours = a.stats?.totalHours || 0;
+                            return bHours - aHours;
+                        });
+                        
+                        // Check if NoahLim is already a friend by checking the friends array directly
+                        const isNoahLimFriend = friends.some(friend => friend.username === 'noahlim');
+                        
+                        // Check if NoahLim exists in all users
+                        const noahLimUser = allUsers.find(u => u.username === 'noahlim');
+                        
+                        if (noahLimUser && !isNoahLimFriend) {
+                            // NoahLim exists and is not already a friend, so add to suggestions
+                            setSuggestedFriends([{
+                                id: noahLimUser.id,
+                                username: 'noahlim',
+                                isFounder: true,
+                                stats: noahLimUser.stats || {}
+                            }, ...uniqueSuggestions]);
+                        } else {
+                            // NoahLim is either not found or already a friend, so don't include him
+                            setSuggestedFriends(uniqueSuggestions);
+                        }
+                    } catch (error) {
+                        console.error("Error fetching suggested friends:", error);
+                        // Show NoahLim as a fallback if there are any errors
+                        setSuggestedFriends([{
+                            id: 'noahlim',
+                            username: 'noahlim',
+                            isFounder: true,
+                            stats: {}
+                        }]);
+                    }
+                };
+
+                fetchSuggestedFriends();
+            }, [db, userId, friends]);
+
             // Load user's habits for Nous Together modal
             useEffect(() => {
                 if (!db || !userId) return;
@@ -4584,15 +4849,16 @@
             }, [db, userId]);
 
             // Search for user by username
-            const handleSearchUsername = async () => {
-                if (!searchTerm.trim()) return;
+            const handleSearchUsername = async (username = null) => {
+                const searchUsername = username || searchTerm;
+                if (!searchUsername.trim()) return;
                 setIsSearching(true);
                 setSearchResult(null);
 
                 try {
                     const usersQuery = window.query(
                         window.collection(db, 'users'),
-                        window.where('username', '==', searchTerm.trim())
+                        window.where('username', '==', searchUsername.trim())
                     );
                     const snapshot = await window.getDocs(usersQuery);
 
@@ -5083,6 +5349,54 @@
                     )
                 ),
 
+                // Suggested Friends List (now includes friends of friends automatically)
+                React.createElement('div', { className: "bg-white rounded-xl soft-shadow p-6 mb-6" },
+                    React.createElement('h3', { className: "text-xl text-calm-800 mb-4", style: { fontWeight: 300 } },
+                        "suggested friends"
+                    ),
+                    suggestedFriends.length > 0 ?
+                        React.createElement('div', { className: "space-y-3" },
+                            suggestedFriends.map(suggested => 
+                                React.createElement('div', {
+                                    key: suggested.id,
+                                    className: "p-4 bg-calm-50 rounded-lg border border-calm-200 hover:border-calm-300 transition flex justify-between items-start"
+                                },
+                                    React.createElement('div', { className: "flex-grow" },
+                                        React.createElement('p', { className: "text-lg text-calm-800 mb-1", style: { fontWeight: 400 } },
+                                            `@${suggested.username}${suggested.isFounder ? ' 🧑‍💼' : ''}`
+                                        ),
+                                        React.createElement('div', { className: "flex items-center gap-4 text-sm text-calm-600", style: { fontWeight: 300 } },
+                                            React.createElement('span', null,
+                                                `${suggested.stats?.totalHours?.toFixed(1) || 0}h total`
+                                            ),
+                                            suggested.stats?.currentStreak > 0 && React.createElement('span', null,
+                                                `${suggested.stats.currentStreak} day streak 🔥`
+                                            )
+                                        ),
+                                        suggested.isFounder && React.createElement('p', { className: "text-sm text-calm-600 mt-1", style: { fontWeight: 300 } },
+                                            "creator of nous"
+                                        ),
+                                        // Show mutual friend info for friends of friends
+                                        suggested.isFriendOfFriend && React.createElement('p', { className: "text-sm text-calm-600 mt-1", style: { fontWeight: 300 } },
+                                            `via @${suggested.mutualFriend}`
+                                        )
+                                    ),
+                                    React.createElement('button', {
+                                        onClick: () => {
+                                            setSearchTerm(suggested.username);
+                                            handleSearchUsername(suggested.username);
+                                        },
+                                        className: "px-3 py-1.5 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition text-sm",
+                                        style: { fontWeight: 400 }
+                                    }, "Add")
+                                )
+                            )
+                        ) :
+                        React.createElement('p', { className: "text-center text-calm-500 py-4", style: { fontWeight: 300 } },
+                            "No suggested friends at the moment"
+                        )
+                ),
+
                 // My Friends List
                 React.createElement('div', { className: "bg-white rounded-xl soft-shadow p-6" },
                     React.createElement('h3', { className: "text-xl text-calm-800 mb-4", style: { fontWeight: 300 } },
@@ -5319,8 +5633,83 @@
         // --- Leaderboard Page Component ---
         const Leaderboard = ({ db, userId, setNotification, userProfile }) => {
             const [friendsData, setFriendsData] = useState([]);
+            const [friendsWeeklyData, setFriendsWeeklyData] = useState({}); // Store weekly data
+            const [friendsMonthlyData, setFriendsMonthlyData] = useState({}); // Store monthly data
             const [selectedMetric, setSelectedMetric] = useState('totalHours');
             const [isLoading, setIsLoading] = useState(true);
+
+            // Helper function to calculate weekly study hours for a user
+            const calculateWeeklyHours = async (userId) => {
+                try {
+                    const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+                    const sessionsQuery = window.collection(db, `/artifacts/${appId}/users/${userId}/sessions`);
+                    
+                    // Calculate the start of the current week (Monday)
+                    const now = new Date();
+                    const dayOfWeek = now.getDay(); // 0 (Sunday) to 6 (Saturday)
+                    const daysSinceMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1; // Adjust to make Monday 0
+                    
+                    const startOfCurrentWeek = new Date(now);
+                    startOfCurrentWeek.setDate(now.getDate() - daysSinceMonday);
+                    startOfCurrentWeek.setHours(0, 0, 0, 0); // Start of day
+
+                    const endOfCurrentWeek = new Date(startOfCurrentWeek);
+                    endOfCurrentWeek.setDate(startOfCurrentWeek.getDate() + 7);
+                    endOfCurrentWeek.setHours(23, 59, 59, 999); // End of day
+
+                    const snapshot = await window.getDocs(sessionsQuery);
+                    const sessions = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                    
+                    // Filter sessions to only those in the current week
+                    const weeklySessions = sessions.filter(session => {
+                        const sessionDate = session.startTime.toDate();
+                        return sessionDate >= startOfCurrentWeek && sessionDate <= endOfCurrentWeek;
+                    });
+
+                    // Calculate total hours for the week
+                    const weeklyTotalMs = weeklySessions.reduce((sum, s) => sum + (s.duration || 0), 0);
+                    const weeklyTotalHours = weeklyTotalMs / (1000 * 60 * 60);
+                    
+                    return weeklyTotalHours;
+                } catch (error) {
+                    console.error(`Error calculating weekly hours for user ${userId}:`, error);
+                    return 0;
+                }
+            };
+
+            // Helper function to calculate monthly study hours for a user
+            const calculateMonthlyHours = async (userId) => {
+                try {
+                    const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+                    const sessionsQuery = window.collection(db, `/artifacts/${appId}/users/${userId}/sessions`);
+                    
+                    // Calculate the start of the current month
+                    const now = new Date();
+                    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+                    startOfMonth.setHours(0, 0, 0, 0); // Start of day
+
+                    const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+                    endOfMonth.setHours(23, 59, 59, 999); // End of day
+
+                    const snapshot = await window.getDocs(sessionsQuery);
+                    const sessions = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                    
+                    // Filter sessions to only those in the current month
+                    const monthlySessions = sessions.filter(session => {
+                        const sessionDate = session.startTime.toDate();
+                        return sessionDate >= startOfMonth && sessionDate <= endOfMonth;
+                    });
+
+                    // Calculate total hours for the month
+                    const monthlyTotalMs = monthlySessions.reduce((sum, s) => sum + (s.duration || 0), 0);
+                    const monthlyTotalHours = monthlyTotalMs / (1000 * 60 * 60);
+                    
+                    return monthlyTotalHours;
+                } catch (error) {
+                    console.error(`Error calculating monthly hours for user ${userId}:`, error);
+                    return 0;
+                }
+            };
 
             // Load friends and their stats
             useEffect(() => {
@@ -5375,6 +5764,22 @@
                             });
                         }
 
+                        // Calculate weekly hours for all friends
+                        const weeklyData = {};
+                        for (const friend of allFriendsData) {
+                            const weeklyHours = await calculateWeeklyHours(friend.userId);
+                            weeklyData[friend.userId] = weeklyHours;
+                        }
+                        setFriendsWeeklyData(weeklyData);
+
+                        // Calculate monthly hours for all friends
+                        const monthlyData = {};
+                        for (const friend of allFriendsData) {
+                            const monthlyHours = await calculateMonthlyHours(friend.userId);
+                            monthlyData[friend.userId] = monthlyHours;
+                        }
+                        setFriendsMonthlyData(monthlyData);
+
                         setFriendsData(allFriendsData);
                         setIsLoading(false);
                     } catch (error) {
@@ -5389,8 +5794,19 @@
 
             // Sort friends by selected metric
             const sortedFriends = [...friendsData].sort((a, b) => {
-                const aValue = a.stats?.[selectedMetric] || 0;
-                const bValue = b.stats?.[selectedMetric] || 0;
+                let aValue, bValue;
+                
+                if (selectedMetric === 'weeklyHours') {
+                    aValue = friendsWeeklyData[a.userId] || 0;
+                    bValue = friendsWeeklyData[b.userId] || 0;
+                } else if (selectedMetric === 'monthlyHours') {
+                    aValue = friendsMonthlyData[a.userId] || 0;
+                    bValue = friendsMonthlyData[b.userId] || 0;
+                } else {
+                    aValue = a.stats?.[selectedMetric] || 0;
+                    bValue = b.stats?.[selectedMetric] || 0;
+                }
+                
                 return bValue - aValue;
             });
 
@@ -5406,29 +5822,45 @@
                 if (currentUserRank === 3) return "Great work! Push for the podium! 🚀";
 
                 const nextFriend = sortedFriends[currentUserRank - 2];
-                const diff = nextFriend.stats?.[selectedMetric] - (userProfile?.stats?.[selectedMetric] || 0);
+                
+                let diff;
+                if (selectedMetric === 'weeklyHours') {
+                    const currentUserWeeklyHours = friendsWeeklyData[userId] || 0;
+                    const nextFriendWeeklyHours = friendsWeeklyData[nextFriend.userId] || 0;
+                    diff = nextFriendWeeklyHours - currentUserWeeklyHours;
+                } else if (selectedMetric === 'monthlyHours') {
+                    const currentUserMonthlyHours = friendsMonthlyData[userId] || 0;
+                    const nextFriendMonthlyHours = friendsMonthlyData[nextFriend.userId] || 0;
+                    diff = nextFriendMonthlyHours - currentUserMonthlyHours;
+                } else {
+                    diff = nextFriend.stats?.[selectedMetric] - (userProfile?.stats?.[selectedMetric] || 0);
+                }
 
-                if (selectedMetric === 'totalHours') {
+                if (selectedMetric === 'totalHours' || selectedMetric === 'weeklyHours' || selectedMetric === 'monthlyHours') {
                     return `${diff.toFixed(1)}h to reach #${currentUserRank - 1} 🚀`;
                 } else if (selectedMetric === 'currentStreak') {
                     return `${Math.ceil(diff)} days to reach #${currentUserRank - 1} 🚀`;
                 } else if (selectedMetric === 'longestSession') {
                     return `${diff.toFixed(1)}h to reach #${currentUserRank - 1} 🚀`;
-                } else {
-                    return `${Math.ceil(diff)} sessions to reach #${currentUserRank - 1} 🚀`;
                 }
             };
 
             // Format metric value
-            const formatMetricValue = (value, metric) => {
-                if (metric === 'totalHours') {
-                    return `${value.toFixed(1)} hours`;
+            const formatMetricValue = (user, metric) => {
+                if (metric === 'weeklyHours') {
+                    const weeklyHours = friendsWeeklyData[user.userId] || 0;
+                    return `${weeklyHours.toFixed(1)} hours this week`;
+                } else if (metric === 'monthlyHours') {
+                    const monthlyHours = friendsMonthlyData[user.userId] || 0;
+                    return `${monthlyHours.toFixed(1)} hours this month`;
+                } else if (metric === 'totalHours') {
+                    return `${user.stats?.[metric]?.toFixed(1) || 0} hours`;
                 } else if (metric === 'currentStreak') {
-                    return `${Math.floor(value)} day${value !== 1 ? 's' : ''}`;
+                    return `${Math.floor(user.stats?.[metric] || 0)} day${(user.stats?.[metric] || 0) !== 1 ? 's' : ''}`;
                 } else if (metric === 'longestSession') {
-                    return `${value.toFixed(1)} hours`;
+                    return `${(user.stats?.[metric] || 0).toFixed(1)} hours`;
                 } else {
-                    return `${Math.floor(value)} session${value !== 1 ? 's' : ''}`;
+                    return `${Math.floor(user.stats?.[metric] || 0)} session${(user.stats?.[metric] || 0) !== 1 ? 's' : ''}`;
                 }
             };
 
@@ -5455,9 +5887,10 @@
                 React.createElement('div', { className: "bg-white rounded-xl soft-shadow p-6" },
                     React.createElement('div', { className: "flex flex-wrap gap-2" },
                         [
-                            { key: 'totalHours', label: 'Total Hours' },
                             { key: 'currentStreak', label: 'Current Streak' },
-                            { key: 'totalSessions', label: 'Total Sessions' },
+                            { key: 'weeklyHours', label: 'Weekly Hours' },
+                            { key: 'monthlyHours', label: 'Monthly Hours' },
+                            { key: 'totalHours', label: 'Total Hours' },
                             { key: 'longestSession', label: 'Longest Session' }
                         ].map(metric =>
                             React.createElement('button', {
@@ -5505,7 +5938,7 @@
                                                 React.createElement('p', {
                                                     className: "text-sm text-calm-600",
                                                     style: { fontWeight: 300 }
-                                                }, formatMetricValue(value, selectedMetric))
+                                                }, formatMetricValue(friend, selectedMetric))
                                             )
                                         ),
                                         friend.isCurrentUser && React.createElement('div', {
