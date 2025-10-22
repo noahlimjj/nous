@@ -3149,6 +3149,9 @@
             const [isEditingUsername, setIsEditingUsername] = useState(false);
             const [showResetConfirm, setShowResetConfirm] = useState(false);
             const [isResetting, setIsResetting] = useState(false);
+            const [usernameToDelete, setUsernameToDelete] = useState('');
+            const [isDeleting, setIsDeleting] = useState(false);
+            const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
             useEffect(() => {
                 if (userProfile?.username) {
@@ -3262,6 +3265,30 @@
                     setNotification({ type: 'error', message: 'Failed to reset progress: ' + error.message });
                 } finally {
                     setIsResetting(false);
+                }
+            };
+
+            const handleDeleteUser = async () => {
+                if (!usernameToDelete.trim()) {
+                    setNotification({ type: 'error', message: 'Please enter a username.' });
+                    return;
+                }
+
+                setIsDeleting(true);
+                try {
+                    const functions = window.getFunctions();
+                    const deleteUserByUsername = window.httpsCallable(functions, 'deleteUserByUsername');
+
+                    const result = await deleteUserByUsername({ username: usernameToDelete.trim() });
+
+                    setNotification({ type: 'success', message: result.data.message });
+                    setUsernameToDelete('');
+                    setShowDeleteConfirm(false);
+                } catch (error) {
+                    console.error("Error deleting user:", error);
+                    setNotification({ type: 'error', message: error.message || 'Failed to delete user.' });
+                } finally {
+                    setIsDeleting(false);
                 }
             };
 
@@ -3387,6 +3414,38 @@
                     )
                 ),
 
+                // Admin Panel (only shown to admins)
+                userProfile?.admin && React.createElement('div', { className: "bg-red-50 border border-red-200 rounded-lg shadow-sm p-6 mb-6" },
+                    React.createElement('h3', { className: "text-xl text-red-700 mb-4 flex items-center gap-2", style: { fontWeight: 500 } },
+                        React.createElement('span', null, '🛡️'),
+                        "admin panel"
+                    ),
+                    React.createElement('p', { className: "text-sm text-red-600 mb-4", style: { fontWeight: 300 } },
+                        "Warning: These actions are permanent and cannot be undone."
+                    ),
+                    React.createElement('div', { className: "space-y-4" },
+                        React.createElement('div', null,
+                            React.createElement('label', { className: "block text-gray-700 mb-2", style: { fontWeight: 400 } }, "Delete user by username:"),
+                            React.createElement('div', { className: "flex gap-2" },
+                                React.createElement('input', {
+                                    type: "text",
+                                    value: usernameToDelete,
+                                    onChange: (e) => setUsernameToDelete(e.target.value),
+                                    placeholder: "Enter username to delete",
+                                    className: "flex-1 border border-gray-300 px-3 py-2 rounded-lg focus:ring-2 focus:ring-red-500 focus:outline-none",
+                                    style: { fontWeight: 300 }
+                                }),
+                                React.createElement('button', {
+                                    onClick: () => setShowDeleteConfirm(true),
+                                    disabled: !usernameToDelete.trim() || isDeleting,
+                                    className: "bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition disabled:opacity-50 disabled:cursor-not-allowed",
+                                    style: { fontWeight: 400 }
+                                }, "Delete User")
+                            )
+                        )
+                    )
+                ),
+
                 // Actions Section
                 React.createElement('div', { className: "bg-white rounded-lg shadow-sm p-6" },
                     React.createElement('h3', { className: "text-xl text-gray-700 mb-4", style: { fontWeight: 400 } }, "actions"),
@@ -3442,6 +3501,50 @@
                             },
                                 isResetting && React.createElement(LoaderIcon),
                                 isResetting ? "resetting..." : "yes, reset everything"
+                            )
+                        )
+                    )
+                ),
+
+                // Delete User Confirmation Modal
+                showDeleteConfirm && React.createElement('div', {
+                    className: "fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50",
+                    onClick: () => !isDeleting && setShowDeleteConfirm(false)
+                },
+                    React.createElement('div', {
+                        className: "bg-white rounded-xl p-8 max-w-md m-4 soft-shadow-lg",
+                        onClick: (e) => e.stopPropagation()
+                    },
+                        React.createElement('h3', {
+                            className: "text-2xl text-red-700 mb-4 flex items-center gap-2",
+                            style: { fontWeight: 500 }
+                        },
+                            React.createElement('span', null, '⚠️'),
+                            "delete user account?"
+                        ),
+                        React.createElement('p', {
+                            className: "text-gray-600 mb-4",
+                            style: { fontWeight: 300 }
+                        }, `Are you sure you want to permanently delete the user "@${usernameToDelete}"?`),
+                        React.createElement('p', {
+                            className: "text-red-600 text-sm mb-6",
+                            style: { fontWeight: 400 }
+                        }, "This will delete their account, all data, sessions, habits, friendships, and remove them from Firebase Authentication. This action CANNOT be undone."),
+                        React.createElement('div', { className: "flex gap-3 justify-end" },
+                            React.createElement('button', {
+                                onClick: () => setShowDeleteConfirm(false),
+                                disabled: isDeleting,
+                                className: "px-6 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition disabled:opacity-50",
+                                style: { fontWeight: 400 }
+                            }, "cancel"),
+                            React.createElement('button', {
+                                onClick: handleDeleteUser,
+                                disabled: isDeleting,
+                                className: "px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition disabled:opacity-50 flex items-center gap-2",
+                                style: { fontWeight: 400 }
+                            },
+                                isDeleting && React.createElement(LoaderIcon),
+                                isDeleting ? "deleting..." : "yes, delete user"
                             )
                         )
                     )

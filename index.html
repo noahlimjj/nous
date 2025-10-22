@@ -76,6 +76,10 @@
             writeBatch,
             serverTimestamp
         } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+        import {
+            getFunctions,
+            httpsCallable
+        } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-functions.js';
 
         // Make Firebase functions globally available
         window.initializeApp = initializeApp;
@@ -103,6 +107,8 @@
         window.getDocs = getDocs;
         window.writeBatch = writeBatch;
         window.serverTimestamp = serverTimestamp;
+        window.getFunctions = getFunctions;
+        window.httpsCallable = httpsCallable;
 
         // Signal that Firebase SDK is ready
         window.firebaseSDKReady = true;
