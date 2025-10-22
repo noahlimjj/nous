@@ -542,15 +542,15 @@
 
         // Tree types with unlock requirements (total hours studied)
         const TREE_TYPES = [
-            { id: 'oak', name: 'Oak', requiredHours: 0, color: '#4a7c2c', leafShapes: ['oval', 'diamond'], leafColors: ['#228B22', '#32CD32', '#90EE90', '#00FF00', '#7FFF00'], branchColor: '#5A3E1B' },
-            { id: 'maple', name: 'Maple', requiredHours: 5, color: '#d94f04', leafShapes: ['star', 'triangle'], leafColors: ['#FF4500', '#FF6347', '#FF8C00', '#FFA500', '#FFD700'], branchColor: '#6B2B06' },
-            { id: 'cherry', name: 'Cherry Blossom', requiredHours: 15, color: '#f9a8d4', leafShapes: ['heart', 'circle'], leafColors: ['#FFB6C1', '#FFC0CB', '#FF69B4', '#FF1493', '#C71585'], branchColor: '#8B5E3C' },
-            { id: 'willow', name: 'Willow', requiredHours: 30, color: '#94a3b8', leafShapes: ['oval', 'rectangle'], leafColors: ['#48D1CC', '#40E0D0', '#00CED1', '#5F9EA0', '#008B8B'], branchColor: '#4E3B31' },
-            { id: 'pine', name: 'Pine', requiredHours: 50, color: '#166534', leafShapes: ['rectangle', 'hexagon'], leafColors: ['#006400', '#008000', '#228B22', '#2E8B57', '#3CB371'], branchColor: '#3B2F2F' },
-            { id: 'cypress', name: 'Cypress', requiredHours: 75, color: '#4d7c0f', leafShapes: ['hexagon', 'diamond'], leafColors: ['#ADFF2F', '#9ACD32', '#7FFF00', '#7CFC00', '#00FF7F'], branchColor: '#4B3D28' },
-            { id: 'birch', name: 'Birch', requiredHours: 100, color: '#fde047', leafShapes: ['diamond', 'triangle'], leafColors: ['#FFFF00', '#FFFFE0', '#FFFACD', '#FFD700', '#FFA500'], branchColor: '#8E7C5D' },
-            { id: 'sakura', name: 'Ancient Sakura', requiredHours: 150, color: '#db2777', leafShapes: ['heart', 'fan'], leafColors: ['#FF00FF', '#FF00CC', '#FF1493', '#C71585', '#DA70D6'], branchColor: '#705243' },
-            { id: 'baobab', name: 'Baobab', requiredHours: 250, color: '#4d7c0f', leafShapes: ['star', 'circle'], leafColors: ['#00FA9A', '#00FF7F', '#7FFFD4', '#40E0D0', '#48D1CC'], branchColor: '#8B5A2B' },
+            { id: 'oak', name: 'Oak', requiredHours: 0, color: '#4a7c2c', leafShapes: ['oval', 'diamond'], leafColors: ['#228B22', '#2E8B57', '#3CB371', '#66CDAA', '#8FBC8F'], branchColor: '#5A3E1B' },
+            { id: 'maple', name: 'Maple', requiredHours: 5, color: '#d94f04', leafShapes: ['star', 'triangle'], leafColors: ['#FF0000', '#DC143C', '#B22222', '#8B0000', '#A52A2A'], branchColor: '#6B2B06' },
+            { id: 'cherry', name: 'Cherry Blossom', requiredHours: 15, color: '#f9a8d4', leafShapes: ['heart', 'circle'], leafColors: ['#FFC0CB', '#FFB6C1', '#FF69B4', '#FF1493', '#DB7093'], branchColor: '#8B5E3C' },
+            { id: 'willow', name: 'Willow', requiredHours: 30, color: '#94a3b8', leafShapes: ['oval', 'rectangle'], leafColors: ['#87CEEB', '#00BFFF', '#1E90FF', '#6495ED', '#4682B4'], branchColor: '#4E3B31' },
+            { id: 'pine', name: 'Pine', requiredHours: 50, color: '#166534', leafShapes: ['rectangle', 'hexagon'], leafColors: ['#006400', '#013220', '#004d00', '#003300', '#002200'], branchColor: '#3B2F2F' },
+            { id: 'cypress', name: 'Cypress', requiredHours: 75, color: '#4d7c0f', leafShapes: ['hexagon', 'diamond'], leafColors: ['#00FF00', '#32CD32', '#00FA9A', '#00FF7F', '#7FFF00'], branchColor: '#4B3D28' },
+            { id: 'birch', name: 'Birch', requiredHours: 100, color: '#fde047', leafShapes: ['diamond', 'triangle'], leafColors: ['#FFFF00', '#FFD700', '#FFA500', '#FF8C00', '#FF7F50'], branchColor: '#8E7C5D' },
+            { id: 'sakura', name: 'Ancient Sakura', requiredHours: 150, color: '#db2777', leafShapes: ['heart', 'fan'], leafColors: ['#FF00FF', '#EE82EE', '#FF00CC', '#C71585', '#DA70D6'], branchColor: '#705243' },
+            { id: 'baobab', name: 'Baobab', requiredHours: 250, color: '#4d7c0f', leafShapes: ['star', 'circle'], leafColors: ['#FFA07A', '#FA8072', '#E9967A', '#F08080', '#CD5C5C'], branchColor: '#8B5A2B' },
             { id: 'magnolia', name: 'Magnolia', requiredHours: 400, color: '#e879f9', leafShapes: ['oval', 'heart'], leafColors: ['#DDA0DD', '#EE82EE', '#DA70D6', '#BA55D3', '#9370DB'], branchColor: '#7E6651' },
             {
                 id: 'starry-night',
@@ -558,11 +558,11 @@
                 requiredHours: 600,
                 color: '#8A2BE2',
                 branchColor: '#2C3E50',
-                leafColors: ['#191970', '#0000CD', '#0000FF', '#4169E1', '#FFD700'],
+                leafColors: ['#000080', '#000066', '#191970', '#00008B', '#0000CD'],
                 leafShapes: ['star', 'diamond', 'circle'],
             },
-            { id: 'redwood', name: 'Redwood', requiredHours: 800, color: '#7f1d1d', leafShapes: ['rectangle', 'triangle'], leafColors: ['#8B0000', '#A52A2A', '#B22222', '#DC143C', '#FF0000'], branchColor: '#4A2C2A' },
-            { id: 'ginkgo', name: 'Ginkgo', requiredHours: 1000, color: '#facc15', leafShapes: ['fan'], leafColors: ['#FFD700', '#FFA500', '#FF8C00', '#FF7F50', '#FF6347'], branchColor: '#8C5E24' }
+            { id: 'redwood', name: 'Redwood', requiredHours: 800, color: '#7f1d1d', leafShapes: ['rectangle', 'triangle'], leafColors: ['#8B4513', '#A0522D', '#D2691E', '#CD853F', '#DEB887'], branchColor: '#4A2C2A' },
+            { id: 'ginkgo', name: 'Ginkgo', requiredHours: 1000, color: '#facc15', leafShapes: ['fan'], leafColors: ['#F0E68C', '#EEE8AA', '#FAFAD2', '#FFFFE0', '#FFFACD'], branchColor: '#8C5E24' }
         ];
 
         // Calculate total study hours from sessions
