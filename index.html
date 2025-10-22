@@ -870,18 +870,23 @@
                 }
 
                 // Calculate hours studied today (Singapore timezone UTC+8)
+                // This ensures "today" is calculated based on Singapore time regardless of user's location
+                // Example: If it's 9:00 AM EST (June 1), that's 10:00 PM SGT (June 1)
+                //          Singapore's "today" started at midnight SGT = 11:00 AM EST May 31
                 const now = new Date();
-                const singaporeOffset = 8 * 60; // UTC+8 in minutes
-                const localOffset = now.getTimezoneOffset(); // Local offset from UTC in minutes (negative for ahead of UTC)
-                const offsetDiff = singaporeOffset + localOffset; // Difference in minutes
+                const singaporeOffset = 8 * 60; // UTC+8 in minutes (Singapore is 8 hours ahead of UTC)
+                const localOffset = now.getTimezoneOffset(); // Local offset from UTC in minutes (negative for ahead of UTC, positive for behind)
+                const offsetDiff = singaporeOffset + localOffset; // Total minutes to adjust from local time to Singapore time
+                // For Singapore (UTC+8): localOffset = -480, offsetDiff = 480 + (-480) = 0 (no adjustment needed)
+                // For EST (UTC-5): localOffset = 300, offsetDiff = 480 + 300 = 780 minutes = 13 hours difference
 
                 const todayStart = new Date();
-                todayStart.setHours(0, 0, 0, 0);
-                todayStart.setMinutes(todayStart.getMinutes() - offsetDiff);
+                todayStart.setHours(0, 0, 0, 0); // Set to local midnight
+                todayStart.setMinutes(todayStart.getMinutes() - offsetDiff); // Adjust to Singapore midnight
 
                 const todayEnd = new Date();
-                todayEnd.setHours(23, 59, 59, 999);
-                todayEnd.setMinutes(todayEnd.getMinutes() - offsetDiff);
+                todayEnd.setHours(23, 59, 59, 999); // Set to local end of day
+                todayEnd.setMinutes(todayEnd.getMinutes() - offsetDiff); // Adjust to Singapore end of day
 
                 const todaySessions = sessions.filter(s => {
                     const sessionDate = s.startTime.toDate();
@@ -3596,12 +3601,6 @@
                         ),
                         React.createElement('cite', { className: "text-calm-600", style: { fontWeight: 300 } }, "— Aristotle")
                     )
-                ),
-
-                // Footer
-                React.createElement('div', { className: "text-center mt-8 text-calm-600", style: { fontWeight: 300 } },
-                    React.createElement('p', null, "Start your journey toward a more intentional life."),
-                    React.createElement('p', { className: "mt-2 text-sm" }, "Powered by nous.")
                 )
             );
         };
@@ -4569,7 +4568,7 @@
                 };
             }, [db, userId, setNotification]);
 
-            // Load suggested friends (active users and NoahLim)
+            // Load suggested friends (active users, friends of friends, and NoahLim)
             useEffect(() => {
                 if (!db || !userId) return;
 
@@ -4592,99 +4591,9 @@
                         
                         // We'll check each user to see if they have recent sessions
                         for (const user of allUsers) {
-                            if (user.id === userId || friendIds.includes(user.id) || !user.username || user.username.trim() === '') {
-                                continue; // Skip current user, friends, and users without usernames
-                            }
-                            
-                            try {
-                                const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-                                const sessionsQuery = window.query(
-                                    window.collection(db, `/artifacts/${appId}/users/${user.id}/sessions`),
-                                    window.where('startTime', '>=', twoWeeksAgo) // Sessions from the last 14 days
-                                );
-                                
-                                const sessionsSnapshot = await window.getDocs(sessionsQuery);
-                                
-                                // If the user has sessions in the past 14 days, they are active
-                                if (!sessionsSnapshot.empty) {
-                                    activeUsers.push({
-                                        id: user.id,
-                                        username: user.username,
-                                        isFounder: false,
-                                        stats: user.stats || {}
-                                    });
-                                }
-                            } catch (sessionError) {
-                                // If we can't access a user's sessions (maybe due to security rules), 
-                                // skip them but don't break the entire process
-                                console.warn(`Could not access sessions for user ${user.id}:`, sessionError.message);
-                            }
-                        }
-                        
-                        // Sort active users by their total hours to show more active users first
-                        activeUsers.sort((a, b) => {
-                            const bHours = b.stats?.totalHours || 0;
-                            const aHours = a.stats?.totalHours || 0;
-                            return bHours - aHours; // Descending order (higher hours first)
-                        });
-                        
-                        // Limit to 5 suggestions
-                        const limitedActiveUsers = activeUsers.slice(0, 5);
-                        
-                        // Find NoahLim separately
-                        const noahLimUser = allUsers.find(u => u.username === 'noahlim');
-                        
-                        if (noahLimUser && !friendIds.includes(noahLimUser.id)) {
-                            // Add NoahLim at the beginning of suggestions
-                            setSuggestedFriends([{
-                                id: noahLimUser.id,
-                                username: 'noahlim',
-                                isFounder: true,
-                                stats: noahLimUser.stats || {}
-                            }, ...limitedActiveUsers]);
-                        } else {
-                            setSuggestedFriends(limitedActiveUsers);
-                        }
-                    } catch (error) {
-                        console.error("Error fetching suggested friends:", error);
-                        // Show NoahLim as a fallback if there are any errors
-                        setSuggestedFriends([{
-                            id: 'noahlim',
-                            username: 'noahlim',
-                            isFounder: true,
-                            stats: {}
-                        }]);
-                    }
-                };
-
-                fetchSuggestedFriends();
-            }, [db, userId, friends]);
-
-            // Update the fetchSuggestedFriends function to include friends of friends
-            useEffect(() => {
-                if (!db || !userId) return;
-
-                const fetchSuggestedFriends = async () => {
-                    try {
-                        // Calculate the date for 14 days ago (more lenient)
-                        const twoWeeksAgo = window.Timestamp.fromDate(new Date(Date.now() - 14 * 24 * 60 * 60 * 1000));
-                        
-                        // First, get all users to identify NoahLim
-                        const usersRef = window.collection(db, 'users');
-                        const allUsersSnapshot = await window.getDocs(usersRef);
-                        const allUsers = allUsersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                        
-                        // Get friends IDs to exclude them from suggestions
-                        const friendIds = friends.map(f => f.userId);
-                        
-                        // Find users who have used the timer/stopwatch in the past 14 days
-                        // Query all session collections to find recent activity
-                        let activeUsers = [];
-                        
-                        // We'll check each user to see if they have recent sessions
-                        for (const user of allUsers) {
-                            if (user.id === userId || friendIds.includes(user.id) || !user.username || user.username.trim() === '') {
-                                continue; // Skip current user, friends, and users without usernames
+                            // Skip current user, friends, users without usernames, and test accounts
+                            if (user.id === userId || friendIds.includes(user.id) || !user.username || user.username.trim() === '' || user.username.toLowerCase().includes('test')) {
+                                continue;
                             }
                             
                             try {
@@ -4751,16 +4660,23 @@
                                     if (friendOfFriendId !== userId && !friendIds.includes(friendOfFriendId)) {
                                         // Get profile of friend of friend
                                         const friendOfFriendDoc = await window.getDoc(window.doc(db, 'users', friendOfFriendId));
-                                        
+
                                         if (friendOfFriendDoc.exists()) {
+                                            const friendOfFriendUsername = data.user1Id === friendId ? data.user2Username : data.user1Username;
+
+                                            // Skip test accounts
+                                            if (friendOfFriendUsername && friendOfFriendUsername.toLowerCase().includes('test')) {
+                                                continue;
+                                            }
+
                                             const friendOfFriendData = {
                                                 id: friendOfFriendId,
-                                                username: data.user1Id === friendId ? data.user2Username : data.user1Username,
+                                                username: friendOfFriendUsername,
                                                 isFriendOfFriend: true,
                                                 mutualFriend: friend.username, // The friend they're connected through
                                                 stats: friendOfFriendDoc.data().stats || {}
                                             };
-                                            
+
                                             // Only add if not already in the list
                                             if (!friendsOfFriends.some(fof => fof.id === friendOfFriendId)) {
                                                 friendsOfFriends.push(friendOfFriendData);
@@ -5412,8 +5328,30 @@
                                     React.createElement('div', { className: "flex flex-col gap-3" },
                                         React.createElement('div', { className: "flex justify-between items-start" },
                                             React.createElement('div', { className: "flex-grow" },
-                                                React.createElement('p', { className: "text-lg text-calm-800 mb-1", style: { fontWeight: 400 } },
-                                                    `@${friend.username}`
+                                                React.createElement('div', { className: "flex items-center gap-2 mb-1" },
+                                                    React.createElement('p', { className: "text-lg text-calm-800", style: { fontWeight: 400 } },
+                                                        `@${friend.username}`
+                                                    ),
+                                                    // Active indicator when friend is currently working
+                                                    friend.currentTopic && React.createElement('div', {
+                                                        className: "flex items-center gap-1 px-2 py-0.5 bg-green-100 rounded-full",
+                                                        title: "Currently active"
+                                                    },
+                                                        React.createElement('div', {
+                                                            className: "w-2 h-2 bg-green-500 rounded-full animate-pulse"
+                                                        }),
+                                                        React.createElement('span', { className: "text-xs text-green-700", style: { fontWeight: 400 } },
+                                                            "Active"
+                                                        )
+                                                    )
+                                                ),
+                                                // Current topic - more prominent when active
+                                                friend.currentTopic && React.createElement('div', { className: "mb-2 p-2 bg-blue-50 rounded-lg border border-blue-200" },
+                                                    React.createElement('div', { className: "flex items-center gap-2" },
+                                                        React.createElement('span', { className: "text-sm text-blue-600", style: { fontWeight: 400 } },
+                                                            `📚 Working on: ${friend.currentTopic}`
+                                                        )
+                                                    )
                                                 ),
                                                 React.createElement('div', { className: "flex items-center gap-4 text-sm text-calm-600", style: { fontWeight: 300 } },
                                                     React.createElement('span', null,
@@ -5423,13 +5361,10 @@
                                                         `${friend.stats.currentStreak} day streak 🔥`
                                                     )
                                                 ),
-                                                // Today's hours and current topic
+                                                // Today's hours
                                                 React.createElement('div', { className: "flex items-center gap-4 text-sm text-calm-700 mt-1", style: { fontWeight: 300 } },
                                                     React.createElement('span', null,
                                                         `Today: ${friend.stats?.hoursToday?.toFixed(1) || 0}h`
-                                                    ),
-                                                    friend.currentTopic && React.createElement('span', { className: "text-accent-blue", style: { fontWeight: 400, color: '#6B8DD6' } },
-                                                        `📚 ${friend.currentTopic}`
                                                     )
                                                 )
                                             ),
