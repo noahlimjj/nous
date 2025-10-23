@@ -238,6 +238,40 @@
             strokeLinejoin: "round"
         }, React.createElement('circle', { cx: "12", cy: "12", r: "10" }), React.createElement('line', { x1: "12", y1: "16", x2: "12", y2: "12" }), React.createElement('line', { x1: "12", y1: "8", x2: "12.01", y2: "8" }));
 
+        const MoonIcon = () => React.createElement('svg', {
+            xmlns: "http://www.w3.org/2000/svg",
+            width: "24",
+            height: "24",
+            viewBox: "0 0 24 24",
+            fill: "none",
+            stroke: "currentColor",
+            strokeWidth: "2",
+            strokeLinecap: "round",
+            strokeLinejoin: "round"
+        }, React.createElement('path', { d: "M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" }));
+
+        const SunIcon = () => React.createElement('svg', {
+            xmlns: "http://www.w3.org/2000/svg",
+            width: "24",
+            height: "24",
+            viewBox: "0 0 24 24",
+            fill: "none",
+            stroke: "currentColor",
+            strokeWidth: "2",
+            strokeLinecap: "round",
+            strokeLinejoin: "round"
+        },
+            React.createElement('circle', { cx: "12", cy: "12", r: "5" }),
+            React.createElement('line', { x1: "12", y1: "1", x2: "12", y2: "3" }),
+            React.createElement('line', { x1: "12", y1: "21", x2: "12", y2: "23" }),
+            React.createElement('line', { x1: "4.22", y1: "4.22", x2: "5.64", y2: "5.64" }),
+            React.createElement('line', { x1: "18.36", y1: "18.36", x2: "19.78", y2: "19.78" }),
+            React.createElement('line', { x1: "1", y1: "12", x2: "3", y2: "12" }),
+            React.createElement('line', { x1: "21", y1: "12", x2: "23", y2: "12" }),
+            React.createElement('line', { x1: "4.22", y1: "19.78", x2: "5.64", y2: "18.36" }),
+            React.createElement('line', { x1: "18.36", y1: "5.64", x2: "19.78", y2: "4.22" })
+        );
+
         const PencilIcon = () => React.createElement('svg', {
             xmlns: "http://www.w3.org/2000/svg",
             width: "20",
@@ -508,7 +542,7 @@
                 }
             };
 
-            return React.createElement('div', { className: "min-h-screen flex flex-col justify-center items-center p-4", style: { backgroundColor: '#f8f9fb' } },
+            return React.createElement('div', { className: "min-h-screen flex flex-col justify-center items-center p-4" },
                 React.createElement('div', { className: "max-w-md w-full bg-white soft-shadow-lg p-8 space-y-6", style: { borderRadius: '20px' } },
                     React.createElement('div', { className: "flex flex-col items-center" },
                         React.createElement(NousLogo, { size: "large" }),
@@ -568,10 +602,10 @@
 
         const Header = ({ setCurrentPage, currentPage }) => {
             return React.createElement('header', { className: "bg-white sticky top-0 z-10 soft-shadow" },
-                React.createElement('div', { className: "max-w-7xl mx-auto px-4 sm:px-6 lg:px-8" },
-                    React.createElement('div', { className: "flex justify-between items-center h-16" },
-                        React.createElement(NousLogo, { size: "medium" }),
-                        React.createElement('nav', { className: "flex items-center space-x-2" },
+                    React.createElement('div', { className: "max-w-7xl mx-auto px-4 sm:px-6 lg:px-8" },
+                        React.createElement('div', { className: "flex justify-between items-center h-16" },
+                            React.createElement(NousLogo, { size: "medium" }),
+                            React.createElement('nav', { className: "flex items-center space-x-2" },
                             React.createElement('button', {
                                 onClick: () => setCurrentPage('dashboard'),
                                 title: "Dashboard",
@@ -579,14 +613,6 @@
                                 style: { color: currentPage === 'dashboard' ? '#6B8DD6' : '#7d8ca8' }
                             },
                                 React.createElement(HomeIcon)
-                            ),
-                            React.createElement('button', {
-                                onClick: () => setCurrentPage('about'),
-                                title: "About Nous",
-                                className: `p-2 rounded-full transition ${currentPage === 'about' ? 'bg-calm-100 text-accent-blue' : 'text-calm-600 hover:bg-calm-50'}`,
-                                style: { color: currentPage === 'about' ? '#6B8DD6' : '#7d8ca8' }
-                            },
-                                React.createElement(InfoIcon)
                             ),
                             React.createElement('button', {
                                 onClick: () => setCurrentPage('goals'),
@@ -619,6 +645,14 @@
                                 style: { color: currentPage === 'reports' ? '#6B8DD6' : '#7d8ca8' }
                             },
                                 React.createElement(ChartIcon)
+                            ),
+                            React.createElement('button', {
+                                onClick: () => setCurrentPage('about'),
+                                title: "About Nous",
+                                className: `p-2 rounded-full transition ${currentPage === 'about' ? 'bg-calm-100 text-accent-blue' : 'text-calm-600 hover:bg-calm-50'}`,
+                                style: { color: currentPage === 'about' ? '#6B8DD6' : '#7d8ca8' }
+                            },
+                                React.createElement(InfoIcon)
                             ),
                             React.createElement('button', {
                                 onClick: () => setCurrentPage('settings'),
@@ -3144,7 +3178,7 @@
             );
         };
 
-        const Settings = ({ auth, userId, db, userProfile, setNotification }) => {
+        const Settings = ({ auth, userId, db, userProfile, setNotification, isNightMode, setIsNightMode }) => {
             const [username, setUsername] = useState('');
             const [isEditingUsername, setIsEditingUsername] = useState(false);
             const [showResetConfirm, setShowResetConfirm] = useState(false);
@@ -3321,6 +3355,89 @@
                         React.createElement('div', { className: "flex justify-between items-center py-2" },
                             React.createElement('span', { className: "text-gray-600" }, "Friend Code:"),
                             React.createElement('span', { className: "font-mono text-sm text-gray-800" }, userProfile?.friendCode || 'Loading...')
+                        )
+                    )
+                ),
+
+                // Night Mode Section
+                React.createElement('div', { className: "bg-white rounded-lg shadow-sm p-8 mb-6" },
+                    React.createElement('h3', { className: "text-xl text-gray-700 mb-6", style: { fontWeight: 400 } }, "appearance"),
+                    React.createElement('div', { className: "flex justify-center items-center gap-8 py-6" },
+                        React.createElement('button', {
+                            onClick: (e) => {
+                                e.preventDefault();
+                                console.log('Switching to light mode, current isNightMode:', isNightMode);
+                                setIsNightMode(false);
+                                console.log('setIsNightMode(false) called');
+                            },
+                            className: `flex flex-col items-center justify-center p-10 rounded-3xl transition-all duration-300 ${!isNightMode ? 'bg-blue-100 border-3 border-blue-500 shadow-lg' : 'bg-gray-100 border-3 border-transparent hover:border-gray-300 hover:shadow-md'}`,
+                            style: {
+                                cursor: 'pointer',
+                                minWidth: '140px',
+                                minHeight: '140px',
+                                transform: !isNightMode ? 'scale(1.05)' : 'scale(1)',
+                                boxShadow: !isNightMode ? '0 8px 24px rgba(107, 141, 214, 0.3)' : 'none'
+                            }
+                        },
+                            React.createElement('svg', {
+                                xmlns: "http://www.w3.org/2000/svg",
+                                width: "40",
+                                height: "40",
+                                viewBox: "0 0 24 24",
+                                fill: "none",
+                                stroke: !isNightMode ? '#3b82f6' : '#9ca3af',
+                                strokeWidth: "2.5",
+                                strokeLinecap: "round",
+                                strokeLinejoin: "round",
+                                style: { marginBottom: '16px' }
+                            },
+                                React.createElement('circle', { cx: "12", cy: "12", r: "5" }),
+                                React.createElement('line', { x1: "12", y1: "1", x2: "12", y2: "3" }),
+                                React.createElement('line', { x1: "12", y1: "21", x2: "12", y2: "23" }),
+                                React.createElement('line', { x1: "4.22", y1: "4.22", x2: "5.64", y2: "5.64" }),
+                                React.createElement('line', { x1: "18.36", y1: "18.36", x2: "19.78", y2: "19.78" }),
+                                React.createElement('line', { x1: "1", y1: "12", x2: "3", y2: "12" }),
+                                React.createElement('line', { x1: "21", y1: "12", x2: "23", y2: "12" }),
+                                React.createElement('line', { x1: "4.22", y1: "19.78", x2: "5.64", y2: "18.36" }),
+                                React.createElement('line', { x1: "18.36", y1: "5.64", x2: "19.78", y2: "4.22" })
+                            ),
+                            React.createElement('span', {
+                                className: "text-base font-semibold",
+                                style: { color: !isNightMode ? '#3b82f6' : '#6b7280' }
+                            }, "Light Mode")
+                        ),
+                        React.createElement('button', {
+                            onClick: (e) => {
+                                e.preventDefault();
+                                console.log('Switching to night mode, current isNightMode:', isNightMode);
+                                setIsNightMode(true);
+                                console.log('setIsNightMode(true) called');
+                            },
+                            className: `flex flex-col items-center justify-center p-10 rounded-3xl transition-all duration-300 ${isNightMode ? 'bg-gray-900 border-3 border-blue-500 shadow-lg' : 'bg-gray-100 border-3 border-transparent hover:border-gray-300 hover:shadow-md'}`,
+                            style: {
+                                cursor: 'pointer',
+                                minWidth: '140px',
+                                minHeight: '140px',
+                                transform: isNightMode ? 'scale(1.05)' : 'scale(1)',
+                                boxShadow: isNightMode ? '0 8px 24px rgba(59, 130, 246, 0.4)' : 'none'
+                            }
+                        },
+                            React.createElement('svg', {
+                                xmlns: "http://www.w3.org/2000/svg",
+                                width: "40",
+                                height: "40",
+                                viewBox: "0 0 24 24",
+                                fill: "none",
+                                stroke: isNightMode ? '#60a5fa' : '#9ca3af',
+                                strokeWidth: "2.5",
+                                strokeLinecap: "round",
+                                strokeLinejoin: "round",
+                                style: { marginBottom: '16px' }
+                            }, React.createElement('path', { d: "M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" })),
+                            React.createElement('span', {
+                                className: "text-base font-semibold",
+                                style: { color: isNightMode ? '#60a5fa' : '#6b7280' }
+                            }, "Dark Mode")
                         )
                     )
                 ),
@@ -5962,6 +6079,36 @@
             const [activeTimers, setActiveTimers] = useState({});
             const timerIntervals = useRef({});
 
+            // Night mode state
+            const [isNightMode, setIsNightMode] = useState(() => {
+                const saved = localStorage.getItem('nightMode');
+                console.log('Initial night mode from localStorage:', saved);
+                return saved === 'true';
+            });
+
+            // Apply night mode to body
+            useEffect(() => {
+                console.log('=== Night mode useEffect triggered ===');
+                console.log('isNightMode value:', isNightMode);
+                console.log('isNightMode type:', typeof isNightMode);
+                console.log('Body element:', document.body);
+                console.log('Current body classes before change:', document.body.className);
+
+                if (isNightMode) {
+                    document.body.classList.add('night-mode');
+                    console.log('✓ Added night-mode class');
+                } else {
+                    document.body.classList.remove('night-mode');
+                    console.log('✓ Removed night-mode class');
+                }
+
+                localStorage.setItem('nightMode', isNightMode);
+                console.log('Current body classes after change:', document.body.className);
+                console.log('Has night-mode class?', document.body.classList.contains('night-mode'));
+                console.log('Computed background color:', window.getComputedStyle(document.body).backgroundColor);
+                console.log('=== End useEffect ===');
+            }, [isNightMode]);
+
             // Listen for Firebase SDK ready event
             useEffect(() => {
                 if (window.firebaseSDKReady) {
@@ -6193,7 +6340,7 @@
                 );
             }
 
-            return React.createElement('div', { className: "min-h-screen font-sans", style: { backgroundColor: '#f8f9fb' } },
+            return React.createElement('div', { className: "min-h-screen font-sans" },
                 // Username Setup Modal
                 showUsernameSetup && React.createElement('div', {
                     className: "fixed inset-0 bg-black bg-opacity-60 flex justify-center items-center z-50",
@@ -6286,7 +6433,7 @@
                             currentPage === 'leaderboard' && React.createElement(Leaderboard, { db, userId, setNotification, userProfile }),
                             currentPage === 'reports' && React.createElement(Reports, { db, userId, setNotification }),
                             currentPage === 'about' && React.createElement(About),
-                            currentPage === 'settings' && React.createElement(Settings, { auth, userId, db, userProfile, setNotification })
+                            currentPage === 'settings' && React.createElement(Settings, { auth, userId, db, userProfile, setNotification, isNightMode, setIsNightMode })
                         )
                     )
             );
