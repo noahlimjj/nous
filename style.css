@@ -453,6 +453,24 @@ body.night-mode .text-sm {
     color: #cbd5e1 !important;
 }
 
+/* Improve install section visibility in dark mode */
+body.night-mode .bg-gradient-to-br.from-blue-50 {
+    background: linear-gradient(to bottom right, #1e3a5f, #2d1b4e) !important;
+}
+
+body.night-mode .text-gray-800 {
+    color: #f1f5f9 !important;
+}
+
+body.night-mode .text-gray-700 {
+    color: #e2e8f0 !important;
+}
+
+body.night-mode strong {
+    color: #60a5fa !important;
+    font-weight: 600 !important;
+}
+
 /* Night mode toggle button hover effect */
 .night-mode-toggle:hover {
     transform: scale(1.1);
