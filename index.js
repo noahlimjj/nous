@@ -3362,7 +3362,7 @@
                 // Night Mode Section
                 React.createElement('div', { className: "bg-white rounded-lg shadow-sm p-8 mb-6" },
                     React.createElement('h3', { className: "text-xl text-gray-700 mb-6", style: { fontWeight: 400 } }, "appearance"),
-                    React.createElement('div', { className: "flex justify-center items-center gap-8 py-6" },
+                    React.createElement('div', { className: "flex justify-center items-center gap-6 py-6" },
                         React.createElement('button', {
                             onClick: (e) => {
                                 e.preventDefault();
@@ -3370,19 +3370,19 @@
                                 setIsNightMode(false);
                                 console.log('setIsNightMode(false) called');
                             },
-                            className: `flex flex-col items-center justify-center p-10 rounded-3xl transition-all duration-300 ${!isNightMode ? 'bg-blue-100 border-3 border-blue-500 shadow-lg' : 'bg-gray-100 border-3 border-transparent hover:border-gray-300 hover:shadow-md'}`,
+                            className: `flex flex-col items-center justify-center p-8 rounded-3xl transition-all duration-300 ${!isNightMode ? 'bg-blue-100 border-3 border-blue-500 shadow-lg' : 'bg-gray-100 border-3 border-transparent hover:border-gray-300 hover:shadow-md'}`,
                             style: {
                                 cursor: 'pointer',
-                                minWidth: '140px',
-                                minHeight: '140px',
+                                minWidth: '110px',
+                                minHeight: '110px',
                                 transform: !isNightMode ? 'scale(1.05)' : 'scale(1)',
                                 boxShadow: !isNightMode ? '0 8px 24px rgba(107, 141, 214, 0.3)' : 'none'
                             }
                         },
                             React.createElement('svg', {
                                 xmlns: "http://www.w3.org/2000/svg",
-                                width: "40",
-                                height: "40",
+                                width: "32",
+                                height: "32",
                                 viewBox: "0 0 24 24",
                                 fill: "none",
                                 stroke: !isNightMode ? '#3b82f6' : '#9ca3af',
@@ -3402,7 +3402,7 @@
                                 React.createElement('line', { x1: "18.36", y1: "5.64", x2: "19.78", y2: "4.22" })
                             ),
                             React.createElement('span', {
-                                className: "text-base font-semibold",
+                                className: "text-sm font-semibold",
                                 style: { color: !isNightMode ? '#3b82f6' : '#6b7280' }
                             }, "Light Mode")
                         ),
@@ -3413,19 +3413,19 @@
                                 setIsNightMode(true);
                                 console.log('setIsNightMode(true) called');
                             },
-                            className: `flex flex-col items-center justify-center p-10 rounded-3xl transition-all duration-300 ${isNightMode ? 'bg-gray-900 border-3 border-blue-500 shadow-lg' : 'bg-gray-100 border-3 border-transparent hover:border-gray-300 hover:shadow-md'}`,
+                            className: `flex flex-col items-center justify-center p-8 rounded-3xl transition-all duration-300 ${isNightMode ? 'bg-gray-900 border-3 border-blue-500 shadow-lg' : 'bg-gray-100 border-3 border-transparent hover:border-gray-300 hover:shadow-md'}`,
                             style: {
                                 cursor: 'pointer',
-                                minWidth: '140px',
-                                minHeight: '140px',
+                                minWidth: '110px',
+                                minHeight: '110px',
                                 transform: isNightMode ? 'scale(1.05)' : 'scale(1)',
                                 boxShadow: isNightMode ? '0 8px 24px rgba(59, 130, 246, 0.4)' : 'none'
                             }
                         },
                             React.createElement('svg', {
                                 xmlns: "http://www.w3.org/2000/svg",
-                                width: "40",
-                                height: "40",
+                                width: "32",
+                                height: "32",
                                 viewBox: "0 0 24 24",
                                 fill: "none",
                                 stroke: isNightMode ? '#60a5fa' : '#9ca3af',
@@ -3435,7 +3435,7 @@
                                 style: { marginBottom: '16px' }
                             }, React.createElement('path', { d: "M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" })),
                             React.createElement('span', {
-                                className: "text-base font-semibold",
+                                className: "text-sm font-semibold",
                                 style: { color: isNightMode ? '#60a5fa' : '#6b7280' }
                             }, "Dark Mode")
                         )
