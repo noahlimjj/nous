@@ -91,7 +91,11 @@
             strokeWidth: "2",
             strokeLinecap: "round",
             strokeLinejoin: "round"
-        }, React.createElement('path', { d: "M3 3v18h18" }), React.createElement('path', { d: "M18.7 8a6 6 0 0 0-6 0" }), React.createElement('path', { d: "M12.7 14a6 6 0 0 0-6 0" }), React.createElement('path', { d: "m20.7 17.5-8-8" }));
+        },
+            React.createElement('line', { x1: "12", y1: "20", x2: "12", y2: "10" }),
+            React.createElement('line', { x1: "18", y1: "20", x2: "18", y2: "4" }),
+            React.createElement('line', { x1: "6", y1: "20", x2: "6", y2: "16" })
+        );
 
         const HomeIcon = () => React.createElement('svg', {
             xmlns: "http://www.w3.org/2000/svg",
@@ -152,7 +156,56 @@
             strokeWidth: "2",
             strokeLinecap: "round",
             strokeLinejoin: "round"
-        }, React.createElement('circle', { cx: "12", cy: "12", r: "3" }), React.createElement('path', { d: "M12 1v6m0 6v6m-6-6h6m6 0h6" }));
+        },
+            React.createElement('path', { d: "M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" }),
+            React.createElement('circle', { cx: "12", cy: "12", r: "3" })
+        );
+
+        const PenIcon = () => React.createElement('svg', {
+            xmlns: "http://www.w3.org/2000/svg",
+            width: "20",
+            height: "20",
+            viewBox: "0 0 24 24",
+            fill: "none",
+            stroke: "currentColor",
+            strokeWidth: "2",
+            strokeLinecap: "round",
+            strokeLinejoin: "round"
+        },
+            React.createElement('path', { d: "M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" })
+        );
+
+        const EraserIcon = () => React.createElement('svg', {
+            xmlns: "http://www.w3.org/2000/svg",
+            width: "20",
+            height: "20",
+            viewBox: "0 0 24 24",
+            fill: "none",
+            stroke: "currentColor",
+            strokeWidth: "2",
+            strokeLinecap: "round",
+            strokeLinejoin: "round"
+        },
+            React.createElement('path', { d: "m7 21-4.3-4.3c-1-1-1-2.5 0-3.4l9.6-9.6c1-1 2.5-1 3.4 0l5.6 5.6c1 1 1 2.5 0 3.4L13 21" }),
+            React.createElement('path', { d: "M22 21H7" }),
+            React.createElement('path', { d: "m5 11 9 9" })
+        );
+
+        const TextIcon = () => React.createElement('svg', {
+            xmlns: "http://www.w3.org/2000/svg",
+            width: "20",
+            height: "20",
+            viewBox: "0 0 24 24",
+            fill: "none",
+            stroke: "currentColor",
+            strokeWidth: "2",
+            strokeLinecap: "round",
+            strokeLinejoin: "round"
+        },
+            React.createElement('polyline', { points: "4 7 4 4 20 4 20 7" }),
+            React.createElement('line', { x1: "9", y1: "20", x2: "15", y2: "20" }),
+            React.createElement('line', { x1: "12", y1: "4", x2: "12", y2: "20" })
+        );
 
         const NotebookIcon = () => React.createElement('svg', {
             xmlns: "http://www.w3.org/2000/svg",
@@ -1027,7 +1080,15 @@
 
             // Listen for chat messages for active shared timers
             useEffect(() => {
-                if (!db || !userId || sharedTimers.length === 0) return;
+                if (!db || !userId || sharedTimers.length === 0) {
+                    // Clean up chat messages when there are no active sessions
+                    setChatMessages({});
+                    setUnreadMessages({});
+                    return;
+                }
+
+                // Create a stable set of active timer IDs for filtering
+                const activeTimerIds = new Set(sharedTimers.map(t => t.id));
 
                 // Query by participants (matches security rules)
                 // Security rules check: request.auth.uid in resource.data.participants
@@ -1041,14 +1102,15 @@
                         // Get all messages where user is a participant
                         let allMessages = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
-                        // Group messages by timerId
+                        // Group messages by timerId - ONLY for active timers
                         const messagesByTimer = {};
                         sharedTimers.forEach(timer => {
                             messagesByTimer[timer.id] = [];
                         });
 
                         allMessages.forEach(msg => {
-                            if (messagesByTimer[msg.timerId] !== undefined) {
+                            // Only include messages for currently active sessions
+                            if (activeTimerIds.has(msg.timerId) && messagesByTimer[msg.timerId] !== undefined) {
                                 messagesByTimer[msg.timerId].push(msg);
                             }
                         });
@@ -1064,24 +1126,33 @@
                         setChatMessages(messagesByTimer);
 
                         // Count unread messages for each timer
-                        const unreadCounts = {};
-                        Object.keys(messagesByTimer).forEach(timerId => {
-                            const lastRead = lastReadTime[timerId] || 0;
-                            unreadCounts[timerId] = messagesByTimer[timerId].filter(msg => {
-                                const msgTime = msg.createdAt ? msg.createdAt.toMillis() : 0;
-                                return msgTime > lastRead && msg.senderId !== userId;
-                            }).length;
+                        // Use functional update to get current lastReadTime without it being a dependency
+                        setLastReadTime(currentLastReadTime => {
+                            const unreadCounts = {};
+                            Object.keys(messagesByTimer).forEach(timerId => {
+                                const lastRead = currentLastReadTime[timerId] || 0;
+                                unreadCounts[timerId] = messagesByTimer[timerId].filter(msg => {
+                                    const msgTime = msg.createdAt ? msg.createdAt.toMillis() : 0;
+                                    return msgTime > lastRead && msg.senderId !== userId;
+                                }).length;
+                            });
+                            setUnreadMessages(unreadCounts);
+                            return currentLastReadTime; // Don't modify lastReadTime here
                         });
-                        setUnreadMessages(unreadCounts);
                     }, (error) => {
                         console.error("Error listening to chat:", error);
+                        // Don't retry immediately to avoid error loops
                     });
 
-                    return () => unsubscribe && unsubscribe();
+                    return () => {
+                        if (unsubscribe) {
+                            unsubscribe();
+                        }
+                    };
                 } catch (error) {
                     console.error("Error setting up chat listener:", error);
                 }
-            }, [db, userId, JSON.stringify(sharedTimers.map(t => t.id)), lastReadTime]);
+            }, [db, userId, sharedTimers.length, sharedTimers.map(t => t.id).sort().join(',')]);
 
             // Auto-scroll chat to bottom when messages change
             useEffect(() => {
@@ -1096,6 +1167,9 @@
             useEffect(() => {
                 if (!db || !userId || sharedTimers.length === 0) return;
 
+                // Create a stable set of active timer IDs for filtering
+                const activeTimerIds = new Set(sharedTimers.map(t => t.id));
+
                 const pingQuery = window.query(
                     window.collection(db, 'sessionPings'),
                     window.where('participants', 'array-contains', userId)
@@ -1106,6 +1180,9 @@
                         snapshot.docChanges().forEach(change => {
                             if (change.type === 'added') {
                                 const pingData = { id: change.doc.id, ...change.doc.data() };
+
+                                // Only process pings for active sessions
+                                if (!activeTimerIds.has(pingData.timerId)) return;
 
                                 // Only show ping if it's from someone else and recent (within last 10 seconds)
                                 if (pingData.senderId !== userId && pingData.createdAt) {
@@ -1139,13 +1216,18 @@
                         });
                     }, (error) => {
                         console.error("Error listening to pings:", error);
+                        // Don't retry immediately to avoid error loops
                     });
 
-                    return () => unsubscribe && unsubscribe();
+                    return () => {
+                        if (unsubscribe) {
+                            unsubscribe();
+                        }
+                    };
                 } catch (error) {
                     console.error("Error setting up ping listener:", error);
                 }
-            }, [db, userId, JSON.stringify(sharedTimers.map(t => t.id))]);
+            }, [db, userId, sharedTimers.length, sharedTimers.map(t => t.id).sort().join(',')]);
 
             // Listen for active timer changes from Firebase
             useEffect(() => {
@@ -4359,6 +4441,453 @@
             );
         };
 
+        const Notebook = ({ db, userId, setNotification }) => {
+            const [noteText, setNoteText] = useState('');
+            const [todos, setTodos] = useState([]);
+            const [newTodo, setNewTodo] = useState('');
+            const [drawingTool, setDrawingTool] = useState('pen'); // 'pen', 'eraser', or 'text'
+            const [isDrawing, setIsDrawing] = useState(false);
+            const [isPanning, setIsPanning] = useState(false);
+            const canvasRef = useRef(null);
+            const contextRef = useRef(null);
+            const [isLoadingNotes, setIsLoadingNotes] = useState(true);
+            const [zoom, setZoom] = useState(1);
+            const [panX, setPanX] = useState(0);
+            const [panY, setPanY] = useState(0);
+            const lastPanPoint = useRef({ x: 0, y: 0 });
+            const [textElements, setTextElements] = useState([]);
+            const [isTyping, setIsTyping] = useState(false);
+            const [typingPosition, setTypingPosition] = useState(null);
+            const [currentText, setCurrentText] = useState('');
+
+            const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+
+            // Load notes and todos from Firebase
+            useEffect(() => {
+                if (!db || !userId) return;
+
+                const notebookDocRef = window.doc(db, `/artifacts/${appId}/users/${userId}/notebook/data`);
+
+                const unsubscribe = window.onSnapshot(notebookDocRef, (doc) => {
+                    if (doc.exists()) {
+                        const data = doc.data();
+                        setNoteText(data.noteText || '');
+                        setTodos(data.todos || []);
+                        if (data.canvasData && canvasRef.current) {
+                            const canvas = canvasRef.current;
+                            const context = canvas.getContext('2d');
+                            const img = new Image();
+                            img.onload = () => {
+                                context.clearRect(0, 0, canvas.width, canvas.height);
+                                context.drawImage(img, 0, 0);
+                            };
+                            img.src = data.canvasData;
+                        }
+                    }
+                    setIsLoadingNotes(false);
+                }, (error) => {
+                    console.error("Error fetching notebook:", error);
+                    setIsLoadingNotes(false);
+                });
+
+                return () => unsubscribe();
+            }, [db, userId, appId]);
+
+            // Initialize canvas
+            useEffect(() => {
+                if (!canvasRef.current) return;
+
+                const canvas = canvasRef.current;
+
+                // Use setTimeout to ensure canvas is fully rendered
+                const initCanvas = () => {
+                    const dpr = window.devicePixelRatio || 1;
+                    const rect = canvas.getBoundingClientRect();
+
+                    // Set canvas size for high DPI displays
+                    canvas.width = rect.width * dpr;
+                    canvas.height = 400 * dpr;
+
+                    // Set CSS size
+                    canvas.style.width = rect.width + 'px';
+                    canvas.style.height = '400px';
+
+                    const context = canvas.getContext('2d');
+                    if (context) {
+                        // Scale context to match device pixel ratio
+                        context.scale(dpr, dpr);
+                        context.lineCap = 'round';
+                        context.lineJoin = 'round';
+                        context.strokeStyle = 'black';
+                        context.lineWidth = 2;
+                        contextRef.current = context;
+
+                        console.log('Canvas initialized:', canvas.width, 'x', canvas.height, 'DPR:', dpr);
+                    }
+                };
+
+                // Small delay to ensure DOM is ready
+                setTimeout(initCanvas, 100);
+            }, []);
+
+            // Add wheel event listener with passive: false to prevent scroll
+            useEffect(() => {
+                const canvas = canvasRef.current;
+                if (!canvas) return;
+
+                const wheelHandler = (e) => {
+                    e.preventDefault();
+                    const delta = e.deltaY > 0 ? 0.9 : 1.1;
+                    const newZoom = Math.max(0.1, Math.min(10, zoom * delta));
+                    setZoom(newZoom);
+                };
+
+                canvas.addEventListener('wheel', wheelHandler, { passive: false });
+
+                return () => {
+                    canvas.removeEventListener('wheel', wheelHandler);
+                };
+            }, [zoom]);
+
+            // Save to Firebase
+            const saveToFirebase = async (updates) => {
+                try {
+                    const notebookDocRef = window.doc(db, `/artifacts/${appId}/users/${userId}/notebook/data`);
+                    await window.setDoc(notebookDocRef, {
+                        ...updates,
+                        updatedAt: window.Timestamp.now()
+                    }, { merge: true });
+                } catch (error) {
+                    console.error("Error saving notebook:", error);
+                    setNotification({ type: 'error', message: 'Failed to save changes.' });
+                }
+            };
+
+            // Get mouse position relative to canvas
+            const getMousePos = (e) => {
+                const canvas = canvasRef.current;
+                if (!canvas) return { x: 0, y: 0 };
+
+                const rect = canvas.getBoundingClientRect();
+                return {
+                    x: e.clientX - rect.left,
+                    y: e.clientY - rect.top
+                };
+            };
+
+            // Redraw canvas with current transform
+            const redrawCanvas = () => {
+                const context = contextRef.current;
+                const canvas = canvasRef.current;
+                if (!context || !canvas) return;
+
+                context.save();
+                context.setTransform(zoom, 0, 0, zoom, panX, panY);
+                context.restore();
+            };
+
+            // Drawing functions
+            const startDrawing = ({ nativeEvent }) => {
+                // Focus canvas for keyboard input
+                if (canvasRef.current) {
+                    canvasRef.current.focus();
+                }
+
+                if (nativeEvent.shiftKey) {
+                    // Start panning
+                    setIsPanning(true);
+                    lastPanPoint.current = { x: nativeEvent.offsetX, y: nativeEvent.offsetY };
+                    return;
+                }
+
+                const pos = screenToCanvas(nativeEvent.offsetX, nativeEvent.offsetY);
+
+                // Handle text tool
+                if (drawingTool === 'text') {
+                    setIsTyping(true);
+                    setTypingPosition({ x: pos.x, y: pos.y });
+                    setCurrentText('');
+                    return;
+                }
+
+                // Initialize context if not ready
+                if (!contextRef.current && canvasRef.current) {
+                    const ctx = canvasRef.current.getContext('2d');
+                    if (ctx) {
+                        ctx.lineCap = 'round';
+                        ctx.lineJoin = 'round';
+                        ctx.strokeStyle = 'black';
+                        ctx.lineWidth = 2;
+                        contextRef.current = ctx;
+                        console.log('Canvas context initialized on first draw');
+                    }
+                }
+
+                if (!contextRef.current) {
+                    console.error('Canvas context not available');
+                    return;
+                }
+
+                contextRef.current.save();
+                contextRef.current.setTransform(zoom, 0, 0, zoom, panX, panY);
+                contextRef.current.beginPath();
+                contextRef.current.moveTo(pos.x, pos.y);
+                contextRef.current.restore();
+                setIsDrawing(true);
+            };
+
+            const draw = ({ nativeEvent }) => {
+                if (isPanning) {
+                    const dx = nativeEvent.offsetX - lastPanPoint.current.x;
+                    const dy = nativeEvent.offsetY - lastPanPoint.current.y;
+                    setPanX(prev => prev + dx);
+                    setPanY(prev => prev + dy);
+                    lastPanPoint.current = { x: nativeEvent.offsetX, y: nativeEvent.offsetY };
+                    redrawCanvas();
+                    return;
+                }
+
+                if (!isDrawing) return;
+
+                // Initialize context if not ready
+                if (!contextRef.current && canvasRef.current) {
+                    const ctx = canvasRef.current.getContext('2d');
+                    if (ctx) {
+                        ctx.lineCap = 'round';
+                        ctx.lineJoin = 'round';
+                        ctx.strokeStyle = 'black';
+                        ctx.lineWidth = 2;
+                        contextRef.current = ctx;
+                    }
+                }
+
+                if (!contextRef.current) return;
+
+                const pos = screenToCanvas(nativeEvent.offsetX, nativeEvent.offsetY);
+
+                contextRef.current.save();
+                contextRef.current.setTransform(zoom, 0, 0, zoom, panX, panY);
+
+                if (drawingTool === 'eraser') {
+                    contextRef.current.globalCompositeOperation = 'destination-out';
+                    contextRef.current.lineWidth = 20 / zoom;
+                } else {
+                    contextRef.current.globalCompositeOperation = 'source-over';
+                    contextRef.current.lineWidth = 2 / zoom;
+                }
+
+                contextRef.current.lineTo(pos.x, pos.y);
+                contextRef.current.stroke();
+                contextRef.current.restore();
+            };
+
+            const stopDrawing = () => {
+                if (isPanning) {
+                    setIsPanning(false);
+                    return;
+                }
+
+                if (isDrawing && contextRef.current) {
+                    contextRef.current.closePath();
+                    setIsDrawing(false);
+
+                    // Save canvas to Firebase
+                    const canvas = canvasRef.current;
+                    if (canvas) {
+                        const canvasData = canvas.toDataURL();
+                        saveToFirebase({ canvasData, zoom, panX, panY });
+                    }
+                }
+            };
+
+            // Zoom functions
+            const zoomIn = () => {
+                setZoom(prev => Math.min(10, prev * 1.2));
+            };
+
+            const zoomOut = () => {
+                setZoom(prev => Math.max(0.1, prev / 1.2));
+            };
+
+            const resetZoom = () => {
+                setZoom(1);
+                setPanX(0);
+                setPanY(0);
+            };
+
+            // Text handling functions
+            const handleCanvasKeyDown = (e) => {
+                if (!isTyping) return;
+
+                if (e.key === 'Enter') {
+                    // Finish typing
+                    if (currentText.trim() && typingPosition) {
+                        const context = contextRef.current;
+                        if (context) {
+                            context.save();
+                            context.setTransform(zoom, 0, 0, zoom, panX, panY);
+                            context.font = `${16 / zoom}px Satoshi, sans-serif`;
+                            context.fillStyle = 'black';
+                            context.fillText(currentText, typingPosition.x, typingPosition.y);
+                            context.restore();
+
+                            const newTextElement = {
+                                text: currentText,
+                                x: typingPosition.x,
+                                y: typingPosition.y
+                            };
+                            setTextElements(prev => [...prev, newTextElement]);
+
+                            // Save canvas to Firebase
+                            const canvas = canvasRef.current;
+                            if (canvas) {
+                                const canvasData = canvas.toDataURL();
+                                saveToFirebase({ canvasData, zoom, panX, panY });
+                            }
+                        }
+                    }
+                    setIsTyping(false);
+                    setCurrentText('');
+                    setTypingPosition(null);
+                } else if (e.key === 'Escape') {
+                    setIsTyping(false);
+                    setCurrentText('');
+                    setTypingPosition(null);
+                } else if (e.key === 'Backspace') {
+                    setCurrentText(prev => prev.slice(0, -1));
+                } else if (e.key.length === 1) {
+                    setCurrentText(prev => prev + e.key);
+                }
+            };
+
+            const clearCanvas = () => {
+                const canvas = canvasRef.current;
+                if (!canvas) return;
+
+                const context = canvas.getContext('2d');
+                if (!context) return;
+
+                context.clearRect(0, 0, canvas.width, canvas.height);
+                saveToFirebase({ canvasData: '' });
+            };
+
+            // Todo functions
+            const handleAddTodo = () => {
+                if (!newTodo.trim()) return;
+
+                const updatedTodos = [...todos, { id: Date.now().toString(), text: newTodo, completed: false }];
+                setTodos(updatedTodos);
+                setNewTodo('');
+                saveToFirebase({ todos: updatedTodos, noteText });
+            };
+
+            const handleToggleTodo = (id) => {
+                const updatedTodos = todos.map(todo =>
+                    todo.id === id ? { ...todo, completed: !todo.completed } : todo
+                );
+                setTodos(updatedTodos);
+                saveToFirebase({ todos: updatedTodos, noteText });
+            };
+
+            const handleDeleteTodo = (id) => {
+                const updatedTodos = todos.filter(todo => todo.id !== id);
+                setTodos(updatedTodos);
+                saveToFirebase({ todos: updatedTodos, noteText });
+            };
+
+            // Note text handler with debounced save
+            const handleNoteChange = (e) => {
+                const text = e.target.value;
+                setNoteText(text);
+            };
+
+            useEffect(() => {
+                const timeoutId = setTimeout(() => {
+                    if (noteText !== undefined) {
+                        saveToFirebase({ noteText, todos });
+                    }
+                }, 1000);
+
+                return () => clearTimeout(timeoutId);
+            }, [noteText]);
+
+            if (isLoadingNotes) {
+                return React.createElement('div', null,
+                    React.createElement('h2', { className: "text-3xl text-calm-800 mb-2", style: { fontWeight: 300 } }, "notebook"),
+                    React.createElement('div', { className: "bg-white rounded-xl soft-shadow p-6 mb-6" },
+                        React.createElement('div', { className: "flex justify-center items-center" },
+                            React.createElement(LoaderIcon),
+                            React.createElement('span', { className: "ml-2" }, "loading notebook...")
+                        )
+                    )
+                );
+            }
+
+            return React.createElement('div', null,
+                React.createElement('h2', { className: "text-3xl text-calm-800 mb-2", style: { fontWeight: 300 } }, "notebook"),
+
+                React.createElement('div', { className: "bg-white rounded-xl soft-shadow p-6 mb-6" },
+
+                // To-do list section
+                React.createElement('div', { className: "mb-6" },
+                    React.createElement('h4', { className: "text-lg text-calm-700 mb-2", style: { fontWeight: 400 } }, "to-do list"),
+                    React.createElement('div', { className: "flex gap-2 mb-3" },
+                        React.createElement('input', {
+                            type: "text",
+                            value: newTodo,
+                            onChange: (e) => setNewTodo(e.target.value),
+                            onKeyPress: (e) => e.key === 'Enter' && handleAddTodo(),
+                            placeholder: "add a to-do item...",
+                            className: "flex-grow px-4 py-2 border border-calm-300 rounded-lg focus:ring-2 focus:ring-calm-400 focus:outline-none transition",
+                            style: { fontWeight: 300 }
+                        }),
+                        React.createElement('button', {
+                            onClick: handleAddTodo,
+                            className: "px-4 py-2 bg-calm-600 text-white rounded-lg hover:bg-calm-700 transition",
+                            style: { fontWeight: 400 }
+                        }, "+ add")
+                    ),
+                    React.createElement('div', { className: "space-y-2" },
+                        todos.length > 0 ? todos.map(todo =>
+                            React.createElement('div', {
+                                key: todo.id,
+                                className: "flex items-center gap-3 p-2 rounded-lg hover:bg-calm-50 transition group"
+                            },
+                                React.createElement('input', {
+                                    type: "checkbox",
+                                    checked: todo.completed,
+                                    onChange: () => handleToggleTodo(todo.id),
+                                    className: "w-5 h-5 rounded border-calm-400 cursor-pointer"
+                                }),
+                                React.createElement('span', {
+                                    className: `flex-grow text-calm-800 ${todo.completed ? 'line-through text-calm-500' : ''}`,
+                                    style: { fontWeight: 300 }
+                                }, todo.text),
+                                React.createElement('button', {
+                                    onClick: () => handleDeleteTodo(todo.id),
+                                    className: "opacity-0 group-hover:opacity-100 text-calm-400 hover:text-red-500 transition",
+                                    style: { fontSize: '0.9rem' }
+                                }, "×")
+                            )
+                        ) : React.createElement('p', { className: "text-calm-500 text-sm", style: { fontWeight: 300 } }, "no to-do items yet")
+                    )
+                ),
+
+                // Notes section
+                React.createElement('div', { className: "mb-6" },
+                    React.createElement('h4', { className: "text-lg text-calm-700 mb-2", style: { fontWeight: 400 } }, "notes"),
+                    React.createElement('textarea', {
+                        value: noteText,
+                        onChange: handleNoteChange,
+                        placeholder: "write anything here...",
+                        className: "w-full px-4 py-3 border border-calm-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-calm-400 focus:outline-none transition",
+                        style: { minHeight: '150px', fontWeight: 300, resize: 'both' }
+                    })
+                )
+                )
+            );
+        };
+
         const Goals = ({ db, userId, setNotification }) => {
             const [goals, setGoals] = useState([]);
             const [newGoalText, setNewGoalText] = useState({ daily: '', weekly: '', monthly: '', yearly: '' });
@@ -4442,7 +4971,10 @@
             }
 
             return React.createElement('div', { className: "max-w-4xl mx-auto p-4 sm:p-6 lg:p-8" },
-                React.createElement('h2', { className: "text-3xl text-calm-800 mb-2", style: { fontWeight: 300 } }, "my goals"),
+                // Notebook section
+                React.createElement(Notebook, { db, userId, setNotification }),
+
+                React.createElement('h2', { className: "text-3xl text-calm-800 mb-2", style: { fontWeight: 300 } }, "goals"),
                 React.createElement('p', { className: "text-calm-600 mb-6", style: { fontWeight: 300 } }, "set and track your goals"),
 
                 React.createElement('div', { className: "space-y-6" },
