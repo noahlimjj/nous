@@ -478,15 +478,15 @@ body.night-mode a {
     letter-spacing: 0.025em; /* 2.5% letter spacing */
 }
 
-/* Brighter and bolder nous logo in dark mode */
+/* Brighter nous logo in dark mode - same size as light mode */
 body.night-mode .nous-title {
     color: #ffffff !important;
-    font-weight: 400 !important;
+    font-weight: 300 !important;
     text-shadow:
         0 0 40px rgba(255, 255, 255, 0.5),
         0 0 20px rgba(255, 255, 255, 0.3),
         0 0 10px rgba(255, 255, 255, 0.2);
-    letter-spacing: 0.06em;
+    letter-spacing: 0.025em;
 }
 
 /* Regular weight for all headers */
