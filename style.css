@@ -11,18 +11,107 @@ body {
     background-color: #f8f9fb;
 }
 
-/* Night Mode Styles - Even deeper, darker theme */
+/* Night Mode Styles - Even deeper, darker theme with stars */
 body.night-mode {
     background-color: #020510 !important;
     color: #e2e8f0 !important;
+    position: relative;
+    overflow-x: hidden;
 }
 
+/* Starry background effect - Layer 1 (many small stars) */
+body.night-mode::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: transparent;
+    background-image:
+        radial-gradient(circle, #fff 0.5px, transparent 0.5px),
+        radial-gradient(circle, #fff 0.8px, transparent 0.8px),
+        radial-gradient(circle, #fff 0.6px, transparent 0.6px);
+    background-size: 250px 250px, 350px 350px, 450px 450px;
+    background-position: 0 0, 80px 120px, 180px 50px;
+    animation: twinkle1 40s linear infinite;
+    z-index: 9999;
+    pointer-events: none;
+}
+
+/* Starry background effect - Layer 2 (larger bright stars with glow) */
+body.night-mode::after {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-image:
+        radial-gradient(circle, rgba(255, 255, 255, 0.9) 1px, transparent 1px),
+        radial-gradient(circle, rgba(255, 255, 255, 0.8) 1.5px, transparent 1.5px),
+        radial-gradient(circle, rgba(255, 255, 255, 0.7) 1px, transparent 1px);
+    background-size: 400px 400px, 500px 500px, 600px 600px;
+    background-position: 50px 80px, 200px 150px, 320px 40px;
+    animation: twinkle2 50s linear infinite;
+    z-index: 9999;
+    pointer-events: none;
+}
+
+@keyframes twinkle1 {
+    0% { transform: translate(0, 0); }
+    100% { transform: translate(-15px, -15px); }
+}
+
+@keyframes twinkle2 {
+    0% { transform: translate(0, 0); }
+    100% { transform: translate(-20px, -20px); }
+}
+
+@keyframes shooting-star {
+    0% {
+        transform: translate(150vw, -50vh) scale(0.5);
+        opacity: 1;
+    }
+    100% {
+        transform: translate(-50vw, 150vh) scale(0);
+        opacity: 0;
+    }
+}
+
+.shooting-star {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100px;
+    height: 2px;
+    background: linear-gradient(to right, rgba(255, 255, 255, 0.8), transparent);
+    border-radius: 50%;
+    animation: shooting-star 10s linear infinite;
+}
+
+.shooting-star:nth-child(2) {
+    top: 20%;
+    animation-delay: 2s;
+    animation-duration: 8s;
+}
+
+.shooting-star:nth-child(3) {
+    top: 40%;
+    animation-delay: 5s;
+    animation-duration: 12s;
+}
+
+
 body.night-mode #root {
-    background-color: #020510 !important;
+    background-color: transparent !important;
+    position: relative;
+    z-index: 1;
 }
 
 body.night-mode #root > div {
-    background-color: #020510 !important;
+    background-color: transparent !important;
+    position: relative;
 }
 
 /* Fix the main content container */
@@ -478,14 +567,11 @@ body.night-mode a {
     letter-spacing: 0.025em; /* 2.5% letter spacing */
 }
 
-/* Brighter nous logo in dark mode - same size as light mode */
+/* Brighter nous logo in dark mode - same size as light mode, no glow */
 body.night-mode .nous-title {
     color: #ffffff !important;
     font-weight: 300 !important;
-    text-shadow:
-        0 0 40px rgba(255, 255, 255, 0.5),
-        0 0 20px rgba(255, 255, 255, 0.3),
-        0 0 10px rgba(255, 255, 255, 0.2);
+    text-shadow: none;
     letter-spacing: 0.025em;
 }
 
@@ -594,15 +680,15 @@ body.night-mode .soft-shadow-lg {
     border: none !important;
 }
 
-/* Make stop button match other buttons, but red icon */
+/* Make stop button match other buttons, but much darker red icon */
 body.night-mode button:has(svg rect[x="3"][y="3"]) {
     background-color: #1e293b !important;
     border: 2px solid #3b82f6 !important;
 }
 
 body.night-mode button svg rect[x="3"][y="3"] {
-    fill: #dc2626 !important;
-    stroke: #dc2626 !important;
+    fill: #7f1d1d !important;
+    stroke: #7f1d1d !important;
 }
 
 body.night-mode button:has(svg rect[x="3"][y="3"]):hover {
