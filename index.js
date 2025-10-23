@@ -4824,7 +4824,7 @@
             }
 
             return React.createElement('div', null,
-                React.createElement('h2', { className: "text-3xl text-calm-800 mb-2", style: { fontWeight: 300 } }, "notebook"),
+                React.createElement('h2', { className: "text-3xl text-calm-800 mb-6", style: { fontWeight: 300 } }, "notebook"),
 
                 React.createElement('div', { className: "bg-white rounded-xl soft-shadow p-6 mb-6" },
 
@@ -4974,8 +4974,7 @@
                 // Notebook section
                 React.createElement(Notebook, { db, userId, setNotification }),
 
-                React.createElement('h2', { className: "text-3xl text-calm-800 mb-2", style: { fontWeight: 300 } }, "goals"),
-                React.createElement('p', { className: "text-calm-600 mb-6", style: { fontWeight: 300 } }, "set and track your goals"),
+                React.createElement('h2', { className: "text-3xl text-calm-800 mb-6", style: { fontWeight: 300 } }, "goals"),
 
                 React.createElement('div', { className: "space-y-6" },
                     React.createElement(GoalSection, {
