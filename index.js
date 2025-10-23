@@ -511,16 +511,16 @@
 
         // Tree types with unlock requirements (total hours studied)
         const TREE_TYPES = [
-            { id: 'oak', name: 'Oak', requiredHours: 0, color: '#4a7c2c', leafShapes: ['oval', 'diamond'], leafColors: ['#228B22', '#2E8B57', '#3CB371', '#66CDAA', '#8FBC8F'], branchColor: '#5A3E1B' },
-            { id: 'maple', name: 'Maple', requiredHours: 5, color: '#d94f04', leafShapes: ['star', 'triangle'], leafColors: ['#FF0000', '#DC143C', '#B22222', '#8B0000', '#A52A2A'], branchColor: '#6B2B06' },
-            { id: 'cherry', name: 'Cherry Blossom', requiredHours: 15, color: '#f9a8d4', leafShapes: ['heart', 'circle'], leafColors: ['#FFC0CB', '#FFB6C1', '#FF69B4', '#FF1493', '#DB7093'], branchColor: '#8B5E3C' },
-            { id: 'willow', name: 'Willow', requiredHours: 30, color: '#94a3b8', leafShapes: ['oval', 'rectangle'], leafColors: ['#87CEEB', '#00BFFF', '#1E90FF', '#6495ED', '#4682B4'], branchColor: '#4E3B31' },
-            { id: 'pine', name: 'Pine', requiredHours: 50, color: '#166534', leafShapes: ['rectangle', 'hexagon'], leafColors: ['#006400', '#013220', '#004d00', '#003300', '#002200'], branchColor: '#3B2F2F' },
-            { id: 'cypress', name: 'Cypress', requiredHours: 75, color: '#4d7c0f', leafShapes: ['hexagon', 'diamond'], leafColors: ['#00FF00', '#32CD32', '#00FA9A', '#00FF7F', '#7FFF00'], branchColor: '#4B3D28' },
-            { id: 'birch', name: 'Birch', requiredHours: 100, color: '#fde047', leafShapes: ['diamond', 'triangle'], leafColors: ['#FFFF00', '#FFD700', '#FFA500', '#FF8C00', '#FF7F50'], branchColor: '#8E7C5D' },
-            { id: 'sakura', name: 'Ancient Sakura', requiredHours: 150, color: '#db2777', leafShapes: ['heart', 'fan'], leafColors: ['#FF00FF', '#EE82EE', '#FF00CC', '#C71585', '#DA70D6'], branchColor: '#705243' },
-            { id: 'baobab', name: 'Baobab', requiredHours: 250, color: '#4d7c0f', leafShapes: ['star', 'circle'], leafColors: ['#FFA07A', '#FA8072', '#E9967A', '#F08080', '#CD5C5C'], branchColor: '#8B5A2B' },
-            { id: 'magnolia', name: 'Magnolia', requiredHours: 400, color: '#e879f9', leafShapes: ['oval', 'heart'], leafColors: ['#DDA0DD', '#EE82EE', '#DA70D6', '#BA55D3', '#9370DB'], branchColor: '#7E6651' },
+            { id: 'oak', name: 'Oak', requiredHours: 0, color: '#4a7c2c', leafShapes: ['oval', 'circle'], leafColors: ['#3E7C17', '#5DAE49', '#A1C349', '#4a7c2c', '#6d9f4f'], branchColor: '#5A3E1B' },
+            { id: 'maple', name: 'Maple', requiredHours: 5, color: '#d94f04', leafShapes: ['star', 'diamond'], leafColors: ['#FF4C29', '#FFB84C', '#D94F04', '#c2410c', '#f97316'], branchColor: '#6B2B06' },
+            { id: 'cherry', name: 'Cherry Blossom', requiredHours: 15, color: '#f9a8d4', leafShapes: ['circle', 'circle'], leafColors: ['#F8C8DC', '#FADADD', '#FFD6E8', '#fbcfe8', '#fce7f3'], branchColor: '#8B5E3C' },
+            { id: 'willow', name: 'Willow', requiredHours: 30, color: '#94a3b8', leafShapes: ['oval', 'oval'], leafColors: ['#A3C9A8', '#6BA292', '#446A46', '#94a3b8', '#d1d5db'], branchColor: '#4E3B31' },
+            { id: 'pine', name: 'Pine', requiredHours: 50, color: '#166534', leafShapes: ['triangle', 'triangle'], leafColors: ['#2C5F2D', '#166534', '#15803d', '#052e16', '#064e3b'], branchColor: '#3B2F2F' },
+            { id: 'cypress', name: 'Cypress', requiredHours: 75, color: '#4d7c0f', leafShapes: ['hexagon', 'diamond'], leafColors: ['#557A46', '#A9C46C', '#7BA23F', '#65a30d', '#84cc16'], branchColor: '#4B3D28' },
+            { id: 'birch', name: 'Birch', requiredHours: 100, color: '#fde047', leafShapes: ['diamond', 'triangle'], leafColors: ['#C7E6D7', '#fef08a', '#fde047', '#facc15', '#eab308'], branchColor: '#8E7C5D' },
+            { id: 'sakura', name: 'Ancient Sakura', requiredHours: 150, color: '#db2777', leafShapes: ['circle', 'fan'], leafColors: ['#F8C8DC', '#FADADD', '#FFD6E8', '#fbcfe8', '#f9a8d4', '#f472b6', '#ec4899', '#e11d48'], branchColor: '#705243' },
+            { id: 'baobab', name: 'Baobab', requiredHours: 250, color: '#4d7c0f', leafShapes: ['star', 'circle'], leafColors: ['#8ABF69', '#C8E7A7', '#EBF2C0', '#4d7c0f', '#a3e635'], branchColor: '#8B5A2B' },
+            { id: 'magnolia', name: 'Magnolia', requiredHours: 400, color: '#e879f9', leafShapes: ['oval', 'heart'], leafColors: ['#F6D6AD', '#EFBBCF', '#E6AACE', '#f5d0fe', '#f0abfc'], branchColor: '#7E6651' },
             {
                 id: 'starry-night',
                 name: 'Starry Night Tree',
@@ -3873,89 +3873,99 @@
                     "#F9CA24", // Glow berry golden/amber
                 ];
 
-                // Enhanced branch paths with Minecraft-inspired color variety
+                // Enhanced branch paths with natural, realistic shapes
                 const branches = [
-                    // Main branches - larger, thicker with varied colors
-                    { d: "M100,120 Q85,105 75,85 Q70,75 68,65", width: 5, color: trunkDark, delay: 0, visible: branchGrowth > 0 },
-                    { d: "M100,120 Q115,105 125,85 Q130,75 132,65", width: 5, color: trunkRed, delay: 0.05, visible: branchGrowth > 0.1 },
-                    { d: "M100,115 Q80,100 70,80 Q65,70 62,60", width: 4, color: trunkMid, delay: 0.1, visible: branchGrowth > 0.2 },
-                    { d: "M100,115 Q120,100 130,80 Q135,70 138,60", width: 4, color: trunkOrange, delay: 0.15, visible: branchGrowth > 0.3 },
+                    // Main branches - larger, thicker, more natural curves
+                    { d: "M100,120 Q82,110 70,90 Q65,80 60,68", width: 6, color: trunkDark, delay: 0, visible: branchGrowth > 0 },
+                    { d: "M100,120 Q118,110 130,90 Q135,80 140,68", width: 6, color: trunkDark, delay: 0.05, visible: branchGrowth > 0.05 },
 
-                    // Secondary branches - medium with more color variety
-                    { d: "M100,105 Q88,92 78,75 Q75,68 72,58", width: 3, color: trunkMid, delay: 0.2, visible: branchGrowth > 0.4 },
-                    { d: "M100,105 Q112,92 122,75 Q125,68 128,58", width: 3, color: trunkGrey, delay: 0.25, visible: branchGrowth > 0.5 },
-                    { d: "M100,100 Q92,88 85,72 Q82,65 80,55", width: 3, color: trunkLight, delay: 0.3, visible: branchGrowth > 0.6 },
-                    { d: "M100,100 Q108,88 115,72 Q118,65 120,55", width: 3, color: trunkRed, delay: 0.35, visible: branchGrowth > 0.65 },
+                    // Secondary main branches with organic curves
+                    { d: "M100,115 Q78,105 68,88 Q62,76 58,64", width: 5, color: trunkMid, delay: 0.1, visible: branchGrowth > 0.15 },
+                    { d: "M100,115 Q122,105 132,88 Q138,76 142,64", width: 5, color: trunkMid, delay: 0.15, visible: branchGrowth > 0.2 },
 
-                    // Tertiary branches - smaller with varied tones
-                    { d: "M75,85 Q70,78 65,68", width: 2, color: trunkLight, delay: 0.4, visible: branchGrowth > 0.7 },
-                    { d: "M125,85 Q130,78 135,68", width: 2, color: trunkOrange, delay: 0.42, visible: branchGrowth > 0.7 },
-                    { d: "M78,75 Q74,68 70,58", width: 2, color: trunkGrey, delay: 0.45, visible: branchGrowth > 0.75 },
-                    { d: "M122,75 Q126,68 130,58", width: 2, color: trunkLight, delay: 0.47, visible: branchGrowth > 0.75 },
+                    // Mid-level branches - varied angles
+                    { d: "M70,90 Q65,82 62,72 Q60,65 58,58", width: 4, color: trunkMid, delay: 0.2, visible: branchGrowth > 0.3 },
+                    { d: "M130,90 Q135,82 138,72 Q140,65 142,58", width: 4, color: trunkMid, delay: 0.22, visible: branchGrowth > 0.32 },
+                    { d: "M100,110 Q88,98 80,82 Q76,72 72,60", width: 4, color: trunkLight, delay: 0.24, visible: branchGrowth > 0.35 },
+                    { d: "M100,110 Q112,98 120,82 Q124,72 128,60", width: 4, color: trunkLight, delay: 0.26, visible: branchGrowth > 0.38 },
 
-                    // Quaternary branches - extra fine detail for fuller canopy
-                    { d: "M68,65 Q64,58 60,50", width: 1.5, color: trunkGrey, delay: 0.5, visible: branchGrowth > 0.8 },
-                    { d: "M132,65 Q136,58 140,50", width: 1.5, color: trunkLight, delay: 0.52, visible: branchGrowth > 0.8 },
-                    { d: "M70,58 Q67,52 64,45", width: 1.5, color: trunkOrange, delay: 0.54, visible: branchGrowth > 0.85 },
-                    { d: "M130,58 Q133,52 136,45", width: 1.5, color: trunkGrey, delay: 0.56, visible: branchGrowth > 0.85 },
+                    // Tertiary branches - creating fuller canopy
+                    { d: "M68,88 Q62,80 58,70 Q55,62 52,54", width: 3, color: trunkLight, delay: 0.3, visible: branchGrowth > 0.45 },
+                    { d: "M132,88 Q138,80 142,70 Q145,62 148,54", width: 3, color: trunkLight, delay: 0.32, visible: branchGrowth > 0.48 },
+                    { d: "M80,82 Q74,74 70,64 Q67,56 64,48", width: 3, color: trunkGrey, delay: 0.34, visible: branchGrowth > 0.5 },
+                    { d: "M120,82 Q126,74 130,64 Q133,56 136,48", width: 3, color: trunkGrey, delay: 0.36, visible: branchGrowth > 0.52 },
+
+                    // Fine detail branches - natural extensions
+                    { d: "M60,68 Q56,62 54,54 Q52,48 50,42", width: 2.5, color: trunkGrey, delay: 0.4, visible: branchGrowth > 0.6 },
+                    { d: "M140,68 Q144,62 146,54 Q148,48 150,42", width: 2.5, color: trunkGrey, delay: 0.42, visible: branchGrowth > 0.62 },
+                    { d: "M72,60 Q68,54 65,46 Q63,40 61,34", width: 2, color: trunkLight, delay: 0.44, visible: branchGrowth > 0.65 },
+                    { d: "M128,60 Q132,54 135,46 Q137,40 139,34", width: 2, color: trunkLight, delay: 0.46, visible: branchGrowth > 0.68 },
+
+                    // Extra small branches for density
+                    { d: "M62,72 Q58,66 55,58", width: 2, color: trunkOrange, delay: 0.48, visible: branchGrowth > 0.72 },
+                    { d: "M138,72 Q142,66 145,58", width: 2, color: trunkOrange, delay: 0.5, visible: branchGrowth > 0.75 },
                 ];
 
-                // Enhanced leaf positions with size and color variety
+                // Enhanced leaf positions with size and color variety - more natural distribution
                 const leaves = [
-                    // Top cluster
-                    { x: 100, y: 48, size: 14, color: leafColors[0], delay: 0, visible: leafGrowth > 0 },
-                    { x: 95, y: 52, size: 12, color: leafColors[1], delay: 0.02, visible: leafGrowth > 0.05 },
-                    { x: 105, y: 52, size: 12, color: leafColors[2], delay: 0.04, visible: leafGrowth > 0.1 },
-                    { x: 90, y: 56, size: 10, color: leafColors[3], delay: 0.06, visible: leafGrowth > 0.15 },
-                    { x: 110, y: 56, size: 10, color: leafColors[4], delay: 0.08, visible: leafGrowth > 0.2 },
+                    // Top cluster - crown of the tree
+                    { x: 100, y: 42, size: 16, color: leafColors[0], delay: 0, visible: leafGrowth > 0 },
+                    { x: 94, y: 46, size: 14, color: leafColors[1], delay: 0.02, visible: leafGrowth > 0.03 },
+                    { x: 106, y: 46, size: 14, color: leafColors[2], delay: 0.04, visible: leafGrowth > 0.06 },
+                    { x: 88, y: 50, size: 13, color: leafColors[3], delay: 0.06, visible: leafGrowth > 0.09 },
+                    { x: 112, y: 50, size: 13, color: leafColors[4], delay: 0.08, visible: leafGrowth > 0.12 },
+                    { x: 100, y: 52, size: 12, color: leafColors[0], delay: 0.09, visible: leafGrowth > 0.14 },
 
-                    // Upper-middle clusters
-                    { x: 82, y: 60, size: 13, color: leafColors[0], delay: 0.1, visible: leafGrowth > 0.25 },
-                    { x: 118, y: 60, size: 13, color: leafColors[1], delay: 0.12, visible: leafGrowth > 0.3 },
-                    { x: 75, y: 64, size: 11, color: leafColors[2], delay: 0.14, visible: leafGrowth > 0.35 },
-                    { x: 125, y: 64, size: 11, color: leafColors[3], delay: 0.16, visible: leafGrowth > 0.4 },
-                    { x: 88, y: 65, size: 10, color: leafColors[4], delay: 0.18, visible: leafGrowth > 0.42 },
-                    { x: 112, y: 65, size: 10, color: leafColors[0], delay: 0.2, visible: leafGrowth > 0.44 },
+                    // Upper canopy - dense foliage
+                    { x: 82, y: 56, size: 15, color: leafColors[1], delay: 0.1, visible: leafGrowth > 0.16 },
+                    { x: 118, y: 56, size: 15, color: leafColors[2], delay: 0.12, visible: leafGrowth > 0.18 },
+                    { x: 75, y: 60, size: 14, color: leafColors[3], delay: 0.14, visible: leafGrowth > 0.2 },
+                    { x: 125, y: 60, size: 14, color: leafColors[4], delay: 0.16, visible: leafGrowth > 0.22 },
+                    { x: 90, y: 62, size: 13, color: leafColors[0], delay: 0.18, visible: leafGrowth > 0.24 },
+                    { x: 110, y: 62, size: 13, color: leafColors[1], delay: 0.2, visible: leafGrowth > 0.26 },
+                    { x: 96, y: 58, size: 11, color: leafColors[2], delay: 0.21, visible: leafGrowth > 0.27 },
+                    { x: 104, y: 58, size: 11, color: leafColors[3], delay: 0.22, visible: leafGrowth > 0.28 },
 
-                    // Middle section - denser
-                    { x: 70, y: 68, size: 12, color: leafColors[1], delay: 0.22, visible: leafGrowth > 0.46 },
-                    { x: 130, y: 68, size: 12, color: leafColors[2], delay: 0.24, visible: leafGrowth > 0.48 },
-                    { x: 80, y: 70, size: 14, color: leafColors[3], delay: 0.26, visible: leafGrowth > 0.5 },
-                    { x: 120, y: 70, size: 14, color: leafColors[4], delay: 0.28, visible: leafGrowth > 0.52 },
-                    { x: 92, y: 72, size: 11, color: leafColors[0], delay: 0.3, visible: leafGrowth > 0.54 },
-                    { x: 108, y: 72, size: 11, color: leafColors[1], delay: 0.32, visible: leafGrowth > 0.56 },
-                    { x: 65, y: 75, size: 10, color: leafColors[2], delay: 0.34, visible: leafGrowth > 0.58 },
-                    { x: 135, y: 75, size: 10, color: leafColors[3], delay: 0.36, visible: leafGrowth > 0.6 },
+                    // Middle section - widest part of canopy
+                    { x: 68, y: 66, size: 16, color: leafColors[4], delay: 0.24, visible: leafGrowth > 0.3 },
+                    { x: 132, y: 66, size: 16, color: leafColors[0], delay: 0.26, visible: leafGrowth > 0.32 },
+                    { x: 78, y: 70, size: 15, color: leafColors[1], delay: 0.28, visible: leafGrowth > 0.34 },
+                    { x: 122, y: 70, size: 15, color: leafColors[2], delay: 0.3, visible: leafGrowth > 0.36 },
+                    { x: 60, y: 72, size: 14, color: leafColors[3], delay: 0.32, visible: leafGrowth > 0.38 },
+                    { x: 140, y: 72, size: 14, color: leafColors[4], delay: 0.34, visible: leafGrowth > 0.4 },
+                    { x: 88, y: 74, size: 13, color: leafColors[0], delay: 0.36, visible: leafGrowth > 0.42 },
+                    { x: 112, y: 74, size: 13, color: leafColors[1], delay: 0.38, visible: leafGrowth > 0.44 },
+                    { x: 100, y: 76, size: 12, color: leafColors[2], delay: 0.4, visible: leafGrowth > 0.46 },
+                    { x: 72, y: 76, size: 12, color: leafColors[3], delay: 0.42, visible: leafGrowth > 0.48 },
+                    { x: 128, y: 76, size: 12, color: leafColors[4], delay: 0.44, visible: leafGrowth > 0.5 },
 
-                    // Lower-middle clusters
-                    { x: 75, y: 78, size: 13, color: leafColors[4], delay: 0.38, visible: leafGrowth > 0.62 },
-                    { x: 125, y: 78, size: 13, color: leafColors[0], delay: 0.4, visible: leafGrowth > 0.64 },
-                    { x: 85, y: 80, size: 12, color: leafColors[1], delay: 0.42, visible: leafGrowth > 0.66 },
-                    { x: 115, y: 80, size: 12, color: leafColors[2], delay: 0.44, visible: leafGrowth > 0.68 },
-                    { x: 78, y: 83, size: 10, color: leafColors[3], delay: 0.46, visible: leafGrowth > 0.7 },
-                    { x: 122, y: 83, size: 10, color: leafColors[4], delay: 0.48, visible: leafGrowth > 0.72 },
+                    // Lower-middle section
+                    { x: 64, y: 80, size: 14, color: leafColors[0], delay: 0.46, visible: leafGrowth > 0.52 },
+                    { x: 136, y: 80, size: 14, color: leafColors[1], delay: 0.48, visible: leafGrowth > 0.54 },
+                    { x: 76, y: 82, size: 13, color: leafColors[2], delay: 0.5, visible: leafGrowth > 0.56 },
+                    { x: 124, y: 82, size: 13, color: leafColors[3], delay: 0.52, visible: leafGrowth > 0.58 },
+                    { x: 84, y: 84, size: 12, color: leafColors[4], delay: 0.54, visible: leafGrowth > 0.6 },
+                    { x: 116, y: 84, size: 12, color: leafColors[0], delay: 0.56, visible: leafGrowth > 0.62 },
+                    { x: 94, y: 86, size: 11, color: leafColors[1], delay: 0.58, visible: leafGrowth > 0.64 },
+                    { x: 106, y: 86, size: 11, color: leafColors[2], delay: 0.6, visible: leafGrowth > 0.66 },
 
-                    // Lower outer leaves
-                    { x: 68, y: 85, size: 11, color: leafColors[0], delay: 0.5, visible: leafGrowth > 0.74 },
-                    { x: 132, y: 85, size: 11, color: leafColors[1], delay: 0.52, visible: leafGrowth > 0.76 },
-                    { x: 72, y: 88, size: 9, color: leafColors[2], delay: 0.54, visible: leafGrowth > 0.78 },
-                    { x: 128, y: 88, size: 9, color: leafColors[3], delay: 0.56, visible: leafGrowth > 0.8 },
-                    { x: 90, y: 86, size: 10, color: leafColors[4], delay: 0.58, visible: leafGrowth > 0.85 },
-                    { x: 110, y: 86, size: 10, color: leafColors[0], delay: 0.6, visible: leafGrowth > 0.9 },
+                    // Lower outer leaves - creating natural edge
+                    { x: 56, y: 76, size: 13, color: leafColors[3], delay: 0.62, visible: leafGrowth > 0.68 },
+                    { x: 144, y: 76, size: 13, color: leafColors[4], delay: 0.64, visible: leafGrowth > 0.7 },
+                    { x: 62, y: 68, size: 12, color: leafColors[0], delay: 0.66, visible: leafGrowth > 0.72 },
+                    { x: 138, y: 68, size: 12, color: leafColors[1], delay: 0.68, visible: leafGrowth > 0.74 },
+                    { x: 70, y: 88, size: 11, color: leafColors[2], delay: 0.7, visible: leafGrowth > 0.76 },
+                    { x: 130, y: 88, size: 11, color: leafColors[3], delay: 0.72, visible: leafGrowth > 0.78 },
 
-                    // Additional outer leaves for fuller canopy
-                    { x: 60, y: 78, size: 10, color: leafColors[1], delay: 0.62, visible: leafGrowth > 0.82 },
-                    { x: 140, y: 78, size: 10, color: leafColors[2], delay: 0.64, visible: leafGrowth > 0.84 },
-                    { x: 63, y: 70, size: 9, color: leafColors[3], delay: 0.66, visible: leafGrowth > 0.86 },
-                    { x: 137, y: 70, size: 9, color: leafColors[4], delay: 0.68, visible: leafGrowth > 0.88 },
-                    { x: 98, y: 58, size: 11, color: leafColors[0], delay: 0.7, visible: leafGrowth > 0.87 },
-                    { x: 102, y: 58, size: 11, color: leafColors[1], delay: 0.72, visible: leafGrowth > 0.89 },
-                    { x: 76, y: 82, size: 12, color: leafColors[2], delay: 0.74, visible: leafGrowth > 0.91 },
-                    { x: 124, y: 82, size: 12, color: leafColors[3], delay: 0.76, visible: leafGrowth > 0.92 },
-                    { x: 86, y: 76, size: 10, color: leafColors[4], delay: 0.78, visible: leafGrowth > 0.93 },
-                    { x: 114, y: 76, size: 10, color: leafColors[0], delay: 0.8, visible: leafGrowth > 0.94 },
-                    { x: 94, y: 68, size: 9, color: leafColors[1], delay: 0.82, visible: leafGrowth > 0.95 },
-                    { x: 106, y: 68, size: 9, color: leafColors[2], delay: 0.84, visible: leafGrowth > 0.96 },
+                    // Fill gaps for fuller appearance
+                    { x: 80, y: 66, size: 10, color: leafColors[4], delay: 0.74, visible: leafGrowth > 0.8 },
+                    { x: 120, y: 66, size: 10, color: leafColors[0], delay: 0.76, visible: leafGrowth > 0.82 },
+                    { x: 92, y: 68, size: 10, color: leafColors[1], delay: 0.78, visible: leafGrowth > 0.84 },
+                    { x: 108, y: 68, size: 10, color: leafColors[2], delay: 0.8, visible: leafGrowth > 0.86 },
+                    { x: 86, y: 78, size: 10, color: leafColors[3], delay: 0.82, visible: leafGrowth > 0.88 },
+                    { x: 114, y: 78, size: 10, color: leafColors[4], delay: 0.84, visible: leafGrowth > 0.9 },
+                    { x: 98, y: 72, size: 9, color: leafColors[0], delay: 0.86, visible: leafGrowth > 0.92 },
+                    { x: 102, y: 80, size: 9, color: leafColors[1], delay: 0.88, visible: leafGrowth > 0.94 },
                 ];
 
                 // Minecraft-style fruits (apples, sweet berries, glow berries) - hidden for seedlings and pine
@@ -3981,7 +3991,8 @@
                                 cy: leaf.y,
                                 r: leaf.size * 0.42,
                                 fill: leaf.color,
-                                opacity: 0.85
+                                opacity: 0.9,
+                                filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.1))'
                             });
 
                         case 'triangle':
@@ -4071,7 +4082,8 @@
                                 ry: leaf.size * 0.5,
                                 fill: leaf.color,
                                 transform: `rotate(${rotation} ${leaf.x} ${leaf.y})`,
-                                opacity: 0.85
+                                opacity: 0.9,
+                                filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.1))'
                             });
                     }
                 };
@@ -4100,20 +4112,25 @@
                                 opacity: "0.6"
                             })
                         ),
-                        // Animation keyframes via CSS
+                        // Animation keyframes via CSS - enhanced for smoother motion
                         React.createElement('style', null, `
                             @keyframes sway {
-                                0%, 100% { transform: rotate(-2deg); }
-                                50% { transform: rotate(2deg); }
+                                0%, 100% { transform: rotate(-1.5deg); }
+                                50% { transform: rotate(1.5deg); }
                             }
                             @keyframes leafPop {
-                                0% { transform: scale(0); opacity: 0; }
-                                70% { transform: scale(1.15); opacity: 1; }
-                                100% { transform: scale(1); opacity: 1; }
+                                0% { transform: scale(0) rotate(-10deg); opacity: 0; }
+                                60% { transform: scale(1.2) rotate(5deg); opacity: 0.9; }
+                                80% { transform: scale(0.95) rotate(-2deg); opacity: 1; }
+                                100% { transform: scale(1) rotate(0deg); opacity: 1; }
                             }
                             @keyframes fruitGlow {
-                                0%, 100% { opacity: 0.8; }
-                                50% { opacity: 1; }
+                                0%, 100% { opacity: 0.85; transform: scale(1); }
+                                50% { opacity: 1; transform: scale(1.05); }
+                            }
+                            @keyframes branchGrow {
+                                from { stroke-dashoffset: 50; }
+                                to { stroke-dashoffset: 0; }
                             }
                             @media (prefers-reduced-motion: reduce) {
                                 .tree-sway { animation: none !important; }
@@ -4123,14 +4140,23 @@
                         `)
                     ),
 
-                    // Ground line
-                    React.createElement('line', {
-                        x1: "30", y1: "180", x2: "170", y2: "180",
-                        stroke: "#e5e7eb",
-                        strokeWidth: "3",
-                        strokeLinecap: "round",
-                        opacity: "0.5"
-                    }),
+                    // Enhanced ground line with subtle grass appearance
+                    React.createElement('g', null,
+                        React.createElement('line', {
+                            x1: "30", y1: "180", x2: "170", y2: "180",
+                            stroke: "#86A789",
+                            strokeWidth: "4",
+                            strokeLinecap: "round",
+                            opacity: "0.6"
+                        }),
+                        React.createElement('line', {
+                            x1: "40", y1: "182", x2: "160", y2: "182",
+                            stroke: "#5F8D4E",
+                            strokeWidth: "2",
+                            strokeLinecap: "round",
+                            opacity: "0.4"
+                        })
+                    ),
 
                     // Main tree group with idle sway
                     React.createElement('g', {
@@ -4141,32 +4167,48 @@
                             willChange: "transform"
                         }
                     },
-                        // Enhanced trunk with multiple colors for depth
+                        // Enhanced trunk with multiple colors for depth and texture
                         React.createElement('g', null,
-                            // Base trunk (darkest)
+                            // Base trunk (darkest) - main structure
                             React.createElement('path', {
                                 d: "M100,180 Q98,150 97,120 Q96,90 100,80",
                                 stroke: trunkDark,
-                                strokeWidth: "8",
+                                strokeWidth: "10",
                                 strokeLinecap: "round",
                                 fill: "none",
                                 strokeDasharray: trunkGrowth > 0 ? "100" : "0",
                                 strokeDashoffset: trunkGrowth > 0 ? `${100 - (trunkGrowth * 100)}` : "100",
+                                filter: "drop-shadow(0 2px 4px rgba(0,0,0,0.2))",
                                 style: {
                                     transition: "stroke-dashoffset 0.8s cubic-bezier(0.4, 0, 0.2, 1)",
                                     willChange: "stroke-dashoffset"
                                 }
                             }),
-                            // Highlight on left side
+                            // Middle layer for depth
                             React.createElement('path', {
-                                d: "M98,180 Q96,150 95.5,120 Q95,90 98.5,80",
-                                stroke: trunkLight,
-                                strokeWidth: "2",
+                                d: "M99,180 Q97,150 96.5,120 Q95.5,90 99,80",
+                                stroke: trunkMid,
+                                strokeWidth: "6",
                                 strokeLinecap: "round",
                                 fill: "none",
                                 strokeDasharray: trunkGrowth > 0 ? "100" : "0",
                                 strokeDashoffset: trunkGrowth > 0 ? `${100 - (trunkGrowth * 100)}` : "100",
-                                opacity: "0.6",
+                                opacity: "0.8",
+                                style: {
+                                    transition: "stroke-dashoffset 0.8s cubic-bezier(0.4, 0, 0.2, 1)",
+                                    willChange: "stroke-dashoffset"
+                                }
+                            }),
+                            // Highlight on left side - gives it dimension
+                            React.createElement('path', {
+                                d: "M97,180 Q95.5,150 95,120 Q94.5,90 97.5,80",
+                                stroke: trunkLight,
+                                strokeWidth: "2.5",
+                                strokeLinecap: "round",
+                                fill: "none",
+                                strokeDasharray: trunkGrowth > 0 ? "100" : "0",
+                                strokeDashoffset: trunkGrowth > 0 ? `${100 - (trunkGrowth * 100)}` : "100",
+                                opacity: "0.7",
                                 style: {
                                     transition: "stroke-dashoffset 0.8s cubic-bezier(0.4, 0, 0.2, 1)",
                                     willChange: "stroke-dashoffset"
@@ -4201,7 +4243,7 @@
                                 key: `leaf-${i}`,
                                 className: "leaf-pop",
                                 style: {
-                                    animation: `leafPop 0.22s cubic-bezier(0.68, -0.55, 0.27, 1.55) ${leaf.delay}s both`,
+                                    animation: `leafPop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) ${leaf.delay}s both`,
                                     transformOrigin: `${leaf.x}px ${leaf.y}px`,
                                     willChange: "transform, opacity"
                                 }
@@ -4300,8 +4342,15 @@
                     }, `${totalHours.toFixed(1)}h`)
                 ),
 
-                // Tree visualization
-                React.createElement('div', { className: "relative bg-gradient-to-b from-blue-50 to-green-50 rounded-lg p-4 mb-4", style: { height: '240px' } },
+                // Tree visualization with natural sky-to-earth gradient
+                React.createElement('div', {
+                    className: "relative rounded-lg p-4 mb-4",
+                    style: {
+                        height: '240px',
+                        background: 'linear-gradient(to bottom, #e0f2fe 0%, #bae6fd 40%, #a7f3d0 70%, #86efac 100%)',
+                        boxShadow: 'inset 0 2px 8px rgba(0,0,0,0.05)'
+                    }
+                },
                     React.createElement(TreeSVG, { key: currentTree.id, growth: growthPercent, color: currentTree.color, treeType: currentTree.id }),
 
                     // Growth percentage badge
