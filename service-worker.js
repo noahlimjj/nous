@@ -44,10 +44,15 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
+  // Skip caching for POST/PUT/DELETE requests
+  if (event.request.method !== 'GET') {
+    return;
+  }
+
   event.respondWith(
     fetch(event.request)
       .then((response) => {
-        // Only cache successful responses
+        // Only cache successful GET responses
         if (response.status === 200) {
           const responseClone = response.clone();
 
