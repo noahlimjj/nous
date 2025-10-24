@@ -1046,25 +1046,6 @@
                 const unsubscribeHabits = window.onSnapshot(habitsCol, async (snapshot) => {
                     const habitsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
-                    // If this is a new user with no habits, create default habits
-                    if (habitsData.length === 0) {
-                        const defaultHabits = ['Study', 'Exercise'];
-                        try {
-                            for (let i = 0; i < defaultHabits.length; i++) {
-                                await window.addDoc(habitsCol, {
-                                    name: defaultHabits[i],
-                                    createdAt: window.Timestamp.now(),
-                                    isDefault: true,
-                                    order: i
-                                });
-                            }
-                            setNotification({ type: 'success', message: 'Welcome! Default habits created for you.' });
-                        } catch (error) {
-                            console.error("Error creating default habits:", error);
-                            setNotification({ type: 'error', message: 'Failed to create default habits.' });
-                        }
-                    }
-
                     // Initialize order field for existing habits that don't have it
                     const habitsNeedingOrder = habitsData.filter(h => h.order === undefined);
                     if (habitsNeedingOrder.length > 0) {
@@ -3684,24 +3665,24 @@
                 ),
 
                 // Admin Panel (only shown to admins)
-                userProfile?.admin && React.createElement('div', { className: "bg-red-50 border border-red-200 rounded-lg shadow-sm p-6 mb-6" },
-                    React.createElement('h3', { className: "text-xl text-red-700 mb-4 flex items-center gap-2", style: { fontWeight: 500 } },
+                userProfile?.admin && React.createElement('div', { className: "bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 rounded-lg shadow-sm p-6 mb-6" },
+                    React.createElement('h3', { className: "text-xl text-red-700 dark:text-red-300 mb-4 flex items-center gap-2", style: { fontWeight: 500 } },
                         React.createElement('span', null, '🛡️'),
                         "admin panel"
                     ),
-                    React.createElement('p', { className: "text-sm text-red-600 mb-4", style: { fontWeight: 300 } },
+                    React.createElement('p', { className: "text-sm text-red-600 dark:text-red-400 mb-4", style: { fontWeight: 300 } },
                         "Warning: These actions are permanent and cannot be undone."
                     ),
                     React.createElement('div', { className: "space-y-4" },
                         React.createElement('div', null,
-                            React.createElement('label', { className: "block text-gray-700 mb-2", style: { fontWeight: 400 } }, "Delete user by username:"),
+                            React.createElement('label', { className: "block text-gray-700 dark:text-gray-300 mb-2", style: { fontWeight: 400 } }, "Delete user by username:"),
                             React.createElement('div', { className: "flex gap-2" },
                                 React.createElement('input', {
                                     type: "text",
                                     value: usernameToDelete,
                                     onChange: (e) => setUsernameToDelete(e.target.value),
                                     placeholder: "Enter username to delete",
-                                    className: "flex-1 border border-gray-300 px-3 py-2 rounded-lg focus:ring-2 focus:ring-red-500 focus:outline-none",
+                                    className: "flex-1 border border-gray-300 dark:border-gray-600 px-3 py-2 rounded-lg focus:ring-2 focus:ring-red-500 focus:outline-none bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100",
                                     style: { fontWeight: 300 }
                                 }),
                                 React.createElement('button', {
