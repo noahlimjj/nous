@@ -4,7 +4,7 @@
   "description": "A modern, single-page Nous web application for monitoring study habits and time tracking",
   "main": "index.html",
   "scripts": {
-    "start": "python3 -m http.server 8080",
+    "start": "python3 -m http.server 8081",
     "build": "npx tailwindcss -i ./src/input.css -o ./tailwind-output.css --minify",
     "build:watch": "npx tailwindcss -i ./src/input.css -o ./tailwind-output.css --watch",
     "deploy": "echo 'Deploy to Netlify by connecting your repository'"

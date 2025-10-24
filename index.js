@@ -6982,7 +6982,7 @@
         // Register Service Worker
         if ('serviceWorker' in navigator) {
             // Force clear ALL caches on load - nuclear option for stuck PWAs
-            const APP_VERSION = '2025-10-24-premium-v1'; // Update this to force refresh
+            const APP_VERSION = '2025-10-24-premium-v2'; // Update this to force refresh
             const storedVersion = localStorage.getItem('appVersion');
 
             if (storedVersion !== APP_VERSION) {
@@ -7016,7 +7016,7 @@
             } else {
                 // Version matches, proceed with normal SW registration
                 window.addEventListener('load', () => {
-                navigator.serviceWorker.register('/public/service-worker.js')
+                navigator.serviceWorker.register('/service-worker.js')
                     .then((registration) => {
                         console.log('ServiceWorker registered successfully:', registration.scope);
 
