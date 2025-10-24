@@ -555,48 +555,106 @@
             return TREE_TYPES.filter(tree => totalHours >= tree.requiredHours);
         };
 
-        // --- AppId Detection Utility ---
-        // Automatically detects which Firebase path (appId) contains the user's data
-        // This ensures backward compatibility with existing users while supporting new ones
-        const detectAppId = async (db, userId) => {
-            // First check if we've already detected this user's appId
-            const cachedAppId = localStorage.getItem(`appId_${userId}`);
-            if (cachedAppId) {
-                console.log(`Using cached appId: ${cachedAppId}`);
-                return cachedAppId;
+        // --- Auto-Migration Utility ---
+        // Automatically migrates and consolidates data from all locations into study-tracker-app
+        // This ensures all users' data is in ONE place
+        const migrateAndConsolidateData = async (db, userId) => {
+            const TARGET_APP_ID = 'study-tracker-app';
+
+            // Check if migration already completed for this user
+            const migrationComplete = localStorage.getItem(`migration_complete_${userId}`);
+            if (migrationComplete === 'true') {
+                console.log('✓ Migration already completed, using study-tracker-app');
+                return TARGET_APP_ID;
             }
 
-            console.log('Detecting appId for user...');
-            const possibleAppIds = ['default-app-id', 'studyTrackerApp', 'default-app-id'];
+            console.log('🔄 Starting automatic data migration...');
+            const possibleAppIds = ['default-app-id', 'study-tracker-app', 'studyTrackerApp'];
 
-            // Check each possible location for data
+            const allData = {
+                habits: new Map(),
+                sessions: new Map(),
+                goals: new Map()
+            };
+
+            // Step 1: Collect all data from all locations
             for (const appId of possibleAppIds) {
                 try {
+                    console.log(`  Checking ${appId}...`);
+
+                    // Collect habits
                     const habitsRef = window.collection(db, `/artifacts/${appId}/users/${userId}/habits`);
                     const habitsSnapshot = await window.getDocs(habitsRef);
+                    habitsSnapshot.forEach(doc => {
+                        if (!allData.habits.has(doc.id) || appId === TARGET_APP_ID) {
+                            allData.habits.set(doc.id, doc.data());
+                        }
+                    });
 
+                    // Collect sessions
                     const sessionsRef = window.collection(db, `/artifacts/${appId}/users/${userId}/sessions`);
                     const sessionsSnapshot = await window.getDocs(sessionsRef);
+                    sessionsSnapshot.forEach(doc => {
+                        if (!allData.sessions.has(doc.id) || appId === TARGET_APP_ID) {
+                            allData.sessions.set(doc.id, doc.data());
+                        }
+                    });
 
+                    // Collect goals
                     const goalsRef = window.collection(db, `/artifacts/${appId}/users/${userId}/goals`);
                     const goalsSnapshot = await window.getDocs(goalsRef);
+                    goalsSnapshot.forEach(doc => {
+                        if (!allData.goals.has(doc.id) || appId === TARGET_APP_ID) {
+                            allData.goals.set(doc.id, doc.data());
+                        }
+                    });
 
-                    // If any data exists in this location, use it
-                    if (!habitsSnapshot.empty || !sessionsSnapshot.empty || !goalsSnapshot.empty) {
-                        console.log(`Found data in ${appId} (${habitsSnapshot.size} habits, ${sessionsSnapshot.size} sessions, ${goalsSnapshot.size} goals)`);
-                        localStorage.setItem(`appId_${userId}`, appId);
-                        return appId;
+                    if (habitsSnapshot.size > 0 || sessionsSnapshot.size > 0 || goalsSnapshot.size > 0) {
+                        console.log(`  ✓ Found ${habitsSnapshot.size} habits, ${sessionsSnapshot.size} sessions, ${goalsSnapshot.size} goals`);
                     }
                 } catch (error) {
-                    console.warn(`Error checking ${appId}:`, error);
+                    console.warn(`  ⚠ Error checking ${appId}:`, error);
                 }
             }
 
-            // No data found in any location - this is a new user, use study-tracker-app
-            console.log('No existing data found - new user, using study-tracker-app');
-            const defaultAppId = 'default-app-id';
-            localStorage.setItem(`appId_${userId}`, defaultAppId);
-            return defaultAppId;
+            console.log(`📊 Total collected: ${allData.habits.size} habits, ${allData.sessions.size} sessions, ${allData.goals.size} goals`);
+
+            // Step 2: Write all data to target location
+            if (allData.habits.size > 0 || allData.sessions.size > 0 || allData.goals.size > 0) {
+                console.log(`💾 Writing all data to ${TARGET_APP_ID}...`);
+
+                try {
+                    // Write habits
+                    for (const [id, data] of allData.habits) {
+                        const docRef = window.doc(db, `/artifacts/${TARGET_APP_ID}/users/${userId}/habits`, id);
+                        await window.setDoc(docRef, data);
+                    }
+
+                    // Write sessions
+                    for (const [id, data] of allData.sessions) {
+                        const docRef = window.doc(db, `/artifacts/${TARGET_APP_ID}/users/${userId}/sessions`, id);
+                        await window.setDoc(docRef, data);
+                    }
+
+                    // Write goals
+                    for (const [id, data] of allData.goals) {
+                        const docRef = window.doc(db, `/artifacts/${TARGET_APP_ID}/users/${userId}/goals`, id);
+                        await window.setDoc(docRef, data);
+                    }
+
+                    console.log('✅ Migration complete! All data consolidated to study-tracker-app');
+                } catch (error) {
+                    console.error('❌ Migration failed:', error);
+                    // Don't mark as complete if migration failed
+                    return TARGET_APP_ID;
+                }
+            } else {
+                console.log('ℹ️ No data found - new user');
+            }
+
+            // Mark migration as complete
+            localStorage.setItem(`migration_complete_${userId}`, 'true');
+            return TARGET_APP_ID;
         };
 
         // --- Authentication Component ---
@@ -783,7 +841,7 @@
 
                 try {
                     const sessionDate = new Date(date);
-                    const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+                    const appId = typeof __app_id !== 'undefined' ? __app_id : 'study-tracker-app';
                     const sessionsCol = window.collection(db, `/artifacts/${appId}/users/${userId}/sessions`);
                     await window.addDoc(sessionsCol, {
                         habitId: habit.id,
@@ -964,10 +1022,22 @@
             const [pings, setPings] = useState({});
             const [lastPingTime, setLastPingTime] = useState({});
 
-            const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+            const [appId, setAppId] = useState('study-tracker-app');
 
+            // Run migration on first load
             useEffect(() => {
                 if (!db || !userId) return;
+
+                const runMigration = async () => {
+                    const migratedAppId = await migrateAndConsolidateData(db, userId);
+                    setAppId(migratedAppId);
+                };
+
+                runMigration();
+            }, [db, userId]);
+
+            useEffect(() => {
+                if (!db || !userId || !appId) return;
                 setIsLoading(true);
 
                 const habitsCol = window.collection(db, `/artifacts/${appId}/users/${userId}/habits`);
@@ -3030,7 +3100,7 @@
             const [weeklyData, setWeeklyData] = useState([]);
             const [timeOfDayData, setTimeOfDayData] = useState([]);
 
-            const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+            const appId = typeof __app_id !== 'undefined' ? __app_id : 'study-tracker-app';
 
             useEffect(() => {
                 if (!db || !userId) return;
@@ -3363,7 +3433,7 @@
             const handleResetProgress = async () => {
                 setIsResetting(true);
                 try {
-                    const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+                    const appId = typeof __app_id !== 'undefined' ? __app_id : 'study-tracker-app';
                     const batch = window.writeBatch(db);
 
                     // Delete all sessions
@@ -3823,7 +3893,7 @@
             const [isEditingName, setIsEditingName] = useState(false);
             const [tempName, setTempName] = useState('');
 
-            const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+            const appId = typeof __app_id !== 'undefined' ? __app_id : 'study-tracker-app';
 
             // Calculate growth metrics
             const totalHours = calculateTotalHours(sessions);
@@ -4556,7 +4626,7 @@
             const [typingPosition, setTypingPosition] = useState(null);
             const [currentText, setCurrentText] = useState('');
 
-            const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+            const appId = typeof __app_id !== 'undefined' ? __app_id : 'study-tracker-app';
 
             // Load notes and todos from Firebase
             useEffect(() => {
@@ -4989,7 +5059,7 @@
             const [newGoalText, setNewGoalText] = useState({ daily: '', weekly: '', monthly: '', yearly: '' });
             const [isLoading, setIsLoading] = useState(true);
 
-            const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+            const appId = typeof __app_id !== 'undefined' ? __app_id : 'study-tracker-app';
 
             useEffect(() => {
                 if (!db || !userId) return;
@@ -5313,7 +5383,7 @@
                             }
                             
                             try {
-                                const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+                                const appId = typeof __app_id !== 'undefined' ? __app_id : 'study-tracker-app';
                                 const sessionsQuery = window.query(
                                     window.collection(db, `/artifacts/${appId}/users/${user.id}/sessions`),
                                     window.where('startTime', '>=', twoWeeksAgo) // Sessions from the last 14 days
@@ -5469,7 +5539,7 @@
             useEffect(() => {
                 if (!db || !userId) return;
 
-                const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+                const appId = typeof __app_id !== 'undefined' ? __app_id : 'study-tracker-app';
                 const habitsCol = window.collection(db, `/artifacts/${appId}/users/${userId}/habits`);
 
                 const unsubscribe = window.onSnapshot(habitsCol, (snapshot) => {
@@ -6305,7 +6375,7 @@
             // Helper function to calculate weekly study hours for a user
             const calculateWeeklyHours = async (userId) => {
                 try {
-                    const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+                    const appId = typeof __app_id !== 'undefined' ? __app_id : 'study-tracker-app';
                     const sessionsQuery = window.collection(db, `/artifacts/${appId}/users/${userId}/sessions`);
                     
                     // Calculate the start of the current week (Monday)
@@ -6344,7 +6414,7 @@
             // Helper function to calculate monthly study hours for a user
             const calculateMonthlyHours = async (userId) => {
                 try {
-                    const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+                    const appId = typeof __app_id !== 'undefined' ? __app_id : 'study-tracker-app';
                     const sessionsQuery = window.collection(db, `/artifacts/${appId}/users/${userId}/sessions`);
                     
                     // Calculate the start of the current month
@@ -7026,7 +7096,7 @@
         // Register Service Worker
         if ('serviceWorker' in navigator) {
             // Force clear ALL caches on load - nuclear option for stuck PWAs
-            const APP_VERSION = '2025-10-24-v6-REVERT-TO-DEFAULT'; // Update this to force refresh
+            const APP_VERSION = '2025-10-24-v7-AUTO-MIGRATE'; // Update this to force refresh
             const storedVersion = localStorage.getItem('appVersion');
 
             if (storedVersion !== APP_VERSION) {

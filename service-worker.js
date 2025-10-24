@@ -1,4 +1,4 @@
-const CACHE_NAME = 'nous-v6-REVERT-TO-DEFAULT-2025-10-24-12-00';
+const CACHE_NAME = 'nous-v7-AUTO-MIGRATE-2025-10-24-12-00';
 const urlsToCache = [
   '/',
   '/index.html',
