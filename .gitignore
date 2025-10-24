@@ -66,7 +66,9 @@ QUICK_SETUP.md
 SETUP_NOW.md
 STYLISTIC_ISSUES.md
 dark-mode-*.png
-scripts/
+scripts/set-admin.js
+scripts/set-noahlim-admin.sh
+scripts/simple-set-admin.js
 test-results/
 tests/
 
