@@ -3527,22 +3527,22 @@
                             ),
                             React.createElement('div', { className: "space-y-3" },
                                 React.createElement('div', { className: "bg-white rounded-lg p-4" },
-                                    React.createElement('p', { className: "text-sm font-medium text-gray-700 mb-2" }, "📱 on mobile (Safari/Chrome):"),
+                                    React.createElement('p', { className: "text-sm font-medium text-gray-700 mb-2" }, "on mobile (Safari/Chrome):"),
                                     React.createElement('ol', { className: "text-sm text-gray-600 space-y-1 list-decimal list-inside", style: { fontWeight: 300 } },
                                         React.createElement('li', null, "Look at the ", React.createElement('strong', null, "top-right corner"), " next to the URL"),
                                         React.createElement('li', null, "Tap the ", React.createElement('strong', null, "Share icon"), " (square with arrow up)"),
                                         React.createElement('li', null, "Scroll down and tap ", React.createElement('strong', null, "\"Add to Home Screen\"")),
                                         React.createElement('li', null, "Tap ", React.createElement('strong', null, "\"Add\""), " to confirm"),
-                                        React.createElement('li', null, "Find Nous icon on your home screen!")
+                                        React.createElement('li', null, "Find Nous icon on your home screen")
                                     ),
-                                    React.createElement('p', { className: "text-xs text-gray-500 mt-2 italic" }, "✓ Works on Chrome and Safari browsers")
+                                    React.createElement('p', { className: "text-xs text-gray-500 mt-2" }, "Works on Chrome and Safari browsers")
                                 ),
                                 React.createElement('div', { className: "bg-white rounded-lg p-4" },
-                                    React.createElement('p', { className: "text-sm font-medium text-gray-700 mb-2" }, "💻 on desktop:"),
+                                    React.createElement('p', { className: "text-sm font-medium text-gray-700 mb-2" }, "on desktop:"),
                                     React.createElement('ol', { className: "text-sm text-gray-600 space-y-1 list-decimal list-inside", style: { fontWeight: 300 } },
-                                        React.createElement('li', null, "Look for the install icon ", React.createElement('span', { className: "inline-block" }, "⊕"), " in your browser's address bar"),
+                                        React.createElement('li', null, "Look for the install icon in your browser's address bar"),
                                         React.createElement('li', null, "Or click the ", React.createElement('strong', null, "\"Install App\""), " button below"),
-                                        React.createElement('li', null, "App opens in its own window!")
+                                        React.createElement('li', null, "App opens in its own window")
                                     )
                                 )
                             )
