@@ -1,4 +1,4 @@
-const CACHE_NAME = 'nous-v4-DATA-FIX-2025-10-24-11-40';
+const CACHE_NAME = 'nous-v5-CORRECT-APPID-2025-10-24-11-54';
 const urlsToCache = [
   '/',
   '/index.html',

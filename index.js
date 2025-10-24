@@ -739,7 +739,7 @@
 
                 try {
                     const sessionDate = new Date(date);
-                    const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+                    const appId = typeof __app_id !== 'undefined' ? __app_id : 'study-tracker-app';
                     const sessionsCol = window.collection(db, `/artifacts/${appId}/users/${userId}/sessions`);
                     await window.addDoc(sessionsCol, {
                         habitId: habit.id,
@@ -920,7 +920,7 @@
             const [pings, setPings] = useState({});
             const [lastPingTime, setLastPingTime] = useState({});
 
-            const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+            const appId = typeof __app_id !== 'undefined' ? __app_id : 'study-tracker-app';
 
             useEffect(() => {
                 if (!db || !userId) return;
@@ -2986,7 +2986,7 @@
             const [weeklyData, setWeeklyData] = useState([]);
             const [timeOfDayData, setTimeOfDayData] = useState([]);
 
-            const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+            const appId = typeof __app_id !== 'undefined' ? __app_id : 'study-tracker-app';
 
             useEffect(() => {
                 if (!db || !userId) return;
@@ -3319,7 +3319,7 @@
             const handleResetProgress = async () => {
                 setIsResetting(true);
                 try {
-                    const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+                    const appId = typeof __app_id !== 'undefined' ? __app_id : 'study-tracker-app';
                     const batch = window.writeBatch(db);
 
                     // Delete all sessions
@@ -3779,7 +3779,7 @@
             const [isEditingName, setIsEditingName] = useState(false);
             const [tempName, setTempName] = useState('');
 
-            const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+            const appId = typeof __app_id !== 'undefined' ? __app_id : 'study-tracker-app';
 
             // Calculate growth metrics
             const totalHours = calculateTotalHours(sessions);
@@ -4512,7 +4512,7 @@
             const [typingPosition, setTypingPosition] = useState(null);
             const [currentText, setCurrentText] = useState('');
 
-            const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+            const appId = typeof __app_id !== 'undefined' ? __app_id : 'study-tracker-app';
 
             // Load notes and todos from Firebase
             useEffect(() => {
@@ -4945,7 +4945,7 @@
             const [newGoalText, setNewGoalText] = useState({ daily: '', weekly: '', monthly: '', yearly: '' });
             const [isLoading, setIsLoading] = useState(true);
 
-            const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+            const appId = typeof __app_id !== 'undefined' ? __app_id : 'study-tracker-app';
 
             useEffect(() => {
                 if (!db || !userId) return;
@@ -5269,7 +5269,7 @@
                             }
                             
                             try {
-                                const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+                                const appId = typeof __app_id !== 'undefined' ? __app_id : 'study-tracker-app';
                                 const sessionsQuery = window.query(
                                     window.collection(db, `/artifacts/${appId}/users/${user.id}/sessions`),
                                     window.where('startTime', '>=', twoWeeksAgo) // Sessions from the last 14 days
@@ -5425,7 +5425,7 @@
             useEffect(() => {
                 if (!db || !userId) return;
 
-                const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+                const appId = typeof __app_id !== 'undefined' ? __app_id : 'study-tracker-app';
                 const habitsCol = window.collection(db, `/artifacts/${appId}/users/${userId}/habits`);
 
                 const unsubscribe = window.onSnapshot(habitsCol, (snapshot) => {
@@ -6261,7 +6261,7 @@
             // Helper function to calculate weekly study hours for a user
             const calculateWeeklyHours = async (userId) => {
                 try {
-                    const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+                    const appId = typeof __app_id !== 'undefined' ? __app_id : 'study-tracker-app';
                     const sessionsQuery = window.collection(db, `/artifacts/${appId}/users/${userId}/sessions`);
                     
                     // Calculate the start of the current week (Monday)
@@ -6300,7 +6300,7 @@
             // Helper function to calculate monthly study hours for a user
             const calculateMonthlyHours = async (userId) => {
                 try {
-                    const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+                    const appId = typeof __app_id !== 'undefined' ? __app_id : 'study-tracker-app';
                     const sessionsQuery = window.collection(db, `/artifacts/${appId}/users/${userId}/sessions`);
                     
                     // Calculate the start of the current month
@@ -6982,7 +6982,7 @@
         // Register Service Worker
         if ('serviceWorker' in navigator) {
             // Force clear ALL caches on load - nuclear option for stuck PWAs
-            const APP_VERSION = '2025-10-24-premium-v4-DATA-FIX'; // Update this to force refresh
+            const APP_VERSION = '2025-10-24-v5-CORRECT-APPID'; // Update this to force refresh
             const storedVersion = localStorage.getItem('appVersion');
 
             if (storedVersion !== APP_VERSION) {
