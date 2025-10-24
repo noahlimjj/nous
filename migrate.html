@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Data Migration - Nous</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #0f172a;
+            color: #e2e8f0;
+        }
+        .container {
+            background: rgba(15, 23, 42, 0.8);
+            border: 1px solid rgba(148, 163, 184, 0.2);
+            border-radius: 12px;
+            padding: 30px;
+        }
+        h1 { color: #60a5fa; margin-top: 0; }
+        .status {
+            background: rgba(30, 41, 59, 0.6);
+            border-radius: 8px;
+            padding: 15px;
+            margin: 20px 0;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .status div { margin: 5px 0; }
+        .success { color: #4ade80; }
+        .error { color: #f87171; }
+        .info { color: #60a5fa; }
+        .warning { color: #fbbf24; }
+        button {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-top: 20px;
+        }
+        button:hover { background: #2563eb; }
+        button:disabled {
+            background: #475569;
+            cursor: not-allowed;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔄 Data Migration Tool</h1>
+        <p>This tool will consolidate all your data from multiple locations into <code>study-tracker-app</code>.</p>
+
+        <div id="auth-status">
+            <p class="info">⏳ Checking authentication...</p>
+        </div>
+
+        <button id="migrate-btn" onclick="startMigration()" disabled>Start Migration</button>
+
+        <div class="status" id="log"></div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js';
+        import { getAuth, onAuthStateChanged, signInWithPopup, GoogleAuthProvider } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js';
+        import { getFirestore, collection, getDocs, doc, setDoc } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
+
+        // Load config
+        const script = document.createElement('script');
+        script.src = './config.js';
+        script.onload = initFirebase;
+        document.head.appendChild(script);
+
+        let auth, db, userId;
+
+        function initFirebase() {
+            if (!window.__firebase_config) {
+                log('error', 'Firebase config not found. Please ensure config.js exists.');
+                return;
+            }
+
+            const app = initializeApp(window.__firebase_config);
+            auth = getAuth(app);
+            db = getFirestore(app);
+
+            onAuthStateChanged(auth, (user) => {
+                if (user) {
+                    userId = user.uid;
+                    document.getElementById('auth-status').innerHTML = `<p class="success">✓ Logged in as ${user.email}</p>`;
+                    document.getElementById('migrate-btn').disabled = false;
+                } else {
+                    document.getElementById('auth-status').innerHTML = `
+                        <p class="warning">⚠ Not logged in</p>
+                        <button onclick="signIn()">Sign in with Google</button>
+                    `;
+                }
+            });
+        }
+
+        window.signIn = async function() {
+            const provider = new GoogleAuthProvider();
+            try {
+                await signInWithPopup(auth, provider);
+            } catch (error) {
+                log('error', 'Sign in failed: ' + error.message);
+            }
+        };
+
+        function log(type, message) {
+            const logDiv = document.getElementById('log');
+            const div = document.createElement('div');
+            div.className = type;
+            div.textContent = message;
+            logDiv.appendChild(div);
+            logDiv.scrollTop = logDiv.scrollHeight;
+        }
+
+        window.startMigration = async function() {
+            document.getElementById('migrate-btn').disabled = true;
+            document.getElementById('log').innerHTML = '';
+
+            log('info', '🔄 Starting data migration...');
+            log('info', `👤 User ID: ${userId.substring(0, 20)}...`);
+
+            const artifacts = ['default-app-id', 'study-tracker-app', 'studyTrackerApp'];
+            const TARGET_APP_ID = 'study-tracker-app';
+
+            const allData = {
+                habits: [],
+                sessions: [],
+                goals: []
+            };
+
+            // Step 1: Collect data
+            log('info', '\n📦 Step 1: Collecting data from all locations...');
+
+            for (const appId of artifacts) {
+                log('info', `   Checking ${appId}...`);
+
+                try {
+                    // Habits
+                    const habitsRef = collection(db, `artifacts/${appId}/users/${userId}/habits`);
+                    const habitsSnapshot = await getDocs(habitsRef);
+                    if (!habitsSnapshot.empty) {
+                        log('success', `      ✓ Found ${habitsSnapshot.size} habits`);
+                        habitsSnapshot.forEach(doc => {
+                            allData.habits.push({ id: doc.id, data: doc.data(), source: appId });
+                        });
+                    }
+
+                    // Sessions
+                    const sessionsRef = collection(db, `artifacts/${appId}/users/${userId}/sessions`);
+                    const sessionsSnapshot = await getDocs(sessionsRef);
+                    if (!sessionsSnapshot.empty) {
+                        log('success', `      ✓ Found ${sessionsSnapshot.size} sessions`);
+                        sessionsSnapshot.forEach(doc => {
+                            allData.sessions.push({ id: doc.id, data: doc.data(), source: appId });
+                        });
+                    }
+
+                    // Goals
+                    const goalsRef = collection(db, `artifacts/${appId}/users/${userId}/goals`);
+                    const goalsSnapshot = await getDocs(goalsRef);
+                    if (!goalsSnapshot.empty) {
+                        log('success', `      ✓ Found ${goalsSnapshot.size} goals`);
+                        goalsSnapshot.forEach(doc => {
+                            allData.goals.push({ id: doc.id, data: doc.data(), source: appId });
+                        });
+                    }
+                } catch (error) {
+                    log('warning', `      ⚠ Error checking ${appId}: ${error.message}`);
+                }
+            }
+
+            log('info', '\n📊 Summary of found data:');
+            log('info', `   Habits: ${allData.habits.length}`);
+            log('info', `   Sessions: ${allData.sessions.length}`);
+            log('info', `   Goals: ${allData.goals.length}`);
+
+            if (allData.habits.length === 0 && allData.sessions.length === 0 && allData.goals.length === 0) {
+                log('error', '\n❌ No data found to migrate!');
+                document.getElementById('migrate-btn').disabled = false;
+                return;
+            }
+
+            // Step 2: Deduplicate
+            log('info', '\n🔍 Step 2: Deduplicating data...');
+
+            const deduped = {
+                habits: new Map(),
+                sessions: new Map(),
+                goals: new Map()
+            };
+
+            allData.habits.forEach(item => {
+                if (!deduped.habits.has(item.id) || item.source === TARGET_APP_ID) {
+                    deduped.habits.set(item.id, item);
+                }
+            });
+
+            allData.sessions.forEach(item => {
+                if (!deduped.sessions.has(item.id) || item.source === TARGET_APP_ID) {
+                    deduped.sessions.set(item.id, item);
+                }
+            });
+
+            allData.goals.forEach(item => {
+                if (!deduped.goals.has(item.id) || item.source === TARGET_APP_ID) {
+                    deduped.goals.set(item.id, item);
+                }
+            });
+
+            log('success', `   Unique habits: ${deduped.habits.size}`);
+            log('success', `   Unique sessions: ${deduped.sessions.size}`);
+            log('success', `   Unique goals: ${deduped.goals.size}`);
+
+            // Step 3: Write data
+            log('info', `\n💾 Step 3: Writing data to ${TARGET_APP_ID}...`);
+
+            let written = 0;
+
+            for (const [id, item] of deduped.habits) {
+                try {
+                    const docRef = doc(db, `artifacts/${TARGET_APP_ID}/users/${userId}/habits`, id);
+                    await setDoc(docRef, item.data);
+                    written++;
+                    log('success', `   ✓ Wrote habit: ${item.data.name || id}`);
+                } catch (error) {
+                    log('error', `   ✗ Failed to write habit ${id}: ${error.message}`);
+                }
+            }
+
+            for (const [id, item] of deduped.sessions) {
+                try {
+                    const docRef = doc(db, `artifacts/${TARGET_APP_ID}/users/${userId}/sessions`, id);
+                    await setDoc(docRef, item.data);
+                    written++;
+                    if (written % 10 === 0) {
+                        log('info', `   ✓ Wrote ${written} documents so far...`);
+                    }
+                } catch (error) {
+                    log('error', `   ✗ Failed to write session ${id}: ${error.message}`);
+                }
+            }
+
+            for (const [id, item] of deduped.goals) {
+                try {
+                    const docRef = doc(db, `artifacts/${TARGET_APP_ID}/users/${userId}/goals`, id);
+                    await setDoc(docRef, item.data);
+                    written++;
+                    log('success', `   ✓ Wrote goal: ${item.data.text || id}`);
+                } catch (error) {
+                    log('error', `   ✗ Failed to write goal ${id}: ${error.message}`);
+                }
+            }
+
+            log('success', `\n✅ Migration complete! Wrote ${written} documents to ${TARGET_APP_ID}`);
+            log('info', '\n🔄 Redirecting to main app in 3 seconds...');
+
+            setTimeout(() => {
+                window.location.href = './index.html';
+            }, 3000);
+        };
+    </script>
+</body>
+</html>
