@@ -59,5 +59,16 @@ config.js
 new-style.css
 style.replit.css
 
+# Development files
+debug-admin.html
+auth.json
+QUICK_SETUP.md
+SETUP_NOW.md
+STYLISTIC_ISSUES.md
+dark-mode-*.png
+scripts/
+test-results/
+tests/
+
 # Test scripts (not to be pushed)
 create-test-friend.js
