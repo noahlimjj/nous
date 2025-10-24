@@ -39,16 +39,22 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
+  // Skip caching for non-http(s) requests (chrome-extension, etc)
+  if (!event.request.url.startsWith('http')) {
+    return;
+  }
+
   event.respondWith(
     fetch(event.request)
       .then((response) => {
-        // Clone the response
-        const responseClone = response.clone();
+        // Only cache successful responses
+        if (response.status === 200) {
+          const responseClone = response.clone();
 
-        // Cache the new response
-        caches.open(CACHE_NAME).then((cache) => {
-          cache.put(event.request, responseClone);
-        });
+          caches.open(CACHE_NAME).then((cache) => {
+            cache.put(event.request, responseClone);
+          });
+        }
 
         return response;
       })
