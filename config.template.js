@@ -2,7 +2,7 @@
 // This file is used as a fallback if environment variables are not set
 
 if (typeof window !== 'undefined') {
-    window.firebaseConfig = {
+    window.__firebase_config = {
         apiKey: "{{FIREBASE_API_KEY}}",
         authDomain: "{{FIREBASE_AUTH_DOMAIN}}",
         projectId: "{{FIREBASE_PROJECT_ID}}",
