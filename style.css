@@ -1,9 +1,17 @@
+/* Import Tailwind CSS */
+@import "tailwind-output.css";
+
+/* ============================================
+   PREMIUM DESIGN SYSTEM - LIGHT MODE
+   ============================================ */
+
 /* Set default body font */
 body {
     font-family: "Satoshi", -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
     font-weight: 400;
     background-color: #f8f9fb;
-    transition: background-color 0.3s ease, color 0.3s ease;
+    transition: background-color 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+                color 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 /* Light mode default backgrounds */
@@ -11,15 +19,40 @@ body {
     background-color: #f8f9fb;
 }
 
-/* Night Mode Styles - Even deeper, darker theme with stars */
+/* Soft shadows for light mode */
+.soft-shadow {
+    box-shadow: 0 2px 12px rgba(99, 110, 129, 0.08), 0 1px 4px rgba(99, 110, 129, 0.04);
+}
+
+.soft-shadow-lg {
+    box-shadow: 0 8px 24px rgba(99, 110, 129, 0.12), 0 2px 8px rgba(99, 110, 129, 0.06);
+}
+
+/* Regular weight for all headers */
+h1, h2, h3, h4, h5, h6 {
+    font-weight: 400;
+}
+
+/* Title styling with letter spacing */
+.nous-title {
+    font-family: "Satoshi", -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+    font-weight: 300;
+    letter-spacing: 0.025em;
+}
+
+/* ============================================
+   PREMIUM DARK MODE - PROFESSIONAL THEME
+   ============================================ */
+
+/* Main dark mode container with deep gradient background */
 body.night-mode {
-    background-color: #020510 !important;
-    color: #e2e8f0 !important;
+    background: linear-gradient(135deg, #0a0e1a 0%, #0d1117 50%, #0a0d15 100%) !important;
+    color: #e8edf5 !important;
     position: relative;
     overflow-x: hidden;
 }
 
-/* Starry background effect - Layer 1 (many small stars) */
+/* Premium starfield effect - Layer 1 (subtle small stars) */
 body.night-mode::before {
     content: '';
     position: fixed;
@@ -29,17 +62,18 @@ body.night-mode::before {
     height: 100%;
     background-color: transparent;
     background-image:
-        radial-gradient(circle, #fff 0.5px, transparent 0.5px),
-        radial-gradient(circle, #fff 0.8px, transparent 0.8px),
-        radial-gradient(circle, #fff 0.6px, transparent 0.6px);
-    background-size: 250px 250px, 350px 350px, 450px 450px;
-    background-position: 0 0, 80px 120px, 180px 50px;
-    animation: twinkle1 40s linear infinite;
+        radial-gradient(circle, rgba(255, 255, 255, 0.15) 0.5px, transparent 0.5px),
+        radial-gradient(circle, rgba(147, 197, 253, 0.12) 0.6px, transparent 0.6px),
+        radial-gradient(circle, rgba(196, 181, 253, 0.1) 0.4px, transparent 0.4px);
+    background-size: 280px 280px, 380px 380px, 480px 480px;
+    background-position: 0 0, 90px 130px, 190px 60px;
+    animation: twinkle1 60s ease-in-out infinite;
     z-index: 9999;
     pointer-events: none;
+    opacity: 0.25;
 }
 
-/* Starry background effect - Layer 2 (larger bright stars with glow) */
+/* Premium starfield effect - Layer 2 (larger glowing stars) */
 body.night-mode::after {
     content: '';
     position: fixed;
@@ -48,30 +82,32 @@ body.night-mode::after {
     width: 100%;
     height: 100%;
     background-image:
-        radial-gradient(circle, rgba(255, 255, 255, 0.9) 1px, transparent 1px),
-        radial-gradient(circle, rgba(255, 255, 255, 0.8) 1.5px, transparent 1.5px),
-        radial-gradient(circle, rgba(255, 255, 255, 0.7) 1px, transparent 1px);
-    background-size: 400px 400px, 500px 500px, 600px 600px;
-    background-position: 50px 80px, 200px 150px, 320px 40px;
-    animation: twinkle2 50s linear infinite;
+        radial-gradient(circle, rgba(255, 255, 255, 0.2) 1px, transparent 1px),
+        radial-gradient(circle, rgba(147, 197, 253, 0.15) 1.2px, transparent 1.2px),
+        radial-gradient(circle, rgba(196, 181, 253, 0.12) 0.8px, transparent 0.8px);
+    background-size: 450px 450px, 550px 550px, 650px 650px;
+    background-position: 60px 90px, 210px 160px, 340px 50px;
+    animation: twinkle2 70s ease-in-out infinite;
     z-index: 9999;
     pointer-events: none;
+    opacity: 0.2;
 }
 
 @keyframes twinkle1 {
-    0% { transform: translate(0, 0); }
-    100% { transform: translate(-15px, -15px); }
+    0%, 100% { transform: translate(0, 0); opacity: 0.25; }
+    50% { transform: translate(-12px, -12px); opacity: 0.35; }
 }
 
 @keyframes twinkle2 {
-    0% { transform: translate(0, 0); }
-    100% { transform: translate(-20px, -20px); }
+    0%, 100% { transform: translate(0, 0); opacity: 0.2; }
+    50% { transform: translate(-18px, -18px); opacity: 0.3; }
 }
 
+/* Elegant shooting stars */
 @keyframes shooting-star {
     0% {
         transform: translate(150vw, -50vh) scale(0.5);
-        opacity: 1;
+        opacity: 0.8;
     }
     100% {
         transform: translate(-50vw, 150vh) scale(0);
@@ -83,26 +119,27 @@ body.night-mode::after {
     position: fixed;
     top: 0;
     left: 0;
-    width: 100px;
-    height: 2px;
-    background: linear-gradient(to right, rgba(255, 255, 255, 0.8), transparent);
+    width: 120px;
+    height: 1.5px;
+    background: linear-gradient(to right, rgba(255, 255, 255, 0.4), rgba(147, 197, 253, 0.2), transparent);
     border-radius: 50%;
-    animation: shooting-star 10s linear infinite;
+    animation: shooting-star 12s linear infinite;
+    opacity: 0;
 }
 
 .shooting-star:nth-child(2) {
     top: 20%;
-    animation-delay: 2s;
-    animation-duration: 8s;
+    animation-delay: 3s;
+    animation-duration: 10s;
 }
 
 .shooting-star:nth-child(3) {
     top: 40%;
-    animation-delay: 5s;
-    animation-duration: 12s;
+    animation-delay: 7s;
+    animation-duration: 14s;
 }
 
-
+/* Core container styles */
 body.night-mode #root {
     background-color: transparent !important;
     position: relative;
@@ -114,21 +151,21 @@ body.night-mode #root > div {
     position: relative;
 }
 
-/* Fix the main content container */
 body.night-mode .max-w-7xl,
 body.night-mode .mx-auto,
 body.night-mode .container {
-    background-color: #020510 !important;
+    background-color: transparent !important;
 }
 
-body.night-mode header {
-    background-color: #020510 !important;
-    border-bottom: none !important;
-    box-shadow: none !important;
-}
-
+/* Premium glass-morphism cards */
 body.night-mode .bg-white {
-    background-color: #0d1322 !important;
+    background: rgba(15, 23, 42, 0.7) !important;
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(148, 163, 184, 0.1) !important;
+    box-shadow:
+        0 8px 32px rgba(0, 0, 0, 0.3),
+        0 2px 8px rgba(0, 0, 0, 0.2),
+        inset 0 1px 0 rgba(255, 255, 255, 0.05) !important;
 }
 
 body.night-mode .bg-calm-50,
@@ -136,59 +173,71 @@ body.night-mode .bg-calm-100,
 body.night-mode .bg-gray-50,
 body.night-mode .bg-gray-100,
 body.night-mode .bg-gray-200 {
-    background-color: #1f2937 !important;
+    background: rgba(30, 41, 59, 0.6) !important;
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(148, 163, 184, 0.08);
 }
 
+/* Premium gradient backgrounds */
 body.night-mode .bg-blue-50 {
-    background-color: #1e3a5f !important;
+    background: linear-gradient(135deg, rgba(30, 58, 95, 0.5) 0%, rgba(15, 40, 75, 0.5) 100%) !important;
+    backdrop-filter: blur(10px);
 }
 
 body.night-mode .bg-blue-100 {
-    background-color: #1e3a5f !important;
-    border-color: #3b82f6 !important;
+    background: linear-gradient(135deg, rgba(30, 58, 95, 0.6) 0%, rgba(15, 40, 75, 0.6) 100%) !important;
+    border: 1px solid rgba(59, 130, 246, 0.2) !important;
+    box-shadow: 0 4px 16px rgba(59, 130, 246, 0.1);
 }
 
 body.night-mode .bg-gradient-to-b {
-    background: linear-gradient(to bottom, #1e3a5f, #0f3d30) !important;
+    background: linear-gradient(to bottom,
+        rgba(30, 58, 95, 0.4) 0%,
+        rgba(15, 61, 48, 0.4) 100%) !important;
+    backdrop-filter: blur(8px);
 }
 
 body.night-mode .bg-gradient-to-r {
-    background: linear-gradient(to right, #1e3a5f, #2d1b4e) !important;
+    background: linear-gradient(to right,
+        rgba(30, 58, 95, 0.4) 0%,
+        rgba(45, 27, 78, 0.4) 100%) !important;
+    backdrop-filter: blur(8px);
 }
 
 body.night-mode .bg-gradient-to-br {
-    background: linear-gradient(to bottom right, #1e3a5f, #2d1b4e) !important;
+    background: linear-gradient(to bottom right,
+        rgba(30, 58, 95, 0.4) 0%,
+        rgba(45, 27, 78, 0.4) 100%) !important;
+    backdrop-filter: blur(8px);
 }
 
-/* Improve borders visibility */
+/* Premium border styling */
 body.night-mode .border-gray-300,
 body.night-mode .border-calm-300 {
-    border-color: #374151 !important;
+    border-color: rgba(100, 116, 139, 0.2) !important;
 }
 
 body.night-mode .border-gray-200 {
-    border-color: #1f2937 !important;
+    border-color: rgba(71, 85, 105, 0.15) !important;
 }
 
 body.night-mode .border-b {
-    border-bottom-color: #1f2937 !important;
+    border-bottom-color: rgba(71, 85, 105, 0.15) !important;
 }
 
-/* Fix card backgrounds */
-body.night-mode div[class*="rounded"],
-body.night-mode div[class*="bg-"] {
-    color: #e2e8f0;
+/* Enhanced header */
+body.night-mode header {
+    background: rgba(15, 23, 42, 0.8) !important;
+    backdrop-filter: blur(16px);
+    border-bottom: 1px solid rgba(148, 163, 184, 0.1) !important;
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.2) !important;
 }
 
-/* Target specific Tailwind background utilities */
-body.night-mode .bg-gray-800 {
-    background-color: #111827 !important;
-}
-
+/* Premium text colors with better hierarchy */
 body.night-mode .text-calm-600,
 body.night-mode .text-calm-700,
 body.night-mode .text-calm-800 {
-    color: #e2e8f0 !important;
+    color: #f1f5f9 !important;
 }
 
 body.night-mode .text-calm-500 {
@@ -209,412 +258,237 @@ body.night-mode .text-gray-400 {
     color: #94a3b8 !important;
 }
 
+/* Premium shadows for dark mode */
 body.night-mode .soft-shadow {
-    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.3), 0 1px 4px rgba(0, 0, 0, 0.2);
+    box-shadow:
+        0 4px 16px rgba(0, 0, 0, 0.3),
+        0 2px 8px rgba(0, 0, 0, 0.2),
+        inset 0 1px 0 rgba(255, 255, 255, 0.05);
 }
 
 body.night-mode .soft-shadow-lg {
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4), 0 2px 8px rgba(0, 0, 0, 0.3);
+    box-shadow:
+        0 12px 40px rgba(0, 0, 0, 0.4),
+        0 4px 16px rgba(0, 0, 0, 0.3),
+        inset 0 1px 0 rgba(255, 255, 255, 0.05);
 }
 
-body.night-mode .timer-display {
-    background: #141b2e !important;
-    border-color: #1f2937 !important;
-    color: #e2e8f0 !important;
-}
-
-body.night-mode .timer-display.running {
-    background: #0f3d30 !important;
-    border-color: #10b981 !important;
-}
-
-body.night-mode .timer-display.paused {
-    background: #3d2f0f !important;
-    border-color: #f59e0b !important;
-}
-
-body.night-mode .timer-circle-bg {
-    stroke: #1f2937 !important;
-}
-
-/* SVG elements in dark mode */
-body.night-mode svg {
-    color: #e2e8f0;
-}
-
-/* Make tree branches visible in dark mode - darker brown */
-body.night-mode .branch-draw {
-    stroke: #b8956d !important;
-    stroke-width: 5 !important;
-    opacity: 1 !important;
-}
-
-body.night-mode svg .branch-draw {
-    stroke: #b8956d !important;
-    stroke-width: 5 !important;
-    opacity: 1 !important;
-}
-
-/* Make tree trunk same color as branches */
-body.night-mode svg rect {
-    fill: #b8956d !important;
-    opacity: 1 !important;
-}
-
-/* Target ALL trunk paths - override everything */
-body.night-mode svg g path:not(.branch-draw) {
-    stroke: #b8956d !important;
-    opacity: 1 !important;
-}
-
-body.night-mode svg path[stroke-width="8"],
-body.night-mode svg path[stroke-width="7"],
-body.night-mode svg path[stroke-width="6"],
-body.night-mode svg path[d*="M100,180"],
-body.night-mode svg path[d*="Q98,150"],
-body.night-mode svg path[d*="Q102,150"] {
-    stroke: #b8956d !important;
-    opacity: 1 !important;
-}
-
-/* Generic SVG elements without explicit colors can be white */
-body.night-mode header svg circle:not([stroke]),
-body.night-mode header svg path:not([stroke]),
-body.night-mode nav svg circle:not([stroke]),
-body.night-mode nav svg path:not([stroke]) {
-    stroke: currentColor;
-}
-
+/* Premium input fields */
 body.night-mode input,
 body.night-mode textarea,
 body.night-mode select {
-    background-color: #141b2e !important;
-    border-color: #374151 !important;
-    color: #e2e8f0 !important;
+    background: rgba(15, 23, 42, 0.6) !important;
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(148, 163, 184, 0.15) !important;
+    color: #f1f5f9 !important;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+body.night-mode input:focus,
+body.night-mode textarea:focus,
+body.night-mode select:focus {
+    background: rgba(15, 23, 42, 0.8) !important;
+    border-color: rgba(59, 130, 246, 0.5) !important;
+    box-shadow:
+        0 0 0 3px rgba(59, 130, 246, 0.1),
+        0 4px 16px rgba(59, 130, 246, 0.2);
 }
 
 body.night-mode input::placeholder,
 body.night-mode textarea::placeholder {
-    color: #6b7280 !important;
+    color: #64748b !important;
 }
 
-/* Better button contrast in night mode */
+/* Premium button styling */
 body.night-mode button {
-    border-color: #475569 !important;
-    color: #e2e8f0;
-    background-color: #1e293b;
+    background: rgba(30, 41, 59, 0.8) !important;
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(100, 116, 139, 0.3) !important;
+    color: #f1f5f9;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 }
 
 body.night-mode button:hover {
-    background-color: #334155 !important;
-    border-color: #64748b !important;
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    background: rgba(51, 65, 85, 0.9) !important;
+    border-color: rgba(148, 163, 184, 0.4) !important;
+    transform: translateY(-2px);
+    box-shadow:
+        0 8px 24px rgba(0, 0, 0, 0.3),
+        0 0 0 1px rgba(255, 255, 255, 0.1);
 }
 
-/* Make icon buttons more visible (but not tree branches) */
-body.night-mode button svg:not(.tree-svg) {
-    filter: brightness(1.2);
-}
-
-body.night-mode button svg path:not(.branch-draw) {
-    filter: brightness(1.2);
-}
-
-/* Enhance specific button types */
+/* Premium colored buttons */
 body.night-mode button[class*="bg-blue"],
 body.night-mode button[class*="bg-purple"],
 body.night-mode button[class*="bg-green"] {
+    background: linear-gradient(135deg,
+        rgba(var(--button-color, 59, 130, 246), 0.8) 0%,
+        rgba(var(--button-color, 59, 130, 246), 0.6) 100%) !important;
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.2) !important;
+    box-shadow:
+        0 4px 16px rgba(0, 0, 0, 0.3),
+        0 0 32px rgba(var(--button-color, 59, 130, 246), 0.2);
     filter: brightness(1.2) saturate(1.1);
-    border: 1.5px solid rgba(255, 255, 255, 0.15) !important;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
 }
 
 body.night-mode button[class*="bg-blue"]:hover,
 body.night-mode button[class*="bg-purple"]:hover,
 body.night-mode button[class*="bg-green"]:hover {
     filter: brightness(1.3) saturate(1.2);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
-    transform: translateY(-1px);
+    transform: translateY(-2px) scale(1.02);
+    box-shadow:
+        0 8px 32px rgba(0, 0, 0, 0.4),
+        0 0 48px rgba(var(--button-color, 59, 130, 246), 0.3),
+        0 0 0 1px rgba(255, 255, 255, 0.2);
 }
 
-/* Make add/edit/delete buttons more prominent */
-body.night-mode button:not([class*="bg-"]) {
-    background-color: #1e293b !important;
-    border: 1px solid #475569 !important;
-}
-
-body.night-mode button:not([class*="bg-"]):hover {
-    background-color: #334155 !important;
-    border: 1px solid #64748b !important;
-}
-
-/* Make color picker and control buttons more visible */
-body.night-mode .rounded-full,
-body.night-mode button.rounded-full {
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.1);
-    filter: brightness(1.15) saturate(1.2);
-}
-
-body.night-mode .rounded-full:hover,
-body.night-mode button.rounded-full:hover {
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.6), 0 0 0 2px rgba(255, 255, 255, 0.15);
-    filter: brightness(1.25) saturate(1.3);
-    transform: scale(1.08);
-}
-
-/* Enhance trash and icon buttons */
-body.night-mode button[class*="text-red"],
-body.night-mode button[class*="text-gray"] {
-    background-color: #1e293b !important;
-    border: 1px solid #475569 !important;
-    padding: 8px;
-}
-
-body.night-mode button[class*="text-red"]:hover,
-body.night-mode button[class*="text-gray"]:hover {
-    background-color: #334155 !important;
-    border-color: #64748b !important;
-}
-
-/* Text-based action buttons */
-body.night-mode button.bg-gray-200,
-body.night-mode button.bg-gray-300 {
-    background-color: #334155 !important;
+/* Premium timer display */
+body.night-mode .timer-display {
+    background: rgba(15, 23, 42, 0.7) !important;
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(100, 116, 139, 0.2) !important;
     color: #f1f5f9 !important;
-    border: 1.5px solid #64748b !important;
+    box-shadow:
+        0 8px 32px rgba(0, 0, 0, 0.3),
+        inset 0 1px 0 rgba(255, 255, 255, 0.05);
 }
 
-body.night-mode button.bg-gray-200:hover,
-body.night-mode button.bg-gray-300:hover {
-    background-color: #475569 !important;
-    border-color: #94a3b8 !important;
+body.night-mode .timer-display.running {
+    background: rgba(15, 61, 48, 0.5) !important;
+    border-color: rgba(16, 185, 129, 0.4) !important;
+    box-shadow:
+        0 8px 32px rgba(0, 0, 0, 0.3),
+        0 0 48px rgba(16, 185, 129, 0.2),
+        inset 0 1px 0 rgba(16, 185, 129, 0.1);
 }
 
-/* Edit and control buttons (but not tree branches) */
-body.night-mode button svg path:not(.branch-draw),
-body.night-mode button svg circle:not(.branch-draw),
-body.night-mode button svg line:not(.branch-draw) {
-    stroke-width: 2.5;
+body.night-mode .timer-display.paused {
+    background: rgba(61, 47, 15, 0.5) !important;
+    border-color: rgba(245, 158, 11, 0.4) !important;
+    box-shadow:
+        0 8px 32px rgba(0, 0, 0, 0.3),
+        0 0 48px rgba(245, 158, 11, 0.2),
+        inset 0 1px 0 rgba(245, 158, 11, 0.1);
 }
 
-/* Timer control buttons - play, pause, etc */
-body.night-mode .timer-container button,
-body.night-mode [class*="timer"] button {
-    background-color: #1e293b !important;
-    border: 1.5px solid #64748b !important;
+/* Premium SVG and tree styling */
+body.night-mode svg {
+    color: #f1f5f9;
 }
 
-body.night-mode .timer-container button:hover,
-body.night-mode [class*="timer"] button:hover {
-    background-color: #334155 !important;
-    border-color: #94a3b8 !important;
-    transform: scale(1.1);
+body.night-mode .branch-draw {
+    stroke: #c9a66b !important;
+    stroke-width: 5 !important;
+    opacity: 1 !important;
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.4));
 }
 
-/* Drag handles */
-body.night-mode [class*="cursor-grab"],
-body.night-mode [class*="cursor-move"] {
-    opacity: 0.7;
+body.night-mode svg .branch-draw {
+    stroke: #c9a66b !important;
+    stroke-width: 5 !important;
+    opacity: 1 !important;
 }
 
-body.night-mode [class*="cursor-grab"]:hover,
-body.night-mode [class*="cursor-move"]:hover {
-    opacity: 1;
-    background-color: #1e293b;
+body.night-mode svg rect {
+    fill: #c9a66b !important;
+    opacity: 1 !important;
 }
 
-/* Header icons */
-body.night-mode header button,
-body.night-mode header a {
-    opacity: 0.9;
-    transition: opacity 0.2s ease, transform 0.2s ease;
+/* Premium tree leaves with glow effect */
+body.night-mode svg circle[fill],
+body.night-mode svg ellipse[fill],
+body.night-mode svg polygon[fill] {
+    fill: #6ee7b7 !important;
+    stroke: #34d399 !important;
+    stroke-width: 1 !important;
+    opacity: 1 !important;
+    filter: brightness(1.3) saturate(1.4)
+            drop-shadow(0 0 4px rgba(52, 211, 153, 0.6))
+            drop-shadow(0 0 8px rgba(52, 211, 153, 0.3)) !important;
 }
 
-body.night-mode header button:hover,
-body.night-mode header a:hover {
-    opacity: 1;
-    transform: scale(1.1);
-}
-
-/* Improve heading visibility */
+/* Premium headings */
 body.night-mode h1,
 body.night-mode h2,
 body.night-mode h3,
 body.night-mode h4,
 body.night-mode h5,
 body.night-mode h6 {
-    color: #f1f5f9 !important;
+    color: #f8fafc !important;
+    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
 }
 
-/* Better contrast for dates and secondary info */
+/* Premium nous logo */
+body.night-mode .nous-title {
+    color: #ffffff !important;
+    font-weight: 300 !important;
+    text-shadow: 0 0 32px rgba(147, 197, 253, 0.3);
+    letter-spacing: 0.025em;
+}
+
+/* Premium circle logo effect */
+body.night-mode .circle-flow {
+    stroke: #4ade80 !important;
+    fill: none !important;
+    stroke-width: 3 !important;
+    opacity: 0.95 !important;
+    filter: drop-shadow(0 0 24px rgba(74, 222, 128, 0.8))
+            drop-shadow(0 0 16px rgba(74, 222, 128, 0.6))
+            drop-shadow(0 0 8px rgba(74, 222, 128, 0.4));
+    stroke-dasharray: none !important;
+    animation: none !important;
+    stroke-linecap: round !important;
+}
+
+/* Premium mode toggle */
+body.night-mode button.bg-gray-900 {
+    background: linear-gradient(135deg, rgba(26, 32, 46, 0.9), rgba(30, 41, 59, 0.9)) !important;
+    border: 2px solid rgba(59, 130, 246, 0.5) !important;
+    box-shadow:
+        0 8px 32px rgba(59, 130, 246, 0.3),
+        0 0 32px rgba(59, 130, 246, 0.2),
+        inset 0 1px 0 rgba(255, 255, 255, 0.1) !important;
+}
+
+body.night-mode button.bg-gray-900:hover {
+    background: linear-gradient(135deg, rgba(36, 48, 73, 0.95), rgba(51, 65, 85, 0.95)) !important;
+    transform: scale(1.05);
+    box-shadow:
+        0 12px 40px rgba(59, 130, 246, 0.4),
+        0 0 48px rgba(59, 130, 246, 0.3),
+        inset 0 1px 0 rgba(255, 255, 255, 0.15) !important;
+}
+
+/* Premium text elements */
 body.night-mode .text-xs,
 body.night-mode .text-sm {
     color: #cbd5e1 !important;
 }
 
-/* Improve install section visibility in dark mode */
-body.night-mode .bg-gradient-to-br.from-blue-50 {
-    background: linear-gradient(to bottom right, #1e3a5f, #2d1b4e) !important;
-}
-
-body.night-mode .text-gray-800 {
-    color: #f1f5f9 !important;
-}
-
-body.night-mode .text-gray-700 {
-    color: #e2e8f0 !important;
-}
-
 body.night-mode strong {
-    color: #60a5fa !important;
+    color: #93c5fd !important;
     font-weight: 600 !important;
 }
 
-/* Night mode toggle button hover effect */
-.night-mode-toggle:hover {
-    transform: scale(1.1);
-}
-
-/* Enhanced mode toggle buttons in settings */
-body.night-mode .bg-gray-900 {
-    background-color: #1a202e !important;
-    border-color: #60a5fa !important;
-}
-
-body.night-mode .bg-gray-900:hover {
-    background-color: #243049 !important;
-    transform: scale(1.02);
-    transition: all 0.2s ease;
-}
-
-/* Global dark mode catch-all */
-body.night-mode * {
-    border-color: inherit;
-}
-
-/* Ensure all divs and containers inherit dark background */
-body.night-mode > div,
-body.night-mode main,
-body.night-mode section,
-body.night-mode article,
-body.night-mode aside {
-    background-color: #020510 !important;
-}
-
-/* Force all child divs to use dark background */
-body.night-mode div:not([class*="bg-gradient"]):not([class*="timer"]) {
-    background-color: inherit;
-}
-
-/* Aggressively target all potential light backgrounds */
-body.night-mode .px-4,
-body.night-mode .px-6,
-body.night-mode .px-8,
-body.night-mode .py-4,
-body.night-mode .py-6,
-body.night-mode .py-8,
-body.night-mode .p-4,
-body.night-mode .p-6,
-body.night-mode .p-8 {
-    background-color: transparent !important;
-}
-
-/* Target the page wrapper */
-body.night-mode [class*="min-h"],
-body.night-mode [class*="h-screen"],
-body.night-mode [class*="h-full"] {
-    background-color: #020510 !important;
-}
-
-/* Custom border width for toggle buttons */
-.border-3 {
-    border-width: 3px;
-}
-
-/* Smooth transitions for mode switching */
+/* Smooth transitions */
 body.night-mode,
 body.night-mode * {
-    transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+    transition: background-color 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+                color 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+                border-color 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+                box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* Enhanced active state for mode toggles */
-body.night-mode button.bg-gray-900 {
-    box-shadow: 0 8px 32px rgba(59, 130, 246, 0.5), 0 0 20px rgba(59, 130, 246, 0.3) !important;
-}
-
-/* Fix any remaining white elements */
-body.night-mode .bg-gradient-to-br {
-    background: linear-gradient(to bottom right, #1e3a5f, #2d1b4e) !important;
-}
-
-/* Modal and overlay backgrounds */
-body.night-mode [class*="modal"],
-body.night-mode [class*="overlay"],
-body.night-mode [class*="popup"] {
-    background-color: #141b2e !important;
-}
-
-/* Fix table and list backgrounds */
-body.night-mode table,
-body.night-mode ul,
-body.night-mode ol {
-    background-color: transparent;
-    color: #e2e8f0;
-}
-
-/* Dark mode for specific card types */
-body.night-mode .rounded-lg,
-body.night-mode .rounded-xl,
-body.night-mode .rounded-2xl {
-    background-color: inherit;
-}
-
-/* Ensure text remains readable on all backgrounds */
-body.night-mode p,
-body.night-mode span,
-body.night-mode label,
-body.night-mode a {
-    color: inherit;
-}
-
-/* Title styling with letter spacing */
-.nous-title {
-    font-family: "Satoshi", -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
-    font-weight: 300;
-    letter-spacing: 0.025em; /* 2.5% letter spacing */
-}
-
-/* Brighter nous logo in dark mode - same size as light mode, no glow */
-body.night-mode .nous-title {
-    color: #ffffff !important;
-    font-weight: 300 !important;
-    text-shadow: none;
-    letter-spacing: 0.025em;
-}
-
-/* Regular weight for all headers */
-h1, h2, h3, h4, h5, h6 {
-    font-weight: 400;
-}
-
-/* Soft shadows */
-.soft-shadow {
-    box-shadow: 0 2px 12px rgba(99, 110, 129, 0.08), 0 1px 4px rgba(99, 110, 129, 0.04);
-}
-
-.soft-shadow-lg {
-    box-shadow: 0 8px 24px rgba(99, 110, 129, 0.12), 0 2px 8px rgba(99, 110, 129, 0.06);
-}
-
-/* Pulse animation for success */
+/* Premium animations */
 @keyframes neuron-pulse {
     0%, 100% {
         opacity: 1;
         transform: scale(1);
     }
     50% {
-        opacity: 0.8;
+        opacity: 0.85;
         transform: scale(1.05);
     }
 }
@@ -623,13 +497,12 @@ h1, h2, h3, h4, h5, h6 {
     animation: neuron-pulse 1.5s ease-in-out;
 }
 
-/* Glow effect for streaks */
 @keyframes soft-glow {
     0%, 100% {
-        box-shadow: 0 0 8px rgba(107, 141, 214, 0.3), 0 0 16px rgba(107, 141, 214, 0.1);
+        box-shadow: 0 0 12px rgba(107, 141, 214, 0.3), 0 0 24px rgba(107, 141, 214, 0.1);
     }
     50% {
-        box-shadow: 0 0 12px rgba(107, 141, 214, 0.5), 0 0 24px rgba(107, 141, 214, 0.2);
+        box-shadow: 0 0 20px rgba(107, 141, 214, 0.5), 0 0 40px rgba(107, 141, 214, 0.2);
     }
 }
 
@@ -637,7 +510,6 @@ h1, h2, h3, h4, h5, h6 {
     animation: soft-glow 2s ease-in-out infinite;
 }
 
-/* Circular logo animation - dashed pattern flowing around circle */
 @keyframes circle-flow {
     0% {
         stroke-dashoffset: 0;
@@ -652,78 +524,7 @@ h1, h2, h3, h4, h5, h6 {
     animation: circle-flow 8s linear infinite;
 }
 
-/* Make perfect circle green moon in dark mode */
-body.night-mode .circle-flow {
-    stroke: #4ade80 !important;
-    fill: none !important;
-    stroke-width: 3 !important;
-    opacity: 0.9 !important;
-    filter: drop-shadow(0 0 20px rgba(74, 222, 128, 0.8))
-            drop-shadow(0 0 12px rgba(74, 222, 128, 0.6))
-            drop-shadow(0 0 6px rgba(74, 222, 128, 0.4));
-    stroke-dasharray: none !important;
-    animation: none !important;
-    stroke-linecap: round !important;
-}
-
-/* Tree leaves will be styled later in the file */
-
-/* Darker background for tree container */
-body.night-mode .bg-gradient-to-b,
-body.night-mode .bg-gradient-to-r,
-body.night-mode .bg-gradient-to-br {
-    background: linear-gradient(to bottom, #141f2d, #14251d) !important;
-    box-shadow: inset 0 0 30px rgba(255, 255, 255, 0.02);
-}
-
-/* MASSIVE enhancement to tree visibility */
-body.night-mode .tree-container,
-body.night-mode [class*="tree"] svg {
-    opacity: 1;
-}
-
-/* Make the entire tree card darker and remove visible borders */
-body.night-mode [class*="tree"] {
-    background: radial-gradient(circle at center, #141f2d, #0a121d) !important;
-}
-
-/* Remove visible box outlines in dark mode */
-body.night-mode .rounded-lg,
-body.night-mode .rounded-xl,
-body.night-mode .rounded-2xl,
-body.night-mode .shadow-sm,
-body.night-mode .soft-shadow,
-body.night-mode .soft-shadow-lg {
-    box-shadow: none !important;
-    border: none !important;
-}
-
-/* Make stop button match other buttons, but much darker red icon */
-body.night-mode button:has(svg rect[x="3"][y="3"]) {
-    background-color: #1e293b !important;
-    border: 2px solid #3b82f6 !important;
-}
-
-body.night-mode button svg rect[x="3"][y="3"] {
-    fill: #7f1d1d !important;
-    stroke: #7f1d1d !important;
-}
-
-body.night-mode button:has(svg rect[x="3"][y="3"]):hover {
-    background-color: #334155 !important;
-}
-
-/* Make tree leaves bright sparkly green in dark mode */
-body.night-mode svg circle[fill],
-body.night-mode svg ellipse[fill],
-body.night-mode svg polygon[fill] {
-    fill: #6ee7b7 !important;
-    stroke: #34d399 !important;
-    stroke-width: 1 !important;
-    opacity: 1 !important;
-    filter: brightness(1.3) saturate(1.4) drop-shadow(0 0 2px rgba(52, 211, 153, 0.6)) !important;
-}
-
+/* Timer components */
 .timer-display {
     font-family: "Satoshi", -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
     font-size: 3rem;
@@ -784,6 +585,10 @@ body.night-mode svg polygon[fill] {
     stroke-width: 12;
 }
 
+body.night-mode .timer-circle-bg {
+    stroke: rgba(71, 85, 105, 0.3) !important;
+}
+
 .timer-circle-progress {
     fill: none;
     stroke: #007bff;
@@ -800,4 +605,35 @@ body.night-mode svg polygon[fill] {
     font-family: "Satoshi", -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
     font-size: 1.5rem;
     font-variant-numeric: tabular-nums;
+}
+
+/* Custom border width for toggle buttons */
+.border-3 {
+    border-width: 3px;
+}
+
+/* Premium hover effects for header */
+body.night-mode header button,
+body.night-mode header a {
+    opacity: 0.9;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+body.night-mode header button:hover,
+body.night-mode header a:hover {
+    opacity: 1;
+    transform: scale(1.1);
+}
+
+.night-mode-toggle:hover {
+    transform: scale(1.15);
+}
+
+/* Ensure proper z-index layering */
+body.night-mode > div,
+body.night-mode main,
+body.night-mode section,
+body.night-mode article,
+body.night-mode aside {
+    background-color: transparent !important;
 }

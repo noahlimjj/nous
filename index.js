@@ -92,9 +92,12 @@
             strokeLinecap: "round",
             strokeLinejoin: "round"
         },
-            React.createElement('line', { x1: "12", y1: "20", x2: "12", y2: "10" }),
-            React.createElement('line', { x1: "18", y1: "20", x2: "18", y2: "4" }),
-            React.createElement('line', { x1: "6", y1: "20", x2: "6", y2: "16" })
+            React.createElement('path', { d: "M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" }),
+            React.createElement('path', { d: "M14 2v6h6" }),
+            React.createElement('path', { d: "M8 13h2" }),
+            React.createElement('path', { d: "M8 17h6" }),
+            React.createElement('circle', { cx: "15", cy: "12", r: "2", strokeWidth: "1.5" }),
+            React.createElement('path', { d: "M15 10v4m-2-2h4", strokeWidth: "1.5" })
         );
 
         const HomeIcon = () => React.createElement('svg', {
@@ -4827,7 +4830,7 @@
                 const updatedTodos = [...todos, { id: Date.now().toString(), text: newTodo, completed: false }];
                 setTodos(updatedTodos);
                 setNewTodo('');
-                saveToFirebase({ todos: updatedTodos, noteText });
+                saveToFirebase({ todos: updatedTodos });
             };
 
             const handleToggleTodo = (id) => {
@@ -4835,13 +4838,13 @@
                     todo.id === id ? { ...todo, completed: !todo.completed } : todo
                 );
                 setTodos(updatedTodos);
-                saveToFirebase({ todos: updatedTodos, noteText });
+                saveToFirebase({ todos: updatedTodos });
             };
 
             const handleDeleteTodo = (id) => {
                 const updatedTodos = todos.filter(todo => todo.id !== id);
                 setTodos(updatedTodos);
-                saveToFirebase({ todos: updatedTodos, noteText });
+                saveToFirebase({ todos: updatedTodos });
             };
 
             // Note text handler with debounced save
@@ -4853,7 +4856,7 @@
             useEffect(() => {
                 const timeoutId = setTimeout(() => {
                     if (noteText !== undefined) {
-                        saveToFirebase({ noteText, todos });
+                        saveToFirebase({ noteText });
                     }
                 }, 1000);
 
