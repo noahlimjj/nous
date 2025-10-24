@@ -55,5 +55,9 @@ firebase-debug.*.log
 # Firebase config (contains credentials)
 config.js
 
+# Extra CSS files (not used)
+new-style.css
+style.replit.css
+
 # Test scripts (not to be pushed)
 create-test-friend.js
