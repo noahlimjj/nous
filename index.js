@@ -555,6 +555,50 @@
             return TREE_TYPES.filter(tree => totalHours >= tree.requiredHours);
         };
 
+        // --- AppId Detection Utility ---
+        // Automatically detects which Firebase path (appId) contains the user's data
+        // This ensures backward compatibility with existing users while supporting new ones
+        const detectAppId = async (db, userId) => {
+            // First check if we've already detected this user's appId
+            const cachedAppId = localStorage.getItem(`appId_${userId}`);
+            if (cachedAppId) {
+                console.log(`Using cached appId: ${cachedAppId}`);
+                return cachedAppId;
+            }
+
+            console.log('Detecting appId for user...');
+            const possibleAppIds = ['default-app-id', 'studyTrackerApp', 'default-app-id'];
+
+            // Check each possible location for data
+            for (const appId of possibleAppIds) {
+                try {
+                    const habitsRef = window.collection(db, `/artifacts/${appId}/users/${userId}/habits`);
+                    const habitsSnapshot = await window.getDocs(habitsRef);
+
+                    const sessionsRef = window.collection(db, `/artifacts/${appId}/users/${userId}/sessions`);
+                    const sessionsSnapshot = await window.getDocs(sessionsRef);
+
+                    const goalsRef = window.collection(db, `/artifacts/${appId}/users/${userId}/goals`);
+                    const goalsSnapshot = await window.getDocs(goalsRef);
+
+                    // If any data exists in this location, use it
+                    if (!habitsSnapshot.empty || !sessionsSnapshot.empty || !goalsSnapshot.empty) {
+                        console.log(`Found data in ${appId} (${habitsSnapshot.size} habits, ${sessionsSnapshot.size} sessions, ${goalsSnapshot.size} goals)`);
+                        localStorage.setItem(`appId_${userId}`, appId);
+                        return appId;
+                    }
+                } catch (error) {
+                    console.warn(`Error checking ${appId}:`, error);
+                }
+            }
+
+            // No data found in any location - this is a new user, use study-tracker-app
+            console.log('No existing data found - new user, using study-tracker-app');
+            const defaultAppId = 'default-app-id';
+            localStorage.setItem(`appId_${userId}`, defaultAppId);
+            return defaultAppId;
+        };
+
         // --- Authentication Component ---
         const AuthComponent = ({ auth, setNotification }) => {
             const [email, setEmail] = useState('');
@@ -739,7 +783,7 @@
 
                 try {
                     const sessionDate = new Date(date);
-                    const appId = typeof __app_id !== 'undefined' ? __app_id : 'study-tracker-app';
+                    const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
                     const sessionsCol = window.collection(db, `/artifacts/${appId}/users/${userId}/sessions`);
                     await window.addDoc(sessionsCol, {
                         habitId: habit.id,
@@ -920,7 +964,7 @@
             const [pings, setPings] = useState({});
             const [lastPingTime, setLastPingTime] = useState({});
 
-            const appId = typeof __app_id !== 'undefined' ? __app_id : 'study-tracker-app';
+            const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
 
             useEffect(() => {
                 if (!db || !userId) return;
@@ -2986,7 +3030,7 @@
             const [weeklyData, setWeeklyData] = useState([]);
             const [timeOfDayData, setTimeOfDayData] = useState([]);
 
-            const appId = typeof __app_id !== 'undefined' ? __app_id : 'study-tracker-app';
+            const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
 
             useEffect(() => {
                 if (!db || !userId) return;
@@ -3319,7 +3363,7 @@
             const handleResetProgress = async () => {
                 setIsResetting(true);
                 try {
-                    const appId = typeof __app_id !== 'undefined' ? __app_id : 'study-tracker-app';
+                    const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
                     const batch = window.writeBatch(db);
 
                     // Delete all sessions
@@ -3779,7 +3823,7 @@
             const [isEditingName, setIsEditingName] = useState(false);
             const [tempName, setTempName] = useState('');
 
-            const appId = typeof __app_id !== 'undefined' ? __app_id : 'study-tracker-app';
+            const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
 
             // Calculate growth metrics
             const totalHours = calculateTotalHours(sessions);
@@ -4512,7 +4556,7 @@
             const [typingPosition, setTypingPosition] = useState(null);
             const [currentText, setCurrentText] = useState('');
 
-            const appId = typeof __app_id !== 'undefined' ? __app_id : 'study-tracker-app';
+            const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
 
             // Load notes and todos from Firebase
             useEffect(() => {
@@ -4945,7 +4989,7 @@
             const [newGoalText, setNewGoalText] = useState({ daily: '', weekly: '', monthly: '', yearly: '' });
             const [isLoading, setIsLoading] = useState(true);
 
-            const appId = typeof __app_id !== 'undefined' ? __app_id : 'study-tracker-app';
+            const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
 
             useEffect(() => {
                 if (!db || !userId) return;
@@ -5269,7 +5313,7 @@
                             }
                             
                             try {
-                                const appId = typeof __app_id !== 'undefined' ? __app_id : 'study-tracker-app';
+                                const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
                                 const sessionsQuery = window.query(
                                     window.collection(db, `/artifacts/${appId}/users/${user.id}/sessions`),
                                     window.where('startTime', '>=', twoWeeksAgo) // Sessions from the last 14 days
@@ -5425,7 +5469,7 @@
             useEffect(() => {
                 if (!db || !userId) return;
 
-                const appId = typeof __app_id !== 'undefined' ? __app_id : 'study-tracker-app';
+                const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
                 const habitsCol = window.collection(db, `/artifacts/${appId}/users/${userId}/habits`);
 
                 const unsubscribe = window.onSnapshot(habitsCol, (snapshot) => {
@@ -6261,7 +6305,7 @@
             // Helper function to calculate weekly study hours for a user
             const calculateWeeklyHours = async (userId) => {
                 try {
-                    const appId = typeof __app_id !== 'undefined' ? __app_id : 'study-tracker-app';
+                    const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
                     const sessionsQuery = window.collection(db, `/artifacts/${appId}/users/${userId}/sessions`);
                     
                     // Calculate the start of the current week (Monday)
@@ -6300,7 +6344,7 @@
             // Helper function to calculate monthly study hours for a user
             const calculateMonthlyHours = async (userId) => {
                 try {
-                    const appId = typeof __app_id !== 'undefined' ? __app_id : 'study-tracker-app';
+                    const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
                     const sessionsQuery = window.collection(db, `/artifacts/${appId}/users/${userId}/sessions`);
                     
                     // Calculate the start of the current month
@@ -6982,7 +7026,7 @@
         // Register Service Worker
         if ('serviceWorker' in navigator) {
             // Force clear ALL caches on load - nuclear option for stuck PWAs
-            const APP_VERSION = '2025-10-24-v5-CORRECT-APPID'; // Update this to force refresh
+            const APP_VERSION = '2025-10-24-v6-REVERT-TO-DEFAULT'; // Update this to force refresh
             const storedVersion = localStorage.getItem('appVersion');
 
             if (storedVersion !== APP_VERSION) {
