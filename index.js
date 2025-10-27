@@ -1411,19 +1411,35 @@
                                             return newTimers;
                                         });
 
-                                        // Play bell 3 times
+                                        // Play bell 3 times using Web Audio API
                                         const playBell = (times, delay = 500) => {
-                                            let count = 0;
-                                            const interval = setInterval(() => {
-                                                if (count < times) {
-                                                    const audio = new Audio('public/bell-click-sound-slow-smo-ocxvfkrh.wav');
-                                                    audio.volume = 0.7;
-                                                    audio.play().catch(err => console.log('Timer completion audio prevented:', err));
-                                                    count++;
-                                                } else {
-                                                    clearInterval(interval);
+                                            try {
+                                                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+
+                                                for (let i = 0; i < times; i++) {
+                                                    const startTime = audioContext.currentTime + (i * delay / 1000);
+
+                                                    // Create a bell tone
+                                                    const oscillator = audioContext.createOscillator();
+                                                    const gainNode = audioContext.createGain();
+
+                                                    oscillator.connect(gainNode);
+                                                    gainNode.connect(audioContext.destination);
+
+                                                    oscillator.frequency.value = 800; // Bell frequency
+                                                    oscillator.type = 'sine';
+
+                                                    // Envelope for bell sound
+                                                    gainNode.gain.setValueAtTime(0, startTime);
+                                                    gainNode.gain.linearRampToValueAtTime(0.5, startTime + 0.01);
+                                                    gainNode.gain.exponentialRampToValueAtTime(0.01, startTime + 0.3);
+
+                                                    oscillator.start(startTime);
+                                                    oscillator.stop(startTime + 0.3);
                                                 }
-                                            }, delay);
+                                            } catch (err) {
+                                                console.log('Timer completion audio prevented:', err);
+                                            }
                                         };
                                         playBell(3);
 
@@ -2328,12 +2344,36 @@
                 }
             };
 
-            // Play ping sound
+            // Play ping sound using Web Audio API
             const playPingSound = () => {
                 try {
-                    const audio = new Audio('public/bell-click-sound-slow-smo-ocxvfkrh.wav');
-                    audio.volume = 0.5;
-                    audio.play().catch(err => console.log('Audio play prevented:', err));
+                    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+
+                    // Create a pleasant two-tone bell sound
+                    const playTone = (frequency, startTime, duration) => {
+                        const oscillator = audioContext.createOscillator();
+                        const gainNode = audioContext.createGain();
+
+                        oscillator.connect(gainNode);
+                        gainNode.connect(audioContext.destination);
+
+                        oscillator.frequency.value = frequency;
+                        oscillator.type = 'sine';
+
+                        // Envelope for natural bell decay
+                        gainNode.gain.setValueAtTime(0, startTime);
+                        gainNode.gain.linearRampToValueAtTime(0.3, startTime + 0.01);
+                        gainNode.gain.exponentialRampToValueAtTime(0.01, startTime + duration);
+
+                        oscillator.start(startTime);
+                        oscillator.stop(startTime + duration);
+                    };
+
+                    // Two-tone chime: higher note then lower note
+                    const now = audioContext.currentTime;
+                    playTone(800, now, 0.3);      // First chime (E5)
+                    playTone(600, now + 0.15, 0.4); // Second chime (D5)
+
                 } catch (error) {
                     console.error('Error playing ping sound:', error);
                 }
