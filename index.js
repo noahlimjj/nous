@@ -1022,6 +1022,9 @@
             const [pings, setPings] = useState({});
             const [lastPingTime, setLastPingTime] = useState({});
 
+            // Audio context for all sounds (reused to avoid creating multiple contexts)
+            const audioContextRef = useRef(null);
+
             const [appId, setAppId] = useState('study-tracker-app');
 
             // Run migration on first load
@@ -1412,9 +1415,19 @@
                                         });
 
                                         // Play bell 3 times using Web Audio API
-                                        const playBell = (times, delay = 500) => {
+                                        const playBell = async (times, delay = 500) => {
                                             try {
-                                                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                                                // Get or create audio context
+                                                if (!audioContextRef.current) {
+                                                    audioContextRef.current = new (window.AudioContext || window.webkitAudioContext)();
+                                                }
+
+                                                const audioContext = audioContextRef.current;
+
+                                                // Resume audio context if suspended
+                                                if (audioContext.state === 'suspended') {
+                                                    await audioContext.resume();
+                                                }
 
                                                 for (let i = 0; i < times; i++) {
                                                     const startTime = audioContext.currentTime + (i * delay / 1000);
@@ -2345,9 +2358,19 @@
             };
 
             // Play ping sound using Web Audio API
-            const playPingSound = () => {
+            const playPingSound = async () => {
                 try {
-                    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                    // Get or create audio context
+                    if (!audioContextRef.current) {
+                        audioContextRef.current = new (window.AudioContext || window.webkitAudioContext)();
+                    }
+
+                    const audioContext = audioContextRef.current;
+
+                    // Resume audio context if suspended (required by browser autoplay policies)
+                    if (audioContext.state === 'suspended') {
+                        await audioContext.resume();
+                    }
 
                     // Create a pleasant two-tone bell sound
                     const playTone = (frequency, startTime, duration) => {
