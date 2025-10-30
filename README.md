@@ -35,6 +35,8 @@ python3 -m http.server 8080
 open http://localhost:8080
 ```
 
+**troubleshooting:** if you see "Firebase configuration is missing", see [`docs/FIREBASE_CONFIG_TROUBLESHOOTING.md`](docs/FIREBASE_CONFIG_TROUBLESHOOTING.md)
+
 detailed setup: see `sop/DEPLOYMENT_GUIDE.md`
 
 ---

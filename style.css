@@ -68,9 +68,10 @@ body.night-mode::before {
     background-size: 280px 280px, 380px 380px, 480px 480px;
     background-position: 0 0, 90px 130px, 190px 60px;
     animation: twinkle1 60s ease-in-out infinite;
-    z-index: 9999;
+    z-index: 0;
     pointer-events: none;
     opacity: 0.25;
+    will-change: transform, opacity;
 }
 
 /* Premium starfield effect - Layer 2 (larger glowing stars) */
@@ -88,9 +89,10 @@ body.night-mode::after {
     background-size: 450px 450px, 550px 550px, 650px 650px;
     background-position: 60px 90px, 210px 160px, 340px 50px;
     animation: twinkle2 70s ease-in-out infinite;
-    z-index: 9999;
+    z-index: 0;
     pointer-events: none;
     opacity: 0.2;
+    will-change: transform, opacity;
 }
 
 @keyframes twinkle1 {
@@ -143,7 +145,7 @@ body.night-mode::after {
 body.night-mode #root {
     background-color: transparent !important;
     position: relative;
-    z-index: 1;
+    z-index: 10;
 }
 
 body.night-mode #root > div {
@@ -160,7 +162,7 @@ body.night-mode .container {
 /* Premium glass-morphism cards */
 body.night-mode .bg-white {
     background: rgba(15, 23, 42, 0.7) !important;
-    backdrop-filter: blur(12px);
+    backdrop-filter: blur(8px);
     border: 1px solid rgba(148, 163, 184, 0.1) !important;
     box-shadow:
         0 8px 32px rgba(0, 0, 0, 0.3),
@@ -174,7 +176,7 @@ body.night-mode .bg-gray-50,
 body.night-mode .bg-gray-100,
 body.night-mode .bg-gray-200 {
     background: rgba(30, 41, 59, 0.6) !important;
-    backdrop-filter: blur(8px);
+    backdrop-filter: blur(6px);
     border: 1px solid rgba(148, 163, 184, 0.08);
 }
 
@@ -228,7 +230,7 @@ body.night-mode .border-b {
 /* Enhanced header */
 body.night-mode header {
     background: rgba(15, 23, 42, 0.8) !important;
-    backdrop-filter: blur(16px);
+    backdrop-filter: blur(10px);
     border-bottom: 1px solid rgba(148, 163, 184, 0.1) !important;
     box-shadow: 0 4px 24px rgba(0, 0, 0, 0.2) !important;
 }
@@ -636,4 +638,23 @@ body.night-mode section,
 body.night-mode article,
 body.night-mode aside {
     background-color: transparent !important;
+}
+
+/* Accessibility: Respect prefers-reduced-motion */
+@media (prefers-reduced-motion: reduce) {
+    body.night-mode::before,
+    body.night-mode::after {
+        animation: none !important;
+    }
+
+    .shooting-star {
+        animation: none !important;
+        display: none;
+    }
+
+    * {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
 }

@@ -685,7 +685,8 @@
                     setNotification({ type: 'success', message: 'Signed in as a guest. Your data is temporary.' });
                 } catch (error) {
                     console.error("Anonymous sign-in error:", error);
-                    setNotification({ type: 'error', message: "Could not sign in as a guest." });
+                    // If Firebase fails, provide helpful message
+                    setNotification({ type: 'error', message: 'Firebase connection failed. Please check config.js file. See docs/FIREBASE_CONFIG_TROUBLESHOOTING.md for help.' });
                 }
             };
 
@@ -3227,11 +3228,13 @@
                         weeks.reverse(); // Show oldest to newest
                         setWeeklyData(weeks);
 
-                        // Calculate time of day distribution (for all time)
+                        // Calculate time of day distribution (for all time) - Singapore timezone (UTC+8)
                         const hourBuckets = Array(24).fill(0);
                         allSessions.forEach(session => {
-                            const hour = new Date(session.startTime.toMillis()).getHours();
-                            hourBuckets[hour] += session.duration;
+                            // Convert to Singapore time (UTC+8)
+                            const date = new Date(session.startTime.toMillis());
+                            const singaporeHour = new Date(date.toLocaleString('en-US', { timeZone: 'Asia/Singapore' })).getHours();
+                            hourBuckets[singaporeHour] += session.duration;
                         });
 
                         const timeOfDayStats = hourBuckets.map((duration, hour) => ({
@@ -6411,10 +6414,45 @@
         // --- Leaderboard Page Component ---
         const Leaderboard = ({ db, userId, setNotification, userProfile }) => {
             const [friendsData, setFriendsData] = useState([]);
+            const [friendsDailyData, setFriendsDailyData] = useState({}); // Store daily data
             const [friendsWeeklyData, setFriendsWeeklyData] = useState({}); // Store weekly data
             const [friendsMonthlyData, setFriendsMonthlyData] = useState({}); // Store monthly data
             const [selectedMetric, setSelectedMetric] = useState('totalHours');
             const [isLoading, setIsLoading] = useState(true);
+
+            // Helper function to calculate daily study hours for a user
+            const calculateDailyHours = async (userId) => {
+                try {
+                    const appId = typeof __app_id !== 'undefined' ? __app_id : 'study-tracker-app';
+                    const sessionsQuery = window.collection(db, `/artifacts/${appId}/users/${userId}/sessions`);
+
+                    // Calculate the start and end of today
+                    const now = new Date();
+                    const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+                    startOfDay.setHours(0, 0, 0, 0); // Start of day
+
+                    const endOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+                    endOfDay.setHours(23, 59, 59, 999); // End of day
+
+                    const snapshot = await window.getDocs(sessionsQuery);
+                    const sessions = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+                    // Filter sessions to only those from today
+                    const dailySessions = sessions.filter(session => {
+                        const sessionDate = session.startTime.toDate();
+                        return sessionDate >= startOfDay && sessionDate <= endOfDay;
+                    });
+
+                    // Calculate total hours for the day
+                    const dailyTotalMs = dailySessions.reduce((sum, s) => sum + (s.duration || 0), 0);
+                    const dailyTotalHours = dailyTotalMs / (1000 * 60 * 60);
+
+                    return dailyTotalHours;
+                } catch (error) {
+                    console.error(`Error calculating daily hours for user ${userId}:`, error);
+                    return 0;
+                }
+            };
 
             // Helper function to calculate weekly study hours for a user
             const calculateWeeklyHours = async (userId) => {
@@ -6542,6 +6580,14 @@
                             });
                         }
 
+                        // Calculate daily hours for all friends
+                        const dailyData = {};
+                        for (const friend of allFriendsData) {
+                            const dailyHours = await calculateDailyHours(friend.userId);
+                            dailyData[friend.userId] = dailyHours;
+                        }
+                        setFriendsDailyData(dailyData);
+
                         // Calculate weekly hours for all friends
                         const weeklyData = {};
                         for (const friend of allFriendsData) {
@@ -6573,8 +6619,11 @@
             // Sort friends by selected metric
             const sortedFriends = [...friendsData].sort((a, b) => {
                 let aValue, bValue;
-                
-                if (selectedMetric === 'weeklyHours') {
+
+                if (selectedMetric === 'dailyHours') {
+                    aValue = friendsDailyData[a.userId] || 0;
+                    bValue = friendsDailyData[b.userId] || 0;
+                } else if (selectedMetric === 'weeklyHours') {
                     aValue = friendsWeeklyData[a.userId] || 0;
                     bValue = friendsWeeklyData[b.userId] || 0;
                 } else if (selectedMetric === 'monthlyHours') {
@@ -6584,7 +6633,7 @@
                     aValue = a.stats?.[selectedMetric] || 0;
                     bValue = b.stats?.[selectedMetric] || 0;
                 }
-                
+
                 return bValue - aValue;
             });
 
@@ -6600,9 +6649,13 @@
                 if (currentUserRank === 3) return "Great work! Push for the podium! 🚀";
 
                 const nextFriend = sortedFriends[currentUserRank - 2];
-                
+
                 let diff;
-                if (selectedMetric === 'weeklyHours') {
+                if (selectedMetric === 'dailyHours') {
+                    const currentUserDailyHours = friendsDailyData[userId] || 0;
+                    const nextFriendDailyHours = friendsDailyData[nextFriend.userId] || 0;
+                    diff = nextFriendDailyHours - currentUserDailyHours;
+                } else if (selectedMetric === 'weeklyHours') {
                     const currentUserWeeklyHours = friendsWeeklyData[userId] || 0;
                     const nextFriendWeeklyHours = friendsWeeklyData[nextFriend.userId] || 0;
                     diff = nextFriendWeeklyHours - currentUserWeeklyHours;
@@ -6614,7 +6667,7 @@
                     diff = nextFriend.stats?.[selectedMetric] - (userProfile?.stats?.[selectedMetric] || 0);
                 }
 
-                if (selectedMetric === 'totalHours' || selectedMetric === 'weeklyHours' || selectedMetric === 'monthlyHours') {
+                if (selectedMetric === 'totalHours' || selectedMetric === 'dailyHours' || selectedMetric === 'weeklyHours' || selectedMetric === 'monthlyHours') {
                     return `${diff.toFixed(1)}h to reach #${currentUserRank - 1} 🚀`;
                 } else if (selectedMetric === 'currentStreak') {
                     return `${Math.ceil(diff)} days to reach #${currentUserRank - 1} 🚀`;
@@ -6625,7 +6678,10 @@
 
             // Format metric value
             const formatMetricValue = (user, metric) => {
-                if (metric === 'weeklyHours') {
+                if (metric === 'dailyHours') {
+                    const dailyHours = friendsDailyData[user.userId] || 0;
+                    return `${dailyHours.toFixed(1)} hours today`;
+                } else if (metric === 'weeklyHours') {
                     const weeklyHours = friendsWeeklyData[user.userId] || 0;
                     return `${weeklyHours.toFixed(1)} hours this week`;
                 } else if (metric === 'monthlyHours') {
@@ -6666,6 +6722,7 @@
                     React.createElement('div', { className: "flex flex-wrap gap-2" },
                         [
                             { key: 'currentStreak', label: 'Current Streak' },
+                            { key: 'dailyHours', label: 'Daily Hours' },
                             { key: 'weeklyHours', label: 'Weekly Hours' },
                             { key: 'monthlyHours', label: 'Monthly Hours' },
                             { key: 'totalHours', label: 'Total Hours' },
