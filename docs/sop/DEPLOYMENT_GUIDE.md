@@ -68,7 +68,7 @@ git push
 In Netlify dashboard → Site settings → Environment variables, add:
 
 ```bash
-FIREBASE_API_KEY=AIzaSyAk5qHtY3Y_988RBWprbKMiiRc63IECsbg
+FIREBASE_API_KEY=your_firebase_api_key_here
 FIREBASE_AUTH_DOMAIN=study-d2678.firebaseapp.com
 FIREBASE_PROJECT_ID=study-d2678
 FIREBASE_STORAGE_BUCKET=study-d2678.firebasestorage.app

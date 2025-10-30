@@ -206,7 +206,7 @@ Update local `config.js` with actual Firebase credentials.
 
 ```javascript
 window.__firebase_config = {
-    apiKey: "AIzaSyAk5qHtY3Y_988RBWprbKMiiRc63IECsbg",
+    apiKey: "YOUR_FIREBASE_API_KEY_HERE",
     authDomain: "study-d2678.firebaseapp.com",
     projectId: "study-d2678",
     storageBucket: "study-d2678.firebasestorage.app",
