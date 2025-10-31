@@ -36,7 +36,7 @@
 
     <link rel="stylesheet" href="style.css">
     <!-- Firebase Configuration - Must load first -->
-    <script src="config.js"></script>
+    <script src="config.js?v=6&t=1730429400"></script>
 
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
@@ -115,11 +115,34 @@
     </script>
 </head>
 <body>
+    <!-- TEMPORARY: Disable service worker for testing tree changes -->
+    <script>
+        // Unregister ALL service workers to force fresh cache
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.getRegistrations().then(function(registrations) {
+                for (let registration of registrations) {
+                    registration.unregister();
+                    console.log('🔄 Service worker unregistered for testing');
+                }
+            });
+        }
+
+        // Clear all caches
+        if ('caches' in window) {
+            caches.keys().then(function(names) {
+                for (let name of names) {
+                    caches.delete(name);
+                    console.log('🗑️ Cleared cache:', name);
+                }
+            });
+        }
+    </script>
+
     <div id="root"></div>
     <div class="shooting-star"></div>
     <div class="shooting-star"></div>
     <div class="shooting-star"></div>
 
-    <script src="index.js?v=5"></script>
+    <script src="index.js?v=7&t=1730429400"></script>
 </body>
 </html>

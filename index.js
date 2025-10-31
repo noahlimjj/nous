@@ -865,7 +865,8 @@
                 }
 
                 try {
-                    const sessionDate = new Date(date);
+                    const [year, month, day] = date.split('-').map(Number);
+                    const sessionDate = new Date(year, month - 1, day);
                     const appId = typeof __app_id !== 'undefined' ? __app_id : 'study-tracker-app';
                     const sessionsCol = window.collection(db, `/artifacts/${appId}/users/${userId}/sessions`);
                     await window.addDoc(sessionsCol, {
@@ -7076,12 +7077,14 @@
 
                 const userDocRef = window.doc(db, 'users', userId);
                 const unsubscribe = window.onSnapshot(userDocRef, async (snapshot) => {
+                    const isGuest = auth.currentUser?.isAnonymous;
+
                     if (!snapshot.exists()) {
-                        // Create new user profile with unique friend code, but no username yet
+                        // Create new user profile
                         try {
                             const uniqueCode = await generateUniqueFriendCode(db);
                             await window.setDoc(userDocRef, {
-                                username: '', // Empty username - user must set it
+                                username: isGuest ? `guest_${userId.substring(0, 6)}` : '', // Assign guest username or leave empty
                                 email: auth.currentUser?.email || '',
                                 friendCode: uniqueCode,
                                 createdAt: window.Timestamp.now(),
@@ -7099,18 +7102,20 @@
                                     lastUpdated: window.Timestamp.now()
                                 }
                             });
-                            // Show username setup modal for new users
-                            setShowUsernameSetup(true);
+                            // Show username setup ONLY for non-guests
+                            if (!isGuest) {
+                                setShowUsernameSetup(true);
+                            }
                         } catch (error) {
                             console.error("Error creating user profile:", error);
                         }
                     } else {
                         const data = snapshot.data();
+                        setUserProfile(data);
 
-                        // Check if user needs to set a username
-                        if (!data.username || data.username.startsWith('user_') || data.username === '') {
+                        // Check if user needs to set a username (and is not a guest)
+                        if (!isGuest && (!data.username || data.username.startsWith('user_') || data.username === '')) {
                             setShowUsernameSetup(true);
-                            setUserProfile(data);
                         } else {
                             setShowUsernameSetup(false);
                         }
@@ -7122,14 +7127,10 @@
                                 await window.setDoc(userDocRef, {
                                     friendCode: newFriendCode
                                 }, { merge: true });
-                                // Update local state with the new friend code
                                 setUserProfile({ ...data, friendCode: newFriendCode });
                             } catch (error) {
                                 console.error("Error generating friend code:", error);
-                                setUserProfile(data);
                             }
-                        } else {
-                            setUserProfile(data);
                         }
                     }
                 });
