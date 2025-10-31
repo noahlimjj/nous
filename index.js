@@ -1,10 +1,34 @@
         const { useState, useEffect, useRef, useCallback } = React;
 
         // --- Configuration Validation ---
-        // Check if Firebase config is loaded properly
-        if (typeof window.__firebase_config === 'undefined' || !window.__firebase_config || !window.__firebase_config.apiKey) {
-            console.error("Firebase configuration is missing. The config.js file may not have been generated properly.");
-        }
+        // Check if Firebase is available or if running in offline mode
+        const isFirebaseAvailable = () => {
+            // Explicitly unavailable (set by generate-config.sh when env vars missing)
+            if (window.__firebase_unavailable === true) {
+                console.warn("⚠️  Firebase is not configured. Running in offline mode.");
+                return false;
+            }
+
+            // Missing or invalid config
+            if (typeof window.__firebase_config === 'undefined' ||
+                !window.__firebase_config ||
+                !window.__firebase_config.apiKey) {
+                console.error("Firebase configuration is missing. The config.js file may not have been generated properly.");
+                return false;
+            }
+
+            // Check for placeholder values that weren't replaced
+            const apiKey = window.__firebase_config.apiKey;
+            if (apiKey.includes('{{') || apiKey.includes('REPLACE_') || apiKey === 'YOUR_') {
+                console.error("Firebase configuration contains placeholder values. Running in offline mode.");
+                window.__firebase_unavailable = true;
+                return false;
+            }
+
+            return true;
+        };
+
+        window.__isFirebaseAvailable = isFirebaseAvailable();
 
         // --- Helper Functions & Icons ---
 
@@ -6872,6 +6896,17 @@
             }, []);
 
             useEffect(() => {
+                // Check if Firebase is available (not in offline mode)
+                if (!window.__isFirebaseAvailable) {
+                    console.warn("⚠️  Running in offline mode. Cloud features disabled.");
+                    setConfigError("Running in offline mode. Cloud sync, friends, and leaderboards are disabled. Your data is stored locally in this browser only.");
+                    setIsAuthReady(true);
+                    // Enable offline guest mode
+                    setUserId('offline-guest-' + Date.now());
+                    setUser({ isAnonymous: true, uid: 'offline-guest-' + Date.now(), displayName: 'Offline Guest' });
+                    return;
+                }
+
                 if (!firebaseReady) return;
 
                 // Validate Firebase config

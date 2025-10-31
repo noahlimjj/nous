@@ -1,136 +1,125 @@
 # Claude Code Context & Error Documentation
 
-**Last Updated:** October 30, 2025
+**Last Updated:** October 31, 2025
 
-This file documents common errors, solutions, and important context for working on this project.
+This file provides quick context for Claude Code when working on this project.
 
-## 🚨 Common Errors & Solutions
+---
 
-### 1. Firebase Configuration Missing
+## 📖 Quick Links
 
-**Error:**
-```
-Firebase configuration is missing required values. Please check your environment variables.
-```
+- **Common Errors:** [docs/errors/COMMON_ERRORS.md](../docs/errors/COMMON_ERRORS.md)
+- **Firebase Errors:** [docs/errors/FIREBASE_ERRORS.md](../docs/errors/FIREBASE_ERRORS.md)
+- **Error Index:** [docs/errors/README.md](../docs/errors/README.md)
+- **Netlify Setup:** [NETLIFY_FIREBASE_SETUP.md](../NETLIFY_FIREBASE_SETUP.md)
 
-**Cause:** The `config.js` file is missing or not properly configured.
+---
+
+## 🚨 Current Critical Issues
+
+### CRITICAL: Users Can't Login to Production (Oct 31, 2025)
+
+**Status:** FIXED (code), AWAITING NETLIFY CONFIGURATION
+
+**What's Wrong:**
+- Firebase environment variables not set in Netlify
+- Production builds get invalid/placeholder Firebase config
+- Users see "Configuration Error" and cannot login
+
+**What Was Fixed:**
+- ✅ `scripts/generate-config.sh` - Better offline mode fallback
+- ✅ `index.js` - Added Firebase availability detection + offline mode
+- ✅ Created comprehensive setup guide: `NETLIFY_FIREBASE_SETUP.md`
+
+**What You Need to Do:**
+1. Set 7 Firebase environment variables in Netlify dashboard
+2. Trigger redeploy
+3. Verify production login works
+
+**Full Guide:** [NETLIFY_FIREBASE_SETUP.md](../NETLIFY_FIREBASE_SETUP.md)
+
+---
+
+## 🚨 Most Common Errors (Quick Reference)
+
+### 1. Firebase Configuration Errors
+
+**Quick Fixes:**
+- **Local dev:** Create `config.js` with offline mode or real Firebase credentials
+- **Production:** Set Netlify environment variables
+
+**Full Guide:** [docs/errors/FIREBASE_ERRORS.md](../docs/errors/FIREBASE_ERRORS.md)
+
+---
+
+### 2. Port 8081 Already in Use
 
 **Solution:**
 ```bash
-# Create config.js for local development
-cat > config.js << 'EOF'
-if (typeof window !== 'undefined') {
-    window.__firebase_config = {
-        apiKey: "local-dev-api-key",
-        authDomain: "local-dev.firebaseapp.com",
-        projectId: "local-dev-project",
-        storageBucket: "local-dev.appspot.com",
-        messagingSenderId: "123456789",
-        appId: "1:123456789:web:abcdef123456",
-        measurementId: "G-XXXXXXXXXX"
-    };
-}
-EOF
-```
-
-**Note:** Use "Continue as Guest" mode for testing without real Firebase.
-
-**Reference:** See `docs/FIREBASE_CONFIG_TROUBLESHOOTING.md`
-
----
-
-### 2. Invalid API Key Error
-
-**Error:**
-```
-FirebaseError: Firebase: Error (auth/api-key-not-valid.-please-pass-a-valid-api-key.)
-```
-
-**Cause:** The placeholder API key in `config.js` is being used for actual Firebase auth.
-
-**Solution:**
-- **Option A (Recommended):** Use **"Continue as Guest"** mode instead of Firebase auth
-- **Option B:** Replace placeholder values in `config.js` with real Firebase credentials (not recommended for local dev)
-
-**Note:** Guest mode works for all local testing and doesn't require Firebase connection.
-
----
-
-### 3. Reports Showing Wrong Timezone (UTC instead of Singapore Time)
-
-**Error:** Time of day analysis shows times in UTC (e.g., 08:00) instead of Singapore time (SGT, UTC+8)
-
-**Cause:** Using `.getHours()` which returns local machine time, not Singapore time
-
-**Solution:** Convert to Singapore timezone explicitly
-
-**Fixed in:** `index.js` line 3233-3236
-```javascript
-// Convert to Singapore time (UTC+8)
-const date = new Date(session.startTime.toMillis());
-const singaporeHour = new Date(date.toLocaleString('en-US', { timeZone: 'Asia/Singapore' })).getHours();
-```
-
----
-
-### 4. Port 8081 Already in Use
-
-**Error:**
-```
-OSError: [Errno 48] Address already in use
-```
-
-**Solution:**
-```bash
-# Kill process using port 8081
 lsof -ti:8081 | xargs kill -9
-
-# Restart server
 npm start
 ```
 
 ---
 
+### 3. Timezone Shows Wrong Hours
+
+**Status:** FIXED ✅
+
+**Fix Location:** `index.js:3233-3236`
+```javascript
+const singaporeHour = new Date(date.toLocaleString('en-US', { timeZone: 'Asia/Singapore' })).getHours();
+```
+
+---
+
+### 4. Dark Mode Not Working
+
+**Status:** FIXED ✅ (Oct 30, 2025)
+
+**What was wrong:** Toggle logic was inverted (`!isNightMode`)
+
+**Fix Location:** `index.js:3843`
+
+---
+
 ### 5. Tree Designs Look Too Similar
 
-**Issue:** All trees look nearly identical despite different tree types
+**Status:** DOCUMENTED, not yet implemented
 
-**Cause:**
-1. Branch colors all use same `mainBranchColor` (lines 4022-4028)
-2. All trees use identical branch paths
-3. All leaf positions are the same
-
-**Solution:** (To be implemented)
-1. Create depth variations for branch colors
-2. Generate unique branch structures per tree type
-3. Vary leaf positions by tree type
+**Fix Plan:** [docs/sop/TREE_DESIGN_IMPROVEMENTS.md](../docs/sop/TREE_DESIGN_IMPROVEMENTS.md)
 
 ---
 
 ## 📝 Important Project Context
 
 ### Testing Workflow
-1. Always create `config.js` for local development (see error #1)
-2. Use **"Continue as Guest"** mode for quick testing
-3. Test on `http://localhost:8081`
-4. See full testing guide in `docs/FIREBASE_CONFIG_TROUBLESHOOTING.md`
+1. **Create `config.js`** for local development
+   - Option A: Offline mode (no Firebase needed)
+   - Option B: Real Firebase credentials
+2. **Start server:** `npm start` → http://localhost:8081
+3. **Test offline mode:** App works without Firebase (local storage only)
+4. **Test with Firebase:** Use real config for auth/sync features
 
 ### Timezone Handling
 - **User Location:** Singapore (UTC+8)
-- **All times must display in Singapore timezone**
-- **Use:** `toLocaleString('en-US', { timeZone: 'Asia/Singapore' })`
+- **ALL times must display in Singapore timezone**
+- **Always use:** `toLocaleString('en-US', { timeZone: 'Asia/Singapore' })`
 
 ### Key Files
 - `index.html` - Main SPA entry point
 - `index.js` - Main application logic (React components inline)
-- `config.js` - Local Firebase config (gitignored)
+- `config.js` - Local Firebase config (gitignored, created by you)
 - `config.template.js` - Template for config.js
-- `docs/FIREBASE_CONFIG_TROUBLESHOOTING.md` - Full troubleshooting guide
+- `scripts/generate-config.sh` - Generates config.js from env vars (used by Netlify)
 
 ### Recent Changes
+- **Oct 31, 2025:** Fixed production login issue - added offline mode support
+- **Oct 31, 2025:** Created comprehensive error documentation in `docs/errors/`
+- **Oct 31, 2025:** Created Netlify setup guide: `NETLIFY_FIREBASE_SETUP.md`
 - **Oct 30, 2025:** Added Daily Hours to leaderboard (index.js:6722)
 - **Oct 30, 2025:** Fixed timezone in reports to show Singapore time (index.js:3233-3236)
-- **Oct 30, 2025:** Created Firebase config troubleshooting doc
+- **Oct 30, 2025:** Fixed dark mode toggle logic (index.js:3843)
 
 ---
 
@@ -152,13 +141,29 @@ open http://localhost:8081
 
 ---
 
-## 📚 Related Documentation
+## 📚 Documentation Index
 
-- **Firebase Config Issues:** `docs/FIREBASE_CONFIG_TROUBLESHOOTING.md`
-- **Deployment:** `docs/sop/DEPLOYMENT_GUIDE.md`
-- **Security:** `SECURITY.md`
-- **Architecture:** `docs/development/ARCHITECTURE.md`
-- **Tree Design:** `docs/sop/TREE_DESIGN_IMPROVEMENTS.md`
+### Error Documentation (START HERE for bugs)
+- **Common Errors:** `docs/errors/COMMON_ERRORS.md` - Quick fixes for frequent issues
+- **Firebase Errors:** `docs/errors/FIREBASE_ERRORS.md` - Complete Firebase troubleshooting
+- **Error Index:** `docs/errors/README.md` - Full error documentation index
+- **Security Incidents:** `docs/errors/incidents/` - Historical incident reports
+
+### Setup & Deployment
+- **Netlify Setup:** `NETLIFY_FIREBASE_SETUP.md` - Configure Firebase for production
+- **Deployment Guide:** `docs/sop/DEPLOYMENT_GUIDE.md` - General deployment procedures
+- **Firebase Config Troubleshooting:** `docs/FIREBASE_CONFIG_TROUBLESHOOTING.md` - Detailed Firebase guide
+
+### Development
+- **Architecture:** `docs/development/ARCHITECTURE.md` - App structure and design
+- **Database Schema:** `docs/development/DATABASE.md` - Firestore collections
+- **Git Workflow:** `docs/development/GIT_WORKFLOW.md` - Branching and commits
+- **Quick Reference:** `docs/development/QUICK_REFERENCE.md` - Command cheatsheet
+
+### Features
+- **Tree Design:** `docs/sop/TREE_DESIGN_IMPROVEMENTS.md` - Tree rendering improvements
+- **PWA Guide:** `docs/pwa/PWA_GUIDE.md` - Progressive Web App features
+- **Friends Feature:** `docs/sop/Friends.md` - Social features documentation
 
 ---
 

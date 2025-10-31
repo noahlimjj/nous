@@ -4,10 +4,43 @@
 
 # Check if environment variables are set
 if [ -z "$FIREBASE_API_KEY" ]; then
-    echo "Warning: FIREBASE_API_KEY not set, using template"
-    cp config.template.js config.js
+    echo "⚠️  WARNING: Firebase environment variables not configured!"
+    echo "Creating offline-only config. Users will only have local guest mode."
+    echo ""
+    echo "To fix this, set these environment variables in Netlify:"
+    echo "  - FIREBASE_API_KEY"
+    echo "  - FIREBASE_AUTH_DOMAIN"
+    echo "  - FIREBASE_PROJECT_ID"
+    echo "  - FIREBASE_STORAGE_BUCKET"
+    echo "  - FIREBASE_MESSAGING_SENDER_ID"
+    echo "  - FIREBASE_APP_ID"
+    echo "  - FIREBASE_MEASUREMENT_ID"
+    echo ""
+
+    # Create a config that explicitly marks Firebase as unavailable
+    cat > config.js << 'EOF'
+// Firebase Configuration - OFFLINE MODE
+// Environment variables were not set during build
+// The app will run in local-only guest mode
+
+if (typeof window !== 'undefined') {
+    // Mark config as explicitly unavailable (not just misconfigured)
+    window.__firebase_config = null;
+    window.__firebase_unavailable = true;
+
+    console.warn('⚠️  Firebase not configured. Running in offline-only mode.');
+    console.warn('Cloud features (sync, friends, leaderboard) are disabled.');
+    console.info('Your data is stored locally in this browser only.');
+}
+EOF
+
+    echo "✓ Created offline-only config.js"
+    cat config.js
     exit 0
 fi
+
+echo "✓ Firebase environment variables found"
+echo "Generating config.js with Firebase credentials..."
 
 cat > config.js << 'EOF'
 // Firebase Configuration - Auto-generated from environment variables
@@ -23,7 +56,7 @@ if (typeof window !== 'undefined') {
         appId: "REPLACE_APP_ID",
         measurementId: "REPLACE_MEASUREMENT_ID"
     };
-    console.log('Firebase config loaded from environment variables');
+    console.log('✓ Firebase config loaded from environment variables');
 }
 EOF
 
@@ -38,5 +71,4 @@ sed -i.bak "s|REPLACE_MEASUREMENT_ID|${FIREBASE_MEASUREMENT_ID}|g" config.js
 
 rm -f config.js.bak
 
-echo "config.js generated successfully with environment variables"
-cat config.js
+echo "✓ config.js generated successfully with environment variables"
