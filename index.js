@@ -4153,66 +4153,87 @@
                     return matureLeafColors[colorIndex];
                 };
 
-                // Enhanced leaf positions with size and color variety - more natural distribution
+                // Helper: pick varied SHAPE for each leaf - truly random pattern!
+                const getLeafShape = (index) => {
+                    // Create pseudo-random but consistent shape distribution
+                    const shapePattern = [
+                        'oval', 'circle', 'oval', 'triangle', 'circle',
+                        'oval', 'diamond', 'circle', 'oval', 'rectangle',
+                        'oval', 'circle', 'hexagon', 'oval', 'circle',
+                        'oval', 'triangle', 'circle', 'oval', 'diamond',
+                        'star', 'circle', 'oval', 'fan', 'oval',
+                        'circle', 'heart', 'oval', 'triangle', 'oval',
+                        'circle', 'oval', 'rectangle', 'oval', 'circle',
+                        'diamond', 'oval', 'circle', 'oval', 'hexagon',
+                        'oval', 'fan', 'circle', 'oval', 'star',
+                        'oval', 'circle', 'heart', 'oval', 'triangle'
+                    ];
+                    // Use tree type and index for variety
+                    const treeShapeIndex = (treeType.length * 7) % leafShapes.length;
+                    const shapeIndex = (index * 11 + treeShapeIndex) % shapePattern.length;
+                    return shapePattern[shapeIndex];
+                };
+
+                // Enhanced leaf positions with size, color, and SHAPE variety!
                 const leaves = [
-                    // Top cluster - crown of the tree
-                    { x: 100, y: 42, size: 16, color: getLeafColor(0), delay: 0, visible: leafGrowth > 0 },
-                    { x: 94, y: 46, size: 14, color: getLeafColor(1), delay: 0.02, visible: leafGrowth > 0.03 },
-                    { x: 106, y: 46, size: 14, color: getLeafColor(2), delay: 0.04, visible: leafGrowth > 0.06 },
-                    { x: 88, y: 50, size: 13, color: getLeafColor(3), delay: 0.06, visible: leafGrowth > 0.09 },
-                    { x: 112, y: 50, size: 13, color: getLeafColor(4), delay: 0.08, visible: leafGrowth > 0.12 },
-                    { x: 100, y: 52, size: 12, color: getLeafColor(5), delay: 0.09, visible: leafGrowth > 0.14 },
+                    // Top cluster - crown of the tree (MIX of shapes)
+                    { x: 100, y: 42, size: 16, color: getLeafColor(0), shape: 'oval', delay: 0, visible: leafGrowth > 0 },
+                    { x: 94, y: 46, size: 14, color: getLeafColor(1), shape: 'circle', delay: 0.02, visible: leafGrowth > 0.03 },
+                    { x: 106, y: 46, size: 14, color: getLeafColor(2), shape: 'triangle', delay: 0.04, visible: leafGrowth > 0.06 },
+                    { x: 88, y: 50, size: 13, color: getLeafColor(3), shape: 'oval', delay: 0.06, visible: leafGrowth > 0.09 },
+                    { x: 112, y: 50, size: 13, color: getLeafColor(4), shape: 'diamond', delay: 0.08, visible: leafGrowth > 0.12 },
+                    { x: 100, y: 52, size: 12, color: getLeafColor(5), shape: 'circle', delay: 0.09, visible: leafGrowth > 0.14 },
 
-                    // Upper canopy - dense foliage
-                    { x: 82, y: 56, size: 15, color: getLeafColor(6), delay: 0.1, visible: leafGrowth > 0.16 },
-                    { x: 118, y: 56, size: 15, color: getLeafColor(7), delay: 0.12, visible: leafGrowth > 0.18 },
-                    { x: 75, y: 60, size: 14, color: getLeafColor(8), delay: 0.14, visible: leafGrowth > 0.2 },
-                    { x: 125, y: 60, size: 14, color: getLeafColor(9), delay: 0.16, visible: leafGrowth > 0.22 },
-                    { x: 90, y: 62, size: 13, color: getLeafColor(10), delay: 0.18, visible: leafGrowth > 0.24 },
-                    { x: 110, y: 62, size: 13, color: getLeafColor(11), delay: 0.2, visible: leafGrowth > 0.26 },
-                    { x: 96, y: 58, size: 11, color: getLeafColor(12), delay: 0.21, visible: leafGrowth > 0.27 },
-                    { x: 104, y: 58, size: 11, color: getLeafColor(13), delay: 0.22, visible: leafGrowth > 0.28 },
+                    // Upper canopy - dense foliage (VARIED SHAPES!)
+                    { x: 82, y: 56, size: 15, color: getLeafColor(6), shape: 'rectangle', delay: 0.1, visible: leafGrowth > 0.16 },
+                    { x: 118, y: 56, size: 15, color: getLeafColor(7), shape: 'oval', delay: 0.12, visible: leafGrowth > 0.18 },
+                    { x: 75, y: 60, size: 14, color: getLeafColor(8), shape: 'hexagon', delay: 0.14, visible: leafGrowth > 0.2 },
+                    { x: 125, y: 60, size: 14, color: getLeafColor(9), shape: 'circle', delay: 0.16, visible: leafGrowth > 0.22 },
+                    { x: 90, y: 62, size: 13, color: getLeafColor(10), shape: 'oval', delay: 0.18, visible: leafGrowth > 0.24 },
+                    { x: 110, y: 62, size: 13, color: getLeafColor(11), shape: 'triangle', delay: 0.2, visible: leafGrowth > 0.26 },
+                    { x: 96, y: 58, size: 11, color: getLeafColor(12), shape: 'circle', delay: 0.21, visible: leafGrowth > 0.27 },
+                    { x: 104, y: 58, size: 11, color: getLeafColor(13), shape: 'diamond', delay: 0.22, visible: leafGrowth > 0.28 },
 
-                    // Middle section - widest part of canopy
-                    { x: 68, y: 66, size: 16, color: getLeafColor(14), delay: 0.24, visible: leafGrowth > 0.3 },
-                    { x: 132, y: 66, size: 16, color: getLeafColor(15), delay: 0.26, visible: leafGrowth > 0.32 },
-                    { x: 78, y: 70, size: 15, color: getLeafColor(16), delay: 0.28, visible: leafGrowth > 0.34 },
-                    { x: 122, y: 70, size: 15, color: getLeafColor(17), delay: 0.3, visible: leafGrowth > 0.36 },
-                    { x: 60, y: 72, size: 14, color: getLeafColor(18), delay: 0.32, visible: leafGrowth > 0.38 },
-                    { x: 140, y: 72, size: 14, color: getLeafColor(19), delay: 0.34, visible: leafGrowth > 0.4 },
-                    { x: 88, y: 74, size: 13, color: getLeafColor(20), delay: 0.36, visible: leafGrowth > 0.42 },
-                    { x: 112, y: 74, size: 13, color: getLeafColor(21), delay: 0.38, visible: leafGrowth > 0.44 },
-                    { x: 100, y: 76, size: 12, color: getLeafColor(22), delay: 0.4, visible: leafGrowth > 0.46 },
-                    { x: 72, y: 76, size: 12, color: getLeafColor(23), delay: 0.42, visible: leafGrowth > 0.48 },
-                    { x: 128, y: 76, size: 12, color: getLeafColor(24), delay: 0.44, visible: leafGrowth > 0.5 },
+                    // Middle section - widest part of canopy (MORE VARIETY!)
+                    { x: 68, y: 66, size: 16, color: getLeafColor(14), shape: 'star', delay: 0.24, visible: leafGrowth > 0.3 },
+                    { x: 132, y: 66, size: 16, color: getLeafColor(15), shape: 'oval', delay: 0.26, visible: leafGrowth > 0.32 },
+                    { x: 78, y: 70, size: 15, color: getLeafColor(16), shape: 'circle', delay: 0.28, visible: leafGrowth > 0.34 },
+                    { x: 122, y: 70, size: 15, color: getLeafColor(17), shape: 'fan', delay: 0.3, visible: leafGrowth > 0.36 },
+                    { x: 60, y: 72, size: 14, color: getLeafColor(18), shape: 'oval', delay: 0.32, visible: leafGrowth > 0.38 },
+                    { x: 140, y: 72, size: 14, color: getLeafColor(19), shape: 'heart', delay: 0.34, visible: leafGrowth > 0.4 },
+                    { x: 88, y: 74, size: 13, color: getLeafColor(20), shape: 'circle', delay: 0.36, visible: leafGrowth > 0.42 },
+                    { x: 112, y: 74, size: 13, color: getLeafColor(21), shape: 'triangle', delay: 0.38, visible: leafGrowth > 0.44 },
+                    { x: 100, y: 76, size: 12, color: getLeafColor(22), shape: 'oval', delay: 0.4, visible: leafGrowth > 0.46 },
+                    { x: 72, y: 76, size: 12, color: getLeafColor(23), shape: 'diamond', delay: 0.42, visible: leafGrowth > 0.48 },
+                    { x: 128, y: 76, size: 12, color: getLeafColor(24), shape: 'circle', delay: 0.44, visible: leafGrowth > 0.5 },
 
-                    // Lower-middle section
-                    { x: 64, y: 80, size: 14, color: getLeafColor(25), delay: 0.46, visible: leafGrowth > 0.52 },
-                    { x: 136, y: 80, size: 14, color: getLeafColor(26), delay: 0.48, visible: leafGrowth > 0.54 },
-                    { x: 76, y: 82, size: 13, color: getLeafColor(27), delay: 0.5, visible: leafGrowth > 0.56 },
-                    { x: 124, y: 82, size: 13, color: getLeafColor(28), delay: 0.52, visible: leafGrowth > 0.58 },
-                    { x: 84, y: 84, size: 12, color: getLeafColor(29), delay: 0.54, visible: leafGrowth > 0.6 },
-                    { x: 116, y: 84, size: 12, color: getLeafColor(30), delay: 0.56, visible: leafGrowth > 0.62 },
-                    { x: 94, y: 86, size: 11, color: getLeafColor(31), delay: 0.58, visible: leafGrowth > 0.64 },
-                    { x: 106, y: 86, size: 11, color: getLeafColor(32), delay: 0.6, visible: leafGrowth > 0.66 },
+                    // Lower-middle section (EVEN MORE SHAPES!)
+                    { x: 64, y: 80, size: 14, color: getLeafColor(25), shape: 'oval', delay: 0.46, visible: leafGrowth > 0.52 },
+                    { x: 136, y: 80, size: 14, color: getLeafColor(26), shape: 'hexagon', delay: 0.48, visible: leafGrowth > 0.54 },
+                    { x: 76, y: 82, size: 13, color: getLeafColor(27), shape: 'circle', delay: 0.5, visible: leafGrowth > 0.56 },
+                    { x: 124, y: 82, size: 13, color: getLeafColor(28), shape: 'oval', delay: 0.52, visible: leafGrowth > 0.58 },
+                    { x: 84, y: 84, size: 12, color: getLeafColor(29), shape: 'rectangle', delay: 0.54, visible: leafGrowth > 0.6 },
+                    { x: 116, y: 84, size: 12, color: getLeafColor(30), shape: 'oval', delay: 0.56, visible: leafGrowth > 0.62 },
+                    { x: 94, y: 86, size: 11, color: getLeafColor(31), shape: 'circle', delay: 0.58, visible: leafGrowth > 0.64 },
+                    { x: 106, y: 86, size: 11, color: getLeafColor(32), shape: 'triangle', delay: 0.6, visible: leafGrowth > 0.66 },
 
-                    // Lower outer leaves - creating natural edge
-                    { x: 56, y: 76, size: 13, color: getLeafColor(33), delay: 0.62, visible: leafGrowth > 0.68 },
-                    { x: 144, y: 76, size: 13, color: getLeafColor(34), delay: 0.64, visible: leafGrowth > 0.7 },
-                    { x: 62, y: 68, size: 12, color: getLeafColor(35), delay: 0.66, visible: leafGrowth > 0.72 },
-                    { x: 138, y: 68, size: 12, color: getLeafColor(36), delay: 0.68, visible: leafGrowth > 0.74 },
-                    { x: 70, y: 88, size: 11, color: getLeafColor(37), delay: 0.7, visible: leafGrowth > 0.76 },
-                    { x: 130, y: 88, size: 11, color: getLeafColor(38), delay: 0.72, visible: leafGrowth > 0.78 },
+                    // Lower outer leaves - creating natural edge (FULL VARIETY!)
+                    { x: 56, y: 76, size: 13, color: getLeafColor(33), shape: 'oval', delay: 0.62, visible: leafGrowth > 0.68 },
+                    { x: 144, y: 76, size: 13, color: getLeafColor(34), shape: 'diamond', delay: 0.64, visible: leafGrowth > 0.7 },
+                    { x: 62, y: 68, size: 12, color: getLeafColor(35), shape: 'circle', delay: 0.66, visible: leafGrowth > 0.72 },
+                    { x: 138, y: 68, size: 12, color: getLeafColor(36), shape: 'oval', delay: 0.68, visible: leafGrowth > 0.74 },
+                    { x: 70, y: 88, size: 11, color: getLeafColor(37), shape: 'fan', delay: 0.7, visible: leafGrowth > 0.76 },
+                    { x: 130, y: 88, size: 11, color: getLeafColor(38), shape: 'circle', delay: 0.72, visible: leafGrowth > 0.78 },
 
-                    // Fill gaps for fuller appearance
-                    { x: 80, y: 66, size: 10, color: getLeafColor(39), delay: 0.74, visible: leafGrowth > 0.8 },
-                    { x: 120, y: 66, size: 10, color: getLeafColor(40), delay: 0.76, visible: leafGrowth > 0.82 },
-                    { x: 92, y: 68, size: 10, color: getLeafColor(41), delay: 0.78, visible: leafGrowth > 0.84 },
-                    { x: 108, y: 68, size: 10, color: getLeafColor(42), delay: 0.8, visible: leafGrowth > 0.86 },
-                    { x: 86, y: 78, size: 10, color: getLeafColor(43), delay: 0.82, visible: leafGrowth > 0.88 },
-                    { x: 114, y: 78, size: 10, color: getLeafColor(44), delay: 0.84, visible: leafGrowth > 0.9 },
-                    { x: 98, y: 72, size: 9, color: getLeafColor(45), delay: 0.86, visible: leafGrowth > 0.92 },
-                    { x: 102, y: 80, size: 9, color: getLeafColor(46), delay: 0.88, visible: leafGrowth > 0.94 },
+                    // Fill gaps for fuller appearance (MAXIMUM VARIETY!)
+                    { x: 80, y: 66, size: 10, color: getLeafColor(39), shape: 'oval', delay: 0.74, visible: leafGrowth > 0.8 },
+                    { x: 120, y: 66, size: 10, color: getLeafColor(40), shape: 'star', delay: 0.76, visible: leafGrowth > 0.82 },
+                    { x: 92, y: 68, size: 10, color: getLeafColor(41), shape: 'circle', delay: 0.78, visible: leafGrowth > 0.84 },
+                    { x: 108, y: 68, size: 10, color: getLeafColor(42), shape: 'heart', delay: 0.8, visible: leafGrowth > 0.86 },
+                    { x: 86, y: 78, size: 10, color: getLeafColor(43), shape: 'oval', delay: 0.82, visible: leafGrowth > 0.88 },
+                    { x: 114, y: 78, size: 10, color: getLeafColor(44), shape: 'triangle', delay: 0.84, visible: leafGrowth > 0.9 },
+                    { x: 98, y: 72, size: 9, color: getLeafColor(45), shape: 'circle', delay: 0.86, visible: leafGrowth > 0.92 },
+                    { x: 102, y: 80, size: 9, color: getLeafColor(46), shape: 'oval', delay: 0.88, visible: leafGrowth > 0.94 },
                 ];
 
                 // Minecraft-style fruits (apples, sweet berries, glow berries) - hidden for seedlings and pine
@@ -4228,8 +4249,10 @@
 
                 // Helper function to render different leaf shapes
                 const renderLeafShape = (leaf, index) => {
-                    const shapeType = leafShapes[index % leafShapes.length];
-                    const rotation = -20 + (index % 5) * 8; // Vary rotation for more organic look
+                    // Use the SPECIFIC shape assigned to THIS leaf!
+                    const shapeType = leaf.shape || 'oval';
+                    // Add varied rotation for organic look (based on position)
+                    const rotation = -25 + ((leaf.x + leaf.y) % 50); // More varied rotation
 
                     switch (shapeType) {
                         case 'circle':
