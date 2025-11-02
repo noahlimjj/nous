@@ -115,25 +115,23 @@
     </script>
 </head>
 <body>
-    <!-- TEMPORARY: Disable service worker for testing tree changes -->
+    <!-- PWA Service Worker Registration -->
     <script>
-        // Unregister ALL service workers to force fresh cache
+        // Register service worker for offline functionality
         if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.getRegistrations().then(function(registrations) {
-                for (let registration of registrations) {
-                    registration.unregister();
-                    console.log('🔄 Service worker unregistered for testing');
-                }
-            });
-        }
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/service-worker.js')
+                    .then(registration => {
+                        console.log('✅ Service Worker registered successfully:', registration.scope);
 
-        // Clear all caches
-        if ('caches' in window) {
-            caches.keys().then(function(names) {
-                for (let name of names) {
-                    caches.delete(name);
-                    console.log('🗑️ Cleared cache:', name);
-                }
+                        // Check for updates periodically
+                        setInterval(() => {
+                            registration.update();
+                        }, 60000); // Check every minute
+                    })
+                    .catch(error => {
+                        console.error('❌ Service Worker registration failed:', error);
+                    });
             });
         }
     </script>

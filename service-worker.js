@@ -49,22 +49,54 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  event.respondWith(
-    fetch(event.request)
-      .then((response) => {
-        // Only cache successful GET responses
-        if (response.status === 200) {
-          const responseClone = response.clone();
+  const url = new URL(event.request.url);
 
-          caches.open(CACHE_NAME).then((cache) => {
-            cache.put(event.request, responseClone);
-          });
+  // Skip service worker for external resources (Firebase, fonts, etc.)
+  // Let browser handle these directly for better performance
+  const isExternal = url.origin !== self.location.origin;
+
+  if (isExternal) {
+    // Don't intercept external requests - let browser handle them
+    return;
+  }
+
+  // CACHE-FIRST strategy for local files (instant loading)
+  event.respondWith(
+    caches.match(event.request)
+      .then((cachedResponse) => {
+        // If we have it cached, return immediately
+        if (cachedResponse) {
+          // Update cache in background (stale-while-revalidate)
+          fetch(event.request)
+            .then((response) => {
+              if (response && response.status === 200) {
+                caches.open(CACHE_NAME).then((cache) => {
+                  cache.put(event.request, response.clone());
+                });
+              }
+            })
+            .catch(() => {
+              // Ignore network errors when updating cache
+            });
+
+          return cachedResponse;
         }
 
-        return response;
+        // Not in cache, fetch from network
+        return fetch(event.request)
+          .then((response) => {
+            // Cache successful responses
+            if (response && response.status === 200) {
+              const responseClone = response.clone();
+              caches.open(CACHE_NAME).then((cache) => {
+                cache.put(event.request, responseClone);
+              });
+            }
+            return response;
+          });
       })
       .catch(() => {
-        // If fetch fails, try to get from cache
+        // If everything fails, try cache one more time
         return caches.match(event.request);
       })
   );
