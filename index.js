@@ -7012,55 +7012,52 @@
                     return;
                 }
 
-                try {
-                    // Check if Firebase app is already initialized to avoid duplicate initialization
-                    let app;
+                // Wrap async operations in an async function
+                (async () => {
                     try {
-                        app = window.initializeApp(firebaseConfig);
-                    } catch (error) {
-                        if (error.code === 'app/duplicate-app' || error.message.includes('already exists')) {
-                            app = window.getApp(); // Get the existing app
-                        } else {
-                            throw error; // Re-throw if it's a different error
+                        // Check if Firebase app is already initialized to avoid duplicate initialization
+                        let app;
+                        try {
+                            app = window.initializeApp(firebaseConfig);
+                        } catch (error) {
+                            if (error.code === 'app/duplicate-app' || error.message.includes('already exists')) {
+                                app = window.getApp(); // Get the existing app
+                            } else {
+                                throw error; // Re-throw if it's a different error
+                            }
                         }
-                    }
-                    
-                    const authInstance = window.getAuth(app);
-                    const dbInstance = window.getFirestore(app);
 
-                    // Enable auth persistence so login state survives offline/refresh
-                    try {
-                        await window.setPersistence(authInstance, window.browserLocalPersistence);
-                        console.log('✅ Firebase auth persistence enabled');
-                    } catch (err) {
-                        console.error('❌ Auth persistence error:', err);
-                    }
+                        const authInstance = window.getAuth(app);
+                        const dbInstance = window.getFirestore(app);
 
-                    // Enable offline persistence for data sync
-                    try {
-                        await window.enableIndexedDbPersistence(dbInstance);
-                        console.log('✅ Firebase offline persistence enabled');
-                    } catch (err) {
-                        if (err.code === 'failed-precondition') {
-                            // Multiple tabs open, persistence can only be enabled in one tab at a time
-                            console.warn('⚠️ Offline persistence failed: Multiple tabs open');
-                        } else if (err.code === 'unimplemented') {
-                            // Browser doesn't support persistence
-                            console.warn('⚠️ Offline persistence not supported in this browser');
-                        } else {
-                            console.error('❌ Offline persistence error:', err);
+                        // Enable offline persistence FIRST (must happen before any Firestore operations)
+                        try {
+                            await window.enableIndexedDbPersistence(dbInstance);
+                            console.log('✅ Firebase offline persistence enabled - data will sync automatically');
+                        } catch (err) {
+                            if (err.code === 'failed-precondition') {
+                                // Multiple tabs open, persistence can only be enabled in one tab at a time
+                                console.warn('⚠️ Multiple tabs detected - using network mode in this tab');
+                            } else if (err.code === 'unimplemented') {
+                                // Browser doesn't support persistence
+                                console.warn('⚠️ Offline persistence not available in this browser');
+                            } else {
+                                console.error('❌ Offline persistence error:', err);
+                            }
                         }
-                    }
 
-                    setFirebaseApp(app);
-                    setAuth(authInstance);
-                    setDb(dbInstance);
+                        // Auth persistence is enabled by default (browserLocalPersistence)
+                        // No need to explicitly set it unless changing to session persistence
 
-                    // Expose to window for debugging
-                    window.db = dbInstance;
-                    window.auth = authInstance;
+                        setFirebaseApp(app);
+                        setAuth(authInstance);
+                        setDb(dbInstance);
 
-                    const unsubscribe = window.onAuthStateChanged(authInstance, async (user) => {
+                        // Expose to window for debugging
+                        window.db = dbInstance;
+                        window.auth = authInstance;
+
+                        const unsubscribe = window.onAuthStateChanged(authInstance, async (user) => {
                         if (user) {
                             setUser(user);
                             setUserId(user.uid);
@@ -7086,13 +7083,28 @@
                             }
                         }
                         setIsAuthReady(true);
-                    });
-                    return () => unsubscribe();
-                } catch (error) {
-                    console.error("Firebase initialization error:", error);
-                    setConfigError(`Firebase initialization failed: ${error.message}`);
-                    setIsAuthReady(true);
-                }
+                        });
+                        return unsubscribe;
+                    } catch (error) {
+                        console.error("Firebase initialization error:", error);
+                        setConfigError(`Firebase initialization failed: ${error.message}`);
+                        setIsAuthReady(true);
+                        return null;
+                    }
+                })().then(unsubscribe => {
+                    // Store unsubscribe function for cleanup
+                    if (unsubscribe && typeof unsubscribe === 'function') {
+                        window.__authUnsubscribe = unsubscribe;
+                    }
+                });
+
+                // Return cleanup function
+                return () => {
+                    if (window.__authUnsubscribe && typeof window.__authUnsubscribe === 'function') {
+                        window.__authUnsubscribe();
+                        window.__authUnsubscribe = null;
+                    }
+                };
             }, [firebaseReady, JSON.stringify(firebaseConfig), initialAuthToken]); // Effect depends on config values and Firebase SDK being ready
 
             // User profile initialization
@@ -7100,64 +7112,89 @@
                 if (!db || !userId || !auth) return;
 
                 const userDocRef = window.doc(db, 'users', userId);
-                const unsubscribe = window.onSnapshot(userDocRef, async (snapshot) => {
-                    const isGuest = auth.currentUser?.isAnonymous;
 
-                    if (!snapshot.exists()) {
-                        // Create new user profile
-                        try {
-                            const uniqueCode = await generateUniqueFriendCode(db);
-                            await window.setDoc(userDocRef, {
-                                username: isGuest ? `guest_${userId.substring(0, 6)}` : '', // Assign guest username or leave empty
-                                email: auth.currentUser?.email || '',
-                                friendCode: uniqueCode,
-                                createdAt: window.Timestamp.now(),
-                                settings: {
-                                    showStats: true,
-                                    showActivity: true,
-                                    allowFriendRequests: true
-                                },
-                                stats: {
-                                    totalHours: 0,
-                                    currentStreak: 0,
-                                    totalSessions: 0,
-                                    goalsCompleted: 0,
-                                    treeLevel: 0,
-                                    lastUpdated: window.Timestamp.now()
-                                }
-                            });
-                            // Show username setup ONLY for non-guests
-                            if (!isGuest) {
-                                setShowUsernameSetup(true);
+                // Use includeMetadataChanges to get cached data INSTANTLY
+                const unsubscribe = window.onSnapshot(
+                    userDocRef,
+                    { includeMetadataChanges: true }, // Get cached data immediately, don't wait for server
+                    async (snapshot) => {
+                        const isGuest = auth.currentUser?.isAnonymous;
+                        const fromCache = snapshot.metadata.fromCache;
+
+                        if (!snapshot.exists()) {
+                            // Only create new profile if we've checked the server (not from cache)
+                            if (fromCache) {
+                                console.log('⏳ Checking server for user profile...');
+                                return; // Wait for server response
                             }
-                        } catch (error) {
-                            console.error("Error creating user profile:", error);
-                        }
-                    } else {
-                        const data = snapshot.data();
-                        setUserProfile(data);
 
-                        // Check if user needs to set a username (and is not a guest)
-                        if (!isGuest && (!data.username || data.username.startsWith('user_') || data.username === '')) {
-                            setShowUsernameSetup(true);
-                        } else {
-                            setShowUsernameSetup(false);
-                        }
-
-                        // Backfill friend code for existing users who don't have one
-                        if (!data.friendCode) {
+                            // Create new user profile (we confirmed user doesn't exist on server)
                             try {
-                                const newFriendCode = await generateUniqueFriendCode(db);
+                                const uniqueCode = await generateUniqueFriendCode(db);
                                 await window.setDoc(userDocRef, {
-                                    friendCode: newFriendCode
-                                }, { merge: true });
-                                setUserProfile({ ...data, friendCode: newFriendCode });
+                                    username: isGuest ? `guest_${userId.substring(0, 6)}` : '',
+                                    email: auth.currentUser?.email || '',
+                                    friendCode: uniqueCode,
+                                    createdAt: window.Timestamp.now(),
+                                    settings: {
+                                        showStats: true,
+                                        showActivity: true,
+                                        allowFriendRequests: true
+                                    },
+                                    stats: {
+                                        totalHours: 0,
+                                        currentStreak: 0,
+                                        totalSessions: 0,
+                                        goalsCompleted: 0,
+                                        treeLevel: 0,
+                                        lastUpdated: window.Timestamp.now()
+                                    }
+                                });
+                                // Show username setup ONLY for non-guests AND new users
+                                if (!isGuest) {
+                                    setShowUsernameSetup(true);
+                                }
                             } catch (error) {
-                                console.error("Error generating friend code:", error);
+                                console.error("Error creating user profile:", error);
+                            }
+                        } else {
+                            const data = snapshot.data();
+                            setUserProfile(data);
+
+                            if (fromCache) {
+                                console.log('⚡ Loaded user profile from cache (instant!)');
+                            }
+
+                            // Check if user needs to set a username (and is not a guest)
+                            // Only check when we have server data OR valid cached data with a username
+                            if (!isGuest && (!data.username || data.username.startsWith('user_') || data.username === '')) {
+                                // Only show username setup if we've confirmed with server (not cached old state)
+                                if (!fromCache) {
+                                    setShowUsernameSetup(true);
+                                }
+                            } else {
+                                setShowUsernameSetup(false);
+                            }
+
+                            // Backfill friend code for existing users who don't have one (only when online)
+                            if (!data.friendCode && !fromCache) {
+                                try {
+                                    const newFriendCode = await generateUniqueFriendCode(db);
+                                    await window.setDoc(userDocRef, {
+                                        friendCode: newFriendCode
+                                    }, { merge: true });
+                                    setUserProfile({ ...data, friendCode: newFriendCode });
+                                } catch (error) {
+                                    console.error("Error generating friend code:", error);
+                                }
                             }
                         }
+                    },
+                    (error) => {
+                        console.error("Error loading user profile:", error);
+                        // Don't block UI on error - app continues with cached data
                     }
-                });
+                );
 
                 return () => unsubscribe();
             }, [db, userId, auth]);

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'nous-v7-AUTO-MIGRATE-2025-10-24-12-00';
+const CACHE_NAME = 'nous-v8-OFFLINE-FIX-2025-11-03';
 const urlsToCache = [
   '/',
   '/index.html',
