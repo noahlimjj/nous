@@ -1,4 +1,4 @@
-const CACHE_NAME = 'nous-v9-PERSISTENCE-UPDATE-2025-11-03';
+const CACHE_NAME = 'nous-v10-CLEAN-2025-11-03';
 const urlsToCache = [
   '/',
   '/index.html',

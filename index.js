@@ -720,13 +720,14 @@
                     await window.signInWithPopup(auth, provider);
                     setNotification({ type: 'success', message: 'Signed in with Google successfully!' });
                 } catch (error) {
-                    // Ignore user-cancelled popup errors (user closed the popup)
-                    if (error.code === 'auth/cancelled-popup-request' || error.code === 'auth/popup-closed-by-user') {
-                        console.log('Google sign-in cancelled by user');
-                        return; // Don't show error notification
+                    // Silently ignore user-cancelled actions
+                    if (error.code === 'auth/cancelled-popup-request' ||
+                        error.code === 'auth/popup-closed-by-user' ||
+                        error.code === 'auth/popup-blocked') {
+                        return;
                     }
-                    console.error("Google sign-in error:", error);
-                    setNotification({ type: 'error', message: error.message });
+                    // Only show real errors
+                    setNotification({ type: 'error', message: 'Sign-in failed. Please try again.' });
                 }
             };
 
@@ -7034,8 +7035,7 @@
 
                         const authInstance = window.getAuth(app);
 
-                        // Initialize Firestore with new persistent cache API (replaces deprecated enableIndexedDbPersistence)
-                        // This automatically handles offline persistence with multi-tab support
+                        // Initialize Firestore with persistent cache (modern API, no deprecation warnings)
                         let dbInstance;
                         try {
                             dbInstance = window.initializeFirestore(app, {
@@ -7043,15 +7043,10 @@
                                     tabManager: window.persistentMultipleTabManager()
                                 })
                             });
-                            console.log('✅ Firebase offline persistence enabled with multi-tab support');
                         } catch (err) {
-                            // If initialization fails (e.g., already initialized), get existing instance
-                            console.warn('⚠️ Using existing Firestore instance:', err.message);
+                            // Already initialized, use existing instance
                             dbInstance = window.getFirestore(app);
                         }
-
-                        // Auth persistence is enabled by default (browserLocalPersistence)
-                        // No need to explicitly set it unless changing to session persistence
 
                         setFirebaseApp(app);
                         setAuth(authInstance);
