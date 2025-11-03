@@ -36,7 +36,7 @@
 
     <link rel="stylesheet" href="style.css">
     <!-- Firebase Configuration - Must load first -->
-    <script src="config.js?v=8&t=1730621600"></script>
+    <script src="config.js?v=9&t=1730630000"></script>
 
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
@@ -59,6 +59,9 @@
         } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
         import {
             getFirestore,
+            initializeFirestore,
+            persistentLocalCache,
+            persistentMultipleTabManager,
             collection,
             addDoc,
             doc,
@@ -72,8 +75,7 @@
             Timestamp,
             getDocs,
             writeBatch,
-            serverTimestamp,
-            enableIndexedDbPersistence
+            serverTimestamp
         } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
         import {
             getFunctions,
@@ -94,6 +96,9 @@
         window.setPersistence = setPersistence;
         window.browserLocalPersistence = browserLocalPersistence;
         window.getFirestore = getFirestore;
+        window.initializeFirestore = initializeFirestore;
+        window.persistentLocalCache = persistentLocalCache;
+        window.persistentMultipleTabManager = persistentMultipleTabManager;
         window.collection = collection;
         window.addDoc = addDoc;
         window.doc = doc;
@@ -110,7 +115,6 @@
         window.serverTimestamp = serverTimestamp;
         window.getFunctions = getFunctions;
         window.httpsCallable = httpsCallable;
-        window.enableIndexedDbPersistence = enableIndexedDbPersistence;
 
         // Signal that Firebase SDK is ready
         window.firebaseSDKReady = true;
@@ -147,6 +151,6 @@
     <div class="shooting-star"></div>
     <div class="shooting-star"></div>
 
-    <script src="index.js?v=8&t=1730621600"></script>
+    <script src="index.js?v=9&t=1730630000"></script>
 </body>
 </html>

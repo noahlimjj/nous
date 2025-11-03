@@ -720,6 +720,11 @@
                     await window.signInWithPopup(auth, provider);
                     setNotification({ type: 'success', message: 'Signed in with Google successfully!' });
                 } catch (error) {
+                    // Ignore user-cancelled popup errors (user closed the popup)
+                    if (error.code === 'auth/cancelled-popup-request' || error.code === 'auth/popup-closed-by-user') {
+                        console.log('Google sign-in cancelled by user');
+                        return; // Don't show error notification
+                    }
                     console.error("Google sign-in error:", error);
                     setNotification({ type: 'error', message: error.message });
                 }
@@ -7028,22 +7033,21 @@
                         }
 
                         const authInstance = window.getAuth(app);
-                        const dbInstance = window.getFirestore(app);
 
-                        // Enable offline persistence FIRST (must happen before any Firestore operations)
+                        // Initialize Firestore with new persistent cache API (replaces deprecated enableIndexedDbPersistence)
+                        // This automatically handles offline persistence with multi-tab support
+                        let dbInstance;
                         try {
-                            await window.enableIndexedDbPersistence(dbInstance);
-                            console.log('✅ Firebase offline persistence enabled - data will sync automatically');
+                            dbInstance = window.initializeFirestore(app, {
+                                localCache: window.persistentLocalCache({
+                                    tabManager: window.persistentMultipleTabManager()
+                                })
+                            });
+                            console.log('✅ Firebase offline persistence enabled with multi-tab support');
                         } catch (err) {
-                            if (err.code === 'failed-precondition') {
-                                // Multiple tabs open, persistence can only be enabled in one tab at a time
-                                console.warn('⚠️ Multiple tabs detected - using network mode in this tab');
-                            } else if (err.code === 'unimplemented') {
-                                // Browser doesn't support persistence
-                                console.warn('⚠️ Offline persistence not available in this browser');
-                            } else {
-                                console.error('❌ Offline persistence error:', err);
-                            }
+                            // If initialization fails (e.g., already initialized), get existing instance
+                            console.warn('⚠️ Using existing Firestore instance:', err.message);
+                            dbInstance = window.getFirestore(app);
                         }
 
                         // Auth persistence is enabled by default (browserLocalPersistence)
