@@ -7028,6 +7028,30 @@
                     const authInstance = window.getAuth(app);
                     const dbInstance = window.getFirestore(app);
 
+                    // Enable auth persistence so login state survives offline/refresh
+                    try {
+                        await window.setPersistence(authInstance, window.browserLocalPersistence);
+                        console.log('✅ Firebase auth persistence enabled');
+                    } catch (err) {
+                        console.error('❌ Auth persistence error:', err);
+                    }
+
+                    // Enable offline persistence for data sync
+                    try {
+                        await window.enableIndexedDbPersistence(dbInstance);
+                        console.log('✅ Firebase offline persistence enabled');
+                    } catch (err) {
+                        if (err.code === 'failed-precondition') {
+                            // Multiple tabs open, persistence can only be enabled in one tab at a time
+                            console.warn('⚠️ Offline persistence failed: Multiple tabs open');
+                        } else if (err.code === 'unimplemented') {
+                            // Browser doesn't support persistence
+                            console.warn('⚠️ Offline persistence not supported in this browser');
+                        } else {
+                            console.error('❌ Offline persistence error:', err);
+                        }
+                    }
+
                     setFirebaseApp(app);
                     setAuth(authInstance);
                     setDb(dbInstance);
