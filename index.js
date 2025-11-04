@@ -6999,11 +6999,17 @@
                 // Check if Firebase is available (not in offline mode)
                 if (!window.__isFirebaseAvailable) {
                     console.warn("⚠️  Running in offline mode. Cloud features disabled.");
-                    setConfigError("Running in offline mode. Cloud sync, friends, and leaderboards are disabled. Your data is stored locally in this browser only.");
+                    // Don't show error - just run in offline mode
                     setIsAuthReady(true);
                     // Enable offline guest mode
-                    setUserId('offline-guest-' + Date.now());
-                    setUser({ isAnonymous: true, uid: 'offline-guest-' + Date.now(), displayName: 'Offline Guest' });
+                    const offlineId = 'offline-guest-' + Date.now();
+                    setUserId(offlineId);
+                    setUser({ isAnonymous: true, uid: offlineId, displayName: 'Offline Mode' });
+                    // Show notification instead of blocking error
+                    setNotification({
+                        type: 'info',
+                        message: 'Running in offline mode. Data stored locally only.'
+                    });
                     return;
                 }
 
@@ -7263,7 +7269,8 @@
                 }
             }, [notification]);
 
-            if (configError) {
+            // Only show config error for actual configuration problems, not offline mode
+            if (configError && window.__isFirebaseAvailable !== false) {
                 return React.createElement('div', { className: "min-h-screen bg-gray-50 flex flex-col justify-center items-center p-4" },
                     React.createElement('div', { className: "max-w-md w-full bg-white p-8 rounded-xl shadow-lg text-center" },
                         React.createElement('h2', { className: "text-2xl text-red-600 mb-4", style: { fontWeight: 400 } }, "Configuration Error"),
