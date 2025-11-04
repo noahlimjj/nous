@@ -6943,19 +6943,35 @@
 
             // Timeout safety net - force app to load after 5 seconds even if Firebase hangs
             useEffect(() => {
-                const timeout = setTimeout(() => {
-                    console.warn('⏱️ Loading timeout - forcing app to load in offline mode');
-                    setIsAuthReady(true);
-                    const offlineId = 'offline-timeout-' + Date.now();
-                    setUserId(offlineId);
-                    setUser({ isAnonymous: true, uid: offlineId, displayName: 'Offline Mode' });
-                    setNotification({
-                        type: 'warning',
-                        message: 'Loading took too long. Running in offline mode.'
-                    });
+                let timeout;
+
+                // Check if we're actually online
+                const isOnline = navigator.onLine;
+                console.log('Network status:', isOnline ? 'Online' : 'Offline');
+
+                timeout = setTimeout(() => {
+                    if (!isAuthReady) {
+                        console.warn('⏱️ Loading timeout - forcing app to load in offline mode');
+                        setIsAuthReady(true);
+                        const offlineId = 'offline-timeout-' + Date.now();
+                        setUserId(offlineId);
+                        setUser({ isAnonymous: true, uid: offlineId, displayName: 'Offline Mode' });
+
+                        // Different message based on network status
+                        const message = isOnline
+                            ? 'Connection taking too long. Running in offline mode.'
+                            : 'No internet connection. Running in offline mode.';
+
+                        setNotification({
+                            type: 'warning',
+                            message: message
+                        });
+                    }
                 }, 5000); // 5 second timeout - runs ONCE on mount
 
-                return () => clearTimeout(timeout);
+                return () => {
+                    if (timeout) clearTimeout(timeout);
+                };
             }, []); // Empty dependency - only runs once!
             const [currentPage, setCurrentPage] = useState('dashboard');
             const [notification, setNotification] = useState(null);
@@ -7015,17 +7031,24 @@
             useEffect(() => {
                 // Check if Firebase is available (not in offline mode)
                 if (!window.__isFirebaseAvailable) {
-                    console.warn("⚠️  Running in offline mode. Cloud features disabled.");
+                    console.warn("⚠️  Firebase not configured. Running in offline mode.");
                     // Don't show error - just run in offline mode
                     setIsAuthReady(true);
                     // Enable offline guest mode
                     const offlineId = 'offline-guest-' + Date.now();
                     setUserId(offlineId);
                     setUser({ isAnonymous: true, uid: offlineId, displayName: 'Offline Mode' });
+
+                    // Check if actually offline or just Firebase missing
+                    const isOnline = navigator.onLine;
+                    const message = isOnline
+                        ? 'Running in offline mode. Data stored locally only.'
+                        : 'No internet connection. Data stored locally only.';
+
                     // Show notification instead of blocking error
                     setNotification({
                         type: 'info',
-                        message: 'Running in offline mode. Data stored locally only.'
+                        message: message
                     });
                     return;
                 }
