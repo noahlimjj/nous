@@ -1,105 +1,28 @@
-const CACHE_NAME = 'nous-v10-CLEAN-2025-11-03';
-const urlsToCache = [
-  '/',
-  '/index.html',
-  '/index.js',
-  '/style.css',
-  '/tailwind-output.css',
-  '/config.js'
-];
+// Minimal, bulletproof service worker - NO CACHING to avoid errors
+const CACHE_NAME = 'nous-v11-NOCACHE-2025-11-03';
 
 self.addEventListener('install', (event) => {
-  event.waitUntil(
-    caches.open(CACHE_NAME)
-      .then((cache) => {
-        console.log('Service Worker: Caching files');
-        return cache.addAll(urlsToCache);
-      })
-      .catch((error) => {
-        console.log('Service Worker: Cache failed', error);
-      })
-  );
+  console.log('Service Worker: Installing (no cache)');
   self.skipWaiting();
 });
 
 self.addEventListener('activate', (event) => {
+  console.log('Service Worker: Activating');
+  // Clear ALL old caches
   event.waitUntil(
     caches.keys().then((cacheNames) => {
       return Promise.all(
-        cacheNames.map((cacheName) => {
-          if (cacheName !== CACHE_NAME) {
-            console.log('Service Worker: Clearing old cache');
-            return caches.delete(cacheName);
-          }
-        })
+        cacheNames.map((cacheName) => caches.delete(cacheName))
       );
-    })
+    }).then(() => self.clients.claim())
   );
-  return self.clients.claim();
 });
 
+// NO fetch interception - let everything go through normally
+// This prevents ALL service worker errors
 self.addEventListener('fetch', (event) => {
-  // Skip caching for non-http(s) requests (chrome-extension, etc)
-  if (!event.request.url.startsWith('http')) {
-    return;
-  }
-
-  // Skip caching for POST/PUT/DELETE requests
-  if (event.request.method !== 'GET') {
-    return;
-  }
-
-  const url = new URL(event.request.url);
-
-  // Skip service worker for external resources (Firebase, fonts, etc.)
-  // Let browser handle these directly for better performance
-  const isExternal = url.origin !== self.location.origin;
-
-  if (isExternal) {
-    // Don't intercept external requests - let browser handle them
-    return;
-  }
-
-  // CACHE-FIRST strategy for local files (instant loading)
-  event.respondWith(
-    caches.match(event.request)
-      .then((cachedResponse) => {
-        // If we have it cached, return immediately
-        if (cachedResponse) {
-          // Update cache in background (stale-while-revalidate)
-          fetch(event.request)
-            .then((response) => {
-              if (response && response.status === 200) {
-                caches.open(CACHE_NAME).then((cache) => {
-                  cache.put(event.request, response.clone());
-                });
-              }
-            })
-            .catch(() => {
-              // Ignore network errors when updating cache
-            });
-
-          return cachedResponse;
-        }
-
-        // Not in cache, fetch from network
-        return fetch(event.request)
-          .then((response) => {
-            // Cache successful responses
-            if (response && response.status === 200) {
-              const responseClone = response.clone();
-              caches.open(CACHE_NAME).then((cache) => {
-                cache.put(event.request, responseClone);
-              });
-            }
-            return response;
-          });
-      })
-      .catch(() => {
-        // If everything fails, try cache one more time
-        return caches.match(event.request);
-      })
-  );
+  // Do nothing - let browser handle all requests
+  return;
 });
 
 self.addEventListener('message', (event) => {
