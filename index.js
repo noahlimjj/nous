@@ -417,7 +417,7 @@
             const { width, fontSize } = sizes[size];
 
             return React.createElement('div', {
-                className: "flex items-center gap-2",
+                className: "flex items-center gap-2 justify-center",
                 style: { position: 'relative' }
             },
                 // SVG circular flow
@@ -425,7 +425,7 @@
                     width: width,
                     height: width * 0.5,
                     viewBox: "0 0 100 50",
-                    style: { position: 'absolute', left: -8, top: '50%', transform: 'translateY(-50%)', zIndex: 0, opacity: 0.6 }
+                    style: { position: 'absolute', left: -12, top: '50%', transform: 'translateY(-50%)', zIndex: 0, opacity: 0.6 }
                 },
                     React.createElement('circle', {
                         cx: "20",
@@ -6940,39 +6940,6 @@
             const [user, setUser] = useState(null);
             const [userId, setUserId] = useState(null);
             const [isAuthReady, setIsAuthReady] = useState(false);
-
-            // Timeout safety net - force app to load after 5 seconds even if Firebase hangs
-            useEffect(() => {
-                let timeout;
-
-                // Check if we're actually online
-                const isOnline = navigator.onLine;
-                console.log('Network status:', isOnline ? 'Online' : 'Offline');
-
-                timeout = setTimeout(() => {
-                    if (!isAuthReady) {
-                        console.warn('⏱️ Loading timeout - forcing app to load in offline mode');
-                        setIsAuthReady(true);
-                        const offlineId = 'offline-timeout-' + Date.now();
-                        setUserId(offlineId);
-                        setUser({ isAnonymous: true, uid: offlineId, displayName: 'Offline Mode' });
-
-                        // Different message based on network status
-                        const message = isOnline
-                            ? 'Connection taking too long. Running in offline mode.'
-                            : 'No internet connection. Running in offline mode.';
-
-                        setNotification({
-                            type: 'warning',
-                            message: message
-                        });
-                    }
-                }, 5000); // 5 second timeout - runs ONCE on mount
-
-                return () => {
-                    if (timeout) clearTimeout(timeout);
-                };
-            }, []); // Empty dependency - only runs once!
             const [currentPage, setCurrentPage] = useState('dashboard');
             const [notification, setNotification] = useState(null);
             const [userProfile, setUserProfile] = useState(null);
@@ -7029,31 +6996,10 @@
             }, []);
 
             useEffect(() => {
-                // Check if Firebase is available (not in offline mode)
-                if (!window.__isFirebaseAvailable) {
-                    console.warn("⚠️  Firebase not configured. Running in offline mode.");
-                    // Don't show error - just run in offline mode
-                    setIsAuthReady(true);
-                    // Enable offline guest mode
-                    const offlineId = 'offline-guest-' + Date.now();
-                    setUserId(offlineId);
-                    setUser({ isAnonymous: true, uid: offlineId, displayName: 'Offline Mode' });
-
-                    // Check if actually offline or just Firebase missing
-                    const isOnline = navigator.onLine;
-                    const message = isOnline
-                        ? 'Running in offline mode. Data stored locally only.'
-                        : 'No internet connection. Data stored locally only.';
-
-                    // Show notification instead of blocking error
-                    setNotification({
-                        type: 'info',
-                        message: message
-                    });
+                if (!firebaseReady) {
+                    console.log('⏳ Waiting for Firebase SDK...');
                     return;
                 }
-
-                if (!firebaseReady) return;
 
                 // Validate Firebase config
                 if (!firebaseConfig || !firebaseConfig.apiKey || !firebaseConfig.projectId) {
@@ -7063,6 +7009,8 @@
                     setIsAuthReady(true);
                     return;
                 }
+
+                console.log('🔥 Firebase SDK ready, initializing...');
 
                 // Wrap async operations in an async function
                 (async () => {
