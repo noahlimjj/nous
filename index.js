@@ -6940,6 +6940,25 @@
             const [user, setUser] = useState(null);
             const [userId, setUserId] = useState(null);
             const [isAuthReady, setIsAuthReady] = useState(false);
+
+            // Timeout safety net - force app to load after 8 seconds even if Firebase hangs
+            useEffect(() => {
+                const timeout = setTimeout(() => {
+                    if (!isAuthReady) {
+                        console.warn('⏱️ Loading timeout - forcing app to load in offline mode');
+                        setIsAuthReady(true);
+                        const offlineId = 'offline-timeout-' + Date.now();
+                        setUserId(offlineId);
+                        setUser({ isAnonymous: true, uid: offlineId, displayName: 'Offline Mode' });
+                        setNotification({
+                            type: 'warning',
+                            message: 'Loading took too long. Running in offline mode.'
+                        });
+                    }
+                }, 8000); // 8 second timeout
+
+                return () => clearTimeout(timeout);
+            }, [isAuthReady]);
             const [currentPage, setCurrentPage] = useState('dashboard');
             const [notification, setNotification] = useState(null);
             const [userProfile, setUserProfile] = useState(null);

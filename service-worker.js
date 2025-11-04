@@ -1,12 +1,11 @@
-// Minimal, bulletproof service worker - NO CACHING to avoid errors
-const CACHE_NAME = 'nous-v12-NOCACHE-2025-11-03';
+// Minimal service worker v13
+const CACHE_NAME = 'nous-v13-2025-11-03';
 
-self.addEventListener('install', (event) => {
+self.addEventListener('install', () => {
   self.skipWaiting();
 });
 
 self.addEventListener('activate', (event) => {
-  // Clear ALL old caches
   event.waitUntil(
     caches.keys().then((cacheNames) => {
       return Promise.all(
@@ -16,8 +15,7 @@ self.addEventListener('activate', (event) => {
   );
 });
 
-// NO fetch interception - let everything go through normally
-self.addEventListener('fetch', (event) => {
+self.addEventListener('fetch', () => {
   return;
 });
 
