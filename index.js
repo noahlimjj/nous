@@ -1440,7 +1440,9 @@
                                 // Check if countdown timer has completed
                                 const habit = habits.find(h => h.id === habitId);
                                 if (habit && habit.timerMode === 'timer') {
-                                    const sessionElapsed = Date.now() - timer.startTime.toMillis();
+                                    // Handle both Firestore Timestamp (online) and regular timestamp (offline)
+                                    const startTimeMs = timer.startTime?.toMillis ? timer.startTime.toMillis() : timer.startTime;
+                                    const sessionElapsed = Date.now() - startTimeMs;
                                     const totalElapsed = (timer.elapsedBeforePause || 0) + sessionElapsed;
                                     const remaining = habit.targetDuration - totalElapsed;
 
@@ -1801,7 +1803,9 @@
                 }
                 // Timer is running - calculate elapsed time from start
                 const elapsedBeforePause = timer.elapsedBeforePause || 0;
-                const sessionElapsed = timer.startTime ? Date.now() - timer.startTime.toMillis() : 0;
+                // Handle both Firestore Timestamp (online) and regular timestamp (offline)
+                const startTimeMs = timer.startTime?.toMillis ? timer.startTime.toMillis() : timer.startTime;
+                const sessionElapsed = startTimeMs ? Date.now() - startTimeMs : 0;
                 const totalElapsed = elapsedBeforePause + sessionElapsed;
 
                 // For countdown timer, show remaining time
@@ -1892,7 +1896,8 @@
 
                     // Calculate total elapsed time including current session
                     const currentElapsed = timer.elapsedBeforePause || 0;
-                    const sessionElapsed = timer.startTime ? Date.now() - timer.startTime.toMillis() : 0;
+                    const startTimeMs = timer.startTime?.toMillis ? timer.startTime.toMillis() : (timer.startTime || Date.now());
+                    const sessionElapsed = timer.startTime ? Date.now() - startTimeMs : 0;
                     const totalElapsed = currentElapsed + sessionElapsed;
 
                     await window.updateDoc(timerDocRef, {
@@ -1935,8 +1940,10 @@
                     try {
                         // Calculate total elapsed time
                         const currentElapsed = timerData.elapsedBeforePause || 0;
+                        // Handle both Firestore Timestamp (online) and regular timestamp (offline)
+                        const startTimeMs = timerData.startTime?.toMillis ? timerData.startTime.toMillis() : timerData.startTime;
                         const sessionElapsed = (!timerData.isPaused && timerData.startTime)
-                            ? Date.now() - timerData.startTime.toMillis()
+                            ? Date.now() - startTimeMs
                             : 0;
                         const totalElapsed = currentElapsed + sessionElapsed;
 

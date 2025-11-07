@@ -19,11 +19,22 @@
         if (!isOnline) {
             if (
                 message.includes('ERR_INTERNET_DISCONNECTED') ||
+                message.includes('ERR_NETWORK_CHANGED') ||
+                message.includes('ERR_CONNECTION') ||
                 message.includes('WebChannelConnection') ||
+                message.includes('webchannel_connection') ||
                 message.includes('net::ERR_') ||
                 message.includes('firestore') ||
+                message.includes('Firestore') ||
+                message.includes('firebase') ||
+                message.includes('Firebase') ||
                 message.includes('googleapis.com') ||
-                message.includes('transport errored')
+                message.includes('firebasestorage') ||
+                message.includes('transport errored') ||
+                message.includes('RPC') ||
+                message.includes('Write/Listen') ||
+                message.includes('cleardot.gif') ||
+                message.includes('Failed to fetch')
             ) {
                 // Silently suppress - these are expected when offline
                 return;
