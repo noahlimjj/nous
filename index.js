@@ -1071,6 +1071,15 @@
                 runMigration();
             }, [db, userId]);
 
+            // Expose db/userId for offline timer sync
+            useEffect(() => {
+                if (db && userId) {
+                    window.__currentDb = db;
+                    window.__currentUserId = userId;
+                    window.__showNotification = setNotification;
+                }
+            }, [db, userId, setNotification]);
+
             useEffect(() => {
                 if (!db || !userId || !appId) return;
                 setIsLoading(true);
@@ -1806,6 +1815,28 @@
                 const habit = habits.find(h => h.id === habitId);
                 if (!habit) return;
 
+                // OFFLINE MODE: Use offline timer manager
+                if (!navigator.onLine && window.OfflineTimerManager) {
+                    console.log('[Offline] Starting timer locally:', habit.name);
+                    window.OfflineTimerManager.start(habitId, habit.name, 0);
+
+                    // Update local state so UI shows timer running
+                    setActiveTimers(prev => ({
+                        ...prev,
+                        [habitId]: {
+                            habitId,
+                            habitName: habit.name,
+                            startTime: Date.now(),
+                            isPaused: false,
+                            isOffline: true,
+                            elapsedBeforePause: 0
+                        }
+                    }));
+
+                    setNotification({ type: 'success', message: `Timer started offline: ${habit.name}` });
+                    return;
+                }
+
                 try {
                     const timerDocRef = window.doc(db, `/artifacts/${appId}/users/${userId}/activeTimers/${habitId}`);
                     const existingTimer = activeTimers[habitId];
@@ -1837,6 +1868,25 @@
                 const timer = activeTimers[habitId];
                 if (!timer) return;
 
+                // OFFLINE MODE: Use offline timer manager
+                if (!navigator.onLine && window.OfflineTimerManager) {
+                    console.log('[Offline] Pausing timer locally');
+                    const pausedTimer = window.OfflineTimerManager.pause(habitId);
+
+                    if (pausedTimer) {
+                        setActiveTimers(prev => ({
+                            ...prev,
+                            [habitId]: {
+                                ...prev[habitId],
+                                isPaused: true,
+                                elapsedBeforePause: pausedTimer.elapsedTime
+                            }
+                        }));
+                        setNotification({ type: 'success', message: 'Timer paused offline' });
+                    }
+                    return;
+                }
+
                 try {
                     const timerDocRef = window.doc(db, `/artifacts/${appId}/users/${userId}/activeTimers/${habitId}`);
 
@@ -1860,6 +1910,28 @@
                 const timerData = activeTimers[habitId];
 
                 if (timerData) {
+                    // OFFLINE MODE: Use offline timer manager
+                    if (!navigator.onLine && window.OfflineTimerManager) {
+                        console.log('[Offline] Stopping timer and queuing for sync');
+                        const result = window.OfflineTimerManager.stop(habitId, habitName || timerData.habitName);
+
+                        if (result) {
+                            // Remove from local state
+                            setActiveTimers(prev => {
+                                const newTimers = { ...prev };
+                                delete newTimers[habitId];
+                                return newTimers;
+                            });
+
+                            const hoursText = result.hoursTracked.toFixed(2);
+                            setNotification({
+                                type: 'success',
+                                message: `Timer stopped. ${hoursText} hours will sync when online.`
+                            });
+                        }
+                        return;
+                    }
+
                     try {
                         // Calculate total elapsed time
                         const currentElapsed = timerData.elapsedBeforePause || 0;

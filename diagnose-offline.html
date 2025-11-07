@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Offline Mode Diagnostic</title>
+    <style>
+        body {
+            font-family: system-ui, sans-serif;
+            max-width: 900px;
+            margin: 20px auto;
+            padding: 20px;
+            background: #f8f9fa;
+        }
+        .card {
+            background: white;
+            padding: 20px;
+            margin: 15px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        h1 { color: #5d6b86; }
+        h2 { color: #6c757d; font-size: 18px; margin-top: 0; }
+        button {
+            padding: 10px 20px;
+            margin: 5px;
+            background: #5d6b86;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        button:hover { background: #4a5568; }
+        .success { color: #28a745; font-weight: bold; }
+        .error { color: #dc3545; font-weight: bold; }
+        .warning { color: #ff9800; font-weight: bold; }
+        pre {
+            background: #f4f4f4;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+            font-size: 12px;
+        }
+        .status { padding: 10px; border-radius: 4px; margin: 10px 0; }
+        .status.good { background: #d4edda; }
+        .status.bad { background: #f8d7da; }
+        .status.warn { background: #fff3cd; }
+    </style>
+</head>
+<body>
+    <h1>🔍 Offline Mode Diagnostic Tool</h1>
+
+    <div class="card">
+        <h2>Quick Actions</h2>
+        <button onclick="runFullDiagnostic()">🔬 Run Full Diagnostic</button>
+        <button onclick="clearAndReload()">🗑️ Clear SW & Reload</button>
+        <button onclick="window.location.reload()">🔄 Reload Page</button>
+    </div>
+
+    <div class="card">
+        <h2>1. Service Worker Status</h2>
+        <div id="sw-status">Checking...</div>
+    </div>
+
+    <div class="card">
+        <h2>2. Cache Status</h2>
+        <div id="cache-status">Checking...</div>
+    </div>
+
+    <div class="card">
+        <h2>3. Cache Contents</h2>
+        <div id="cache-contents">Checking...</div>
+    </div>
+
+    <div class="card">
+        <h2>4. Offline Test Instructions</h2>
+        <div id="test-instructions">
+            <ol>
+                <li>Make sure service worker is registered ✅</li>
+                <li>Make sure cache has files ✅</li>
+                <li>Open DevTools (F12) → Network tab</li>
+                <li>Select <strong>"Offline"</strong> from throttling dropdown</li>
+                <li>Click the "Reload" button above (or Cmd/Ctrl+R)</li>
+                <li>Page should load from cache!</li>
+            </ol>
+            <p><strong>Expected:</strong> Full Nous app loads</p>
+            <p><strong>If you see "Offline - Please check":</strong> Cache is empty or SW not updated</p>
+        </div>
+    </div>
+
+    <div class="card">
+        <h2>5. Diagnostic Results</h2>
+        <div id="diagnostic-results"></div>
+    </div>
+
+    <script>
+        async function checkServiceWorker() {
+            const statusDiv = document.getElementById('sw-status');
+
+            if (!('serviceWorker' in navigator)) {
+                statusDiv.innerHTML = '<div class="status bad">❌ Service Worker not supported</div>';
+                return false;
+            }
+
+            try {
+                const registrations = await navigator.serviceWorker.getRegistrations();
+
+                if (registrations.length === 0) {
+                    statusDiv.innerHTML = '<div class="status bad">❌ No service worker registered</div>' +
+                        '<p>Reload the page to register SW</p>';
+                    return false;
+                }
+
+                const reg = registrations[0];
+                const scriptURL = reg.active?.scriptURL || reg.installing?.scriptURL || reg.waiting?.scriptURL || 'none';
+                const state = reg.active?.state || reg.installing?.state || reg.waiting?.state || 'none';
+                const isV18 = scriptURL.includes('v18');
+                const controlling = navigator.serviceWorker.controller !== null;
+
+                let html = '<div class="status ' + (isV18 && controlling ? 'good' : 'warn') + '">';
+                html += `<strong>SW File:</strong> ${scriptURL}<br>`;
+                html += `<strong>State:</strong> ${state}<br>`;
+                html += `<strong>Version:</strong> ${isV18 ? '✅ v18' : '❌ Not v18'}<br>`;
+                html += `<strong>Controlling:</strong> ${controlling ? '✅ Yes' : '❌ No'}<br>`;
+                html += '</div>';
+
+                if (!isV18) {
+                    html += '<p class="warning">⚠️ Old version! Clear SW and reload.</p>';
+                }
+
+                if (!controlling) {
+                    html += '<p class="warning">⚠️ Not controlling page yet. Reload once more.</p>';
+                }
+
+                statusDiv.innerHTML = html;
+                return isV18 && controlling;
+
+            } catch (error) {
+                statusDiv.innerHTML = `<div class="status bad">❌ Error: ${error.message}</div>`;
+                return false;
+            }
+        }
+
+        async function checkCache() {
+            const statusDiv = document.getElementById('cache-status');
+            const contentsDiv = document.getElementById('cache-contents');
+
+            try {
+                const cacheNames = await caches.keys();
+
+                if (cacheNames.length === 0) {
+                    statusDiv.innerHTML = '<div class="status bad">❌ No caches found</div>' +
+                        '<p>Reload page to populate cache</p>';
+                    contentsDiv.innerHTML = '<p>Cache is empty</p>';
+                    return false;
+                }
+
+                const v18Cache = cacheNames.find(name => name.includes('nous-v18'));
+
+                if (!v18Cache) {
+                    statusDiv.innerHTML = '<div class="status warn">⚠️ No v18 cache found</div>' +
+                        `<p>Found caches: ${cacheNames.join(', ')}</p>`;
+                    return false;
+                }
+
+                const cache = await caches.open(v18Cache);
+                const requests = await cache.keys();
+                const urls = requests.map(req => new URL(req.url).pathname);
+
+                const hasIndexHtml = urls.some(u => u === '/index.html');
+                const hasRoot = urls.some(u => u === '/');
+
+                statusDiv.innerHTML = `<div class="status ${hasIndexHtml || hasRoot ? 'good' : 'warn'}">` +
+                    `<strong>Cache:</strong> ${v18Cache}<br>` +
+                    `<strong>Files:</strong> ${requests.length}<br>` +
+                    `<strong>Has /index.html:</strong> ${hasIndexHtml ? '✅' : '❌'}<br>` +
+                    `<strong>Has /:</strong> ${hasRoot ? '✅' : '❌'}<br>` +
+                    '</div>';
+
+                let contentsHtml = '<strong>Cached files:</strong><pre>';
+                urls.forEach((url, i) => {
+                    contentsHtml += `${i + 1}. ${url}\n`;
+                });
+                contentsHtml += '</pre>';
+
+                contentsDiv.innerHTML = contentsHtml;
+
+                return hasIndexHtml || hasRoot;
+
+            } catch (error) {
+                statusDiv.innerHTML = `<div class="status bad">❌ Error: ${error.message}</div>`;
+                contentsDiv.innerHTML = `<p>Error: ${error.message}</p>`;
+                return false;
+            }
+        }
+
+        async function runFullDiagnostic() {
+            const resultsDiv = document.getElementById('diagnostic-results');
+            resultsDiv.innerHTML = '<p>Running diagnostic...</p>';
+
+            const swOk = await checkServiceWorker();
+            const cacheOk = await checkCache();
+
+            let html = '<h3>Diagnostic Summary:</h3>';
+            html += '<ul>';
+            html += `<li class="${swOk ? 'success' : 'error'}">Service Worker: ${swOk ? '✅ Ready' : '❌ Not Ready'}</li>`;
+            html += `<li class="${cacheOk ? 'success' : 'error'}">Cache: ${cacheOk ? '✅ Populated' : '❌ Empty'}</li>`;
+            html += '</ul>';
+
+            if (swOk && cacheOk) {
+                html += '<div class="status good">';
+                html += '<strong>✅ ALL CHECKS PASSED!</strong><br>';
+                html += 'Offline mode should work. Follow test instructions above.';
+                html += '</div>';
+            } else {
+                html += '<div class="status bad">';
+                html += '<strong>❌ ISSUES FOUND</strong><br>';
+                if (!swOk) html += '• Service worker needs to be registered/updated<br>';
+                if (!cacheOk) html += '• Cache needs to be populated<br>';
+                html += '<br><strong>Fix:</strong> Click "Clear SW & Reload" button above';
+                html += '</div>';
+            }
+
+            resultsDiv.innerHTML = html;
+        }
+
+        async function clearAndReload() {
+            try {
+                // Unregister all SWs
+                const registrations = await navigator.serviceWorker.getRegistrations();
+                await Promise.all(registrations.map(r => r.unregister()));
+
+                // Clear all caches
+                const cacheNames = await caches.keys();
+                await Promise.all(cacheNames.map(name => caches.delete(name)));
+
+                alert('✅ Cleared! Reloading page...');
+                window.location.reload();
+
+            } catch (error) {
+                alert('Error: ' + error.message);
+            }
+        }
+
+        // Run on load
+        window.addEventListener('load', () => {
+            setTimeout(runFullDiagnostic, 500);
+        });
+    </script>
+</body>
+</html>
