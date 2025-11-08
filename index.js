@@ -7066,16 +7066,28 @@
             // Listen for Firebase SDK ready event
             useEffect(() => {
                 if (window.firebaseSDKReady) {
+                    console.log('✓ Firebase SDK already ready');
                     setFirebaseReady(true);
                 } else {
-                    const handleFirebaseReady = () => setFirebaseReady(true);
+                    const handleFirebaseReady = () => {
+                        console.log('✓ Firebase SDK ready event received');
+                        setFirebaseReady(true);
+                    };
                     window.addEventListener('firebaseReady', handleFirebaseReady, { once: true });
 
-                    // Safety timeout: if Firebase SDK doesn't load in 5 seconds, consider it ready anyway
+                    // Safety timeout: if Firebase SDK doesn't load in 20 seconds, check manually
                     const timeout = setTimeout(() => {
-                        console.warn('⚠️ Firebase SDK loading timeout - continuing anyway');
-                        setFirebaseReady(true);
-                    }, 5000);
+                        if (window.firebaseSDKReady) {
+                            // SDK actually loaded but event didn't fire
+                            console.log('✓ Firebase SDK loaded (detected via timeout check)');
+                            setFirebaseReady(true);
+                        } else {
+                            // SDK really didn't load - this is a problem
+                            console.error('❌ Firebase SDK failed to load after 20 seconds');
+                            console.error('   Check network connection and firewall settings');
+                            setFirebaseReady(true); // Continue anyway, offline mode will work
+                        }
+                    }, 20000); // 20 seconds - much more generous
 
                     return () => {
                         window.removeEventListener('firebaseReady', handleFirebaseReady);
@@ -7092,9 +7104,11 @@
 
                 // Safety timeout for auth initialization
                 const authTimeout = setTimeout(() => {
-                    console.warn('⚠️ Firebase auth initialization timeout - app will continue in offline mode');
+                    console.error('❌ Firebase auth initialization timeout after 30 seconds');
+                    console.error('   This usually means Firebase config is invalid or network is blocked');
+                    setConfigError('Firebase authentication timed out. Check your network connection.');
                     setIsAuthReady(true);
-                }, 10000); // 10 second timeout
+                }, 30000); // 30 second timeout - very generous
 
                 // Validate Firebase config
                 if (!firebaseConfig || !firebaseConfig.apiKey || !firebaseConfig.projectId) {
