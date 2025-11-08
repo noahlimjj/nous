@@ -7070,7 +7070,17 @@
                 } else {
                     const handleFirebaseReady = () => setFirebaseReady(true);
                     window.addEventListener('firebaseReady', handleFirebaseReady, { once: true });
-                    return () => window.removeEventListener('firebaseReady', handleFirebaseReady);
+
+                    // Safety timeout: if Firebase SDK doesn't load in 5 seconds, consider it ready anyway
+                    const timeout = setTimeout(() => {
+                        console.warn('⚠️ Firebase SDK loading timeout - continuing anyway');
+                        setFirebaseReady(true);
+                    }, 5000);
+
+                    return () => {
+                        window.removeEventListener('firebaseReady', handleFirebaseReady);
+                        clearTimeout(timeout);
+                    };
                 }
             }, []);
 
@@ -7080,12 +7090,19 @@
                     return;
                 }
 
+                // Safety timeout for auth initialization
+                const authTimeout = setTimeout(() => {
+                    console.warn('⚠️ Firebase auth initialization timeout - app will continue in offline mode');
+                    setIsAuthReady(true);
+                }, 10000); // 10 second timeout
+
                 // Validate Firebase config
                 if (!firebaseConfig || !firebaseConfig.apiKey || !firebaseConfig.projectId) {
                     const errorMsg = "Firebase configuration is missing required values. Please check your environment variables.";
                     console.error(errorMsg);
                     setConfigError(errorMsg);
                     setIsAuthReady(true);
+                    clearTimeout(authTimeout);
                     return;
                 }
 
@@ -7130,6 +7147,9 @@
                         window.auth = authInstance;
 
                         const unsubscribe = window.onAuthStateChanged(authInstance, async (user) => {
+                        console.log('🔐 Auth state changed:', user ? `User: ${user.uid}` : 'No user');
+                        clearTimeout(authTimeout); // Clear timeout since auth is responding
+
                         if (user) {
                             setUser(user);
                             setUserId(user.uid);
@@ -7155,12 +7175,14 @@
                             }
                         }
                         setIsAuthReady(true);
+                        console.log('✓ Auth ready');
                         });
                         return unsubscribe;
                     } catch (error) {
                         console.error("Firebase initialization error:", error);
                         setConfigError(`Firebase initialization failed: ${error.message}`);
                         setIsAuthReady(true);
+                        clearTimeout(authTimeout);
                         return null;
                     }
                 })().then(unsubscribe => {
@@ -7172,6 +7194,7 @@
 
                 // Return cleanup function
                 return () => {
+                    clearTimeout(authTimeout);
                     if (window.__authUnsubscribe && typeof window.__authUnsubscribe === 'function') {
                         window.__authUnsubscribe();
                         window.__authUnsubscribe = null;
