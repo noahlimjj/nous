@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clear Default Habits - Nous</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="config.js"></script>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .container {
+            max-width: 600px;
+            width: 100%;
+            background: white;
+            border-radius: 24px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        h1 {
+            color: #2d3748;
+            font-size: 32px;
+            margin-bottom: 12px;
+        }
+        .subtitle {
+            color: #718096;
+            margin-bottom: 32px;
+            font-size: 16px;
+        }
+        .habit-item {
+            background: #f7fafc;
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-left: 4px solid #f56565;
+        }
+        .habit-name {
+            font-size: 18px;
+            font-weight: 600;
+            color: #2d3748;
+        }
+        .habit-id {
+            font-size: 12px;
+            color: #a0aec0;
+            font-family: monospace;
+        }
+        button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+        button:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+        }
+        button.danger {
+            background: #f56565;
+        }
+        button.danger:hover {
+            background: #e53e3e;
+        }
+        button:disabled {
+            background: #cbd5e0;
+            cursor: not-allowed;
+            transform: none;
+        }
+        .status {
+            padding: 16px;
+            border-radius: 8px;
+            margin-bottom: 16px;
+            font-size: 14px;
+        }
+        .status.success {
+            background: #c6f6d5;
+            color: #22543d;
+            border: 2px solid #48bb78;
+        }
+        .status.error {
+            background: #fed7d7;
+            color: #742a2a;
+            border: 2px solid #f56565;
+        }
+        .status.info {
+            background: #bee3f8;
+            color: #2c5282;
+            border: 2px solid #4299e1;
+        }
+        .hidden {
+            display: none;
+        }
+        #habitsList {
+            margin-bottom: 24px;
+        }
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: #718096;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🗑️ Clear Default Habits</h1>
+        <p class="subtitle">Remove "Study" and "Exercise" default habits from your account</p>
+
+        <div id="status" class="status info">
+            <strong>Step 1:</strong> Click "Load My Habits" to see your current habits
+        </div>
+
+        <button onclick="loadHabits()" id="loadBtn">📋 Load My Habits</button>
+
+        <div id="habitsList" class="hidden"></div>
+
+        <div id="actions" class="hidden">
+            <button class="danger" onclick="clearDefaultHabits()">🗑️ Delete "Study" and "Exercise"</button>
+            <button onclick="clearAllHabits()" style="margin-left: 12px;">⚠️ Delete ALL Habits</button>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+        import {
+            getAuth,
+            signInAnonymously,
+            onAuthStateChanged
+        } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+        import {
+            getFirestore,
+            collection,
+            getDocs,
+            deleteDoc,
+            doc
+        } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+
+        let app, auth, db, userId;
+
+        // Initialize Firebase
+        async function initFirebase() {
+            const statusDiv = document.getElementById('status');
+
+            if (!window.firebaseConfig) {
+                statusDiv.className = 'status error';
+                statusDiv.textContent = 'Firebase config not found. Make sure config.js is loaded.';
+                return false;
+            }
+
+            try {
+                app = initializeApp(window.firebaseConfig);
+                auth = getAuth(app);
+                db = getFirestore(app);
+
+                // Wait for auth
+                await new Promise((resolve) => {
+                    onAuthStateChanged(auth, (user) => {
+                        if (user) {
+                            userId = user.uid;
+                            resolve();
+                        } else {
+                            signInAnonymously(auth).then(() => {
+                                userId = auth.currentUser.uid;
+                                resolve();
+                            });
+                        }
+                    });
+                });
+
+                statusDiv.className = 'status success';
+                statusDiv.textContent = `✓ Logged in as: ${userId.substring(0, 8)}...`;
+                return true;
+            } catch (error) {
+                statusDiv.className = 'status error';
+                statusDiv.textContent = `Firebase error: ${error.message}`;
+                return false;
+            }
+        }
+
+        window.loadHabits = async function() {
+            const statusDiv = document.getElementById('status');
+            const loadBtn = document.getElementById('loadBtn');
+            const habitsList = document.getElementById('habitsList');
+            const actionsDiv = document.getElementById('actions');
+
+            loadBtn.disabled = true;
+            loadBtn.textContent = '⏳ Loading...';
+
+            // Initialize Firebase first
+            const initialized = await initFirebase();
+            if (!initialized) {
+                loadBtn.disabled = false;
+                loadBtn.textContent = '📋 Load My Habits';
+                return;
+            }
+
+            try {
+                const appId = 'study-tracker-app-v1';
+                const habitsRef = collection(db, `/artifacts/${appId}/users/${userId}/habits`);
+                const snapshot = await getDocs(habitsRef);
+
+                if (snapshot.empty) {
+                    habitsList.innerHTML = '<div class="empty-state">✓ No habits found! You\'re all clean.</div>';
+                    habitsList.classList.remove('hidden');
+                    loadBtn.textContent = '✓ Loaded';
+                    return;
+                }
+
+                const habits = [];
+                snapshot.forEach((doc) => {
+                    habits.push({
+                        id: doc.id,
+                        ...doc.data()
+                    });
+                });
+
+                // Display habits
+                habitsList.innerHTML = '';
+                habits.forEach(habit => {
+                    const habitDiv = document.createElement('div');
+                    habitDiv.className = 'habit-item';
+
+                    const isDefault = habit.name === 'Study' || habit.name === 'Exercise';
+                    if (isDefault) {
+                        habitDiv.style.borderLeftColor = '#f56565'; // Red for default
+                    } else {
+                        habitDiv.style.borderLeftColor = '#48bb78'; // Green for custom
+                    }
+
+                    habitDiv.innerHTML = `
+                        <div>
+                            <div class="habit-name">${habit.name} ${isDefault ? '⚠️ DEFAULT' : '✓'}</div>
+                            <div class="habit-id">ID: ${habit.id}</div>
+                        </div>
+                        <button class="danger" onclick="deleteHabit('${habit.id}', '${habit.name}')">Delete</button>
+                    `;
+                    habitsList.appendChild(habitDiv);
+                });
+
+                habitsList.classList.remove('hidden');
+                actionsDiv.classList.remove('hidden');
+
+                const defaultCount = habits.filter(h => h.name === 'Study' || h.name === 'Exercise').length;
+                statusDiv.className = 'status info';
+                statusDiv.innerHTML = `
+                    Found ${habits.length} habit(s)<br>
+                    ${defaultCount > 0 ? `⚠️ ${defaultCount} default habit(s) to remove` : '✓ No default habits found'}
+                `;
+
+                loadBtn.textContent = '✓ Loaded';
+            } catch (error) {
+                statusDiv.className = 'status error';
+                statusDiv.textContent = `Error loading habits: ${error.message}`;
+                loadBtn.disabled = false;
+                loadBtn.textContent = '📋 Load My Habits';
+            }
+        };
+
+        window.deleteHabit = async function(habitId, habitName) {
+            if (!confirm(`Delete "${habitName}"?`)) return;
+
+            const statusDiv = document.getElementById('status');
+            statusDiv.className = 'status info';
+            statusDiv.textContent = `Deleting "${habitName}"...`;
+
+            try {
+                const appId = 'study-tracker-app-v1';
+                const habitRef = doc(db, `/artifacts/${appId}/users/${userId}/habits/${habitId}`);
+                await deleteDoc(habitRef);
+
+                statusDiv.className = 'status success';
+                statusDiv.textContent = `✓ Deleted "${habitName}"`;
+
+                // Reload habits
+                setTimeout(() => loadHabits(), 1000);
+            } catch (error) {
+                statusDiv.className = 'status error';
+                statusDiv.textContent = `Error deleting: ${error.message}`;
+            }
+        };
+
+        window.clearDefaultHabits = async function() {
+            if (!confirm('Delete "Study" and "Exercise" habits?')) return;
+
+            const statusDiv = document.getElementById('status');
+            statusDiv.className = 'status info';
+            statusDiv.textContent = 'Deleting default habits...';
+
+            try {
+                const appId = 'study-tracker-app-v1';
+                const habitsRef = collection(db, `/artifacts/${appId}/users/${userId}/habits`);
+                const snapshot = await getDocs(habitsRef);
+
+                let deleted = 0;
+                for (const habitDoc of snapshot.docs) {
+                    const habit = habitDoc.data();
+                    if (habit.name === 'Study' || habit.name === 'Exercise') {
+                        await deleteDoc(doc(db, `/artifacts/${appId}/users/${userId}/habits/${habitDoc.id}`));
+                        deleted++;
+                    }
+                }
+
+                statusDiv.className = 'status success';
+                statusDiv.textContent = `✓ Deleted ${deleted} default habit(s)`;
+
+                // Reload habits
+                setTimeout(() => loadHabits(), 1000);
+            } catch (error) {
+                statusDiv.className = 'status error';
+                statusDiv.textContent = `Error: ${error.message}`;
+            }
+        };
+
+        window.clearAllHabits = async function() {
+            if (!confirm('⚠️ DELETE ALL HABITS? This cannot be undone!')) return;
+            if (!confirm('Are you REALLY sure? All your habits will be permanently deleted!')) return;
+
+            const statusDiv = document.getElementById('status');
+            statusDiv.className = 'status info';
+            statusDiv.textContent = 'Deleting all habits...';
+
+            try {
+                const appId = 'study-tracker-app-v1';
+                const habitsRef = collection(db, `/artifacts/${appId}/users/${userId}/habits`);
+                const snapshot = await getDocs(habitsRef);
+
+                let deleted = 0;
+                for (const habitDoc of snapshot.docs) {
+                    await deleteDoc(doc(db, `/artifacts/${appId}/users/${userId}/habits/${habitDoc.id}`));
+                    deleted++;
+                }
+
+                statusDiv.className = 'status success';
+                statusDiv.textContent = `✓ Deleted ${deleted} habit(s)`;
+
+                // Reload habits
+                setTimeout(() => loadHabits(), 1000);
+            } catch (error) {
+                statusDiv.className = 'status error';
+                statusDiv.textContent = `Error: ${error.message}`;
+            }
+        };
+    </script>
+</body>
+</html>
