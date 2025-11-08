@@ -7480,88 +7480,10 @@
         const root = ReactDOM.createRoot(document.getElementById('root'));
         root.render(React.createElement(App));
 
-        // Register Service Worker
-        if ('serviceWorker' in navigator) {
-            // Force clear ALL caches on load - nuclear option for stuck PWAs
-            const APP_VERSION = '2025-10-24-v7-AUTO-MIGRATE'; // Update this to force refresh
-            const storedVersion = localStorage.getItem('appVersion');
-
-            if (storedVersion !== APP_VERSION) {
-                console.log('Version mismatch detected! Clearing all caches...');
-                // Clear all caches
-                caches.keys().then(cacheNames => {
-                    return Promise.all(
-                        cacheNames.map(cacheName => {
-                            console.log('Deleting cache:', cacheName);
-                            return caches.delete(cacheName);
-                        })
-                    );
-                }).then(() => {
-                    // Unregister all service workers
-                    navigator.serviceWorker.getRegistrations().then(registrations => {
-                        return Promise.all(
-                            registrations.map(registration => {
-                                console.log('Unregistering service worker');
-                                return registration.unregister();
-                            })
-                        );
-                    }).then(() => {
-                        // Store new version
-                        localStorage.setItem('appVersion', APP_VERSION);
-                        console.log('Cache cleared! Reloading...');
-                        // Hard reload from server
-                        window.location.reload(true);
-                    });
-                });
-                // Don't register SW yet, we're about to reload
-            } else {
-                // Version matches, proceed with normal SW registration
-                window.addEventListener('load', () => {
-                navigator.serviceWorker.register('/service-worker.js')
-                    .then((registration) => {
-                        console.log('ServiceWorker registered successfully:', registration.scope);
-
-                        // Check for updates every 10 seconds (more aggressive)
-                        setInterval(() => {
-                            registration.update();
-                        }, 10000);
-
-                        // Listen for updates
-                        registration.addEventListener('updatefound', () => {
-                            const newWorker = registration.installing;
-                            newWorker.addEventListener('statechange', () => {
-                                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                                    // New service worker is installed and ready
-                                    console.log('New version available! Reloading...');
-                                    // Force reload to get new version
-                                    window.location.reload(true);
-                                }
-                            });
-                        });
-                    })
-                    .catch((error) => {
-                        console.log('ServiceWorker registration failed:', error);
-                    });
-                });
-
-                // Handle controller change (when new SW takes over)
-                navigator.serviceWorker.addEventListener('controllerchange', () => {
-                    console.log('New service worker activated, reloading...');
-                    window.location.reload();
-                });
-
-                // Listen for messages from service worker
-                navigator.serviceWorker.addEventListener('message', (event) => {
-                    if (event.data && event.data.type === 'UPDATE_AVAILABLE') {
-                        console.log('Update available, version:', event.data.version);
-                        // Reload immediately to get new version
-                        setTimeout(() => {
-                            window.location.reload();
-                        }, 1000); // Small delay to ensure everything is ready
-                    }
-                });
-            }
-        }
+        // Service Worker registration is now handled in index.html
+        // This prevents conflicts between multiple registration attempts
+        // and stops the infinite refresh loop on mobile
+        console.log('✓ App initialized - Service Worker managed by index.html');
 
         // PWA Install Prompt
         let deferredPrompt;
