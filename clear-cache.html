@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clear Cache - Nous</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .container {
+            max-width: 600px;
+            width: 100%;
+            background: white;
+            border-radius: 24px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        h1 {
+            color: #2d3748;
+            font-size: 32px;
+            margin-bottom: 12px;
+        }
+        .subtitle {
+            color: #718096;
+            margin-bottom: 32px;
+            font-size: 16px;
+        }
+        .step {
+            background: #f7fafc;
+            padding: 24px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            border-left: 4px solid #667eea;
+        }
+        .step h2 {
+            color: #2d3748;
+            font-size: 18px;
+            margin-bottom: 12px;
+        }
+        .step p {
+            color: #4a5568;
+            line-height: 1.6;
+            margin-bottom: 16px;
+        }
+        button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 16px 32px;
+            border-radius: 12px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            width: 100%;
+            transition: all 0.2s;
+            margin-bottom: 12px;
+        }
+        button:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+        button:active {
+            transform: translateY(0);
+        }
+        button.danger {
+            background: #f56565;
+        }
+        button.danger:hover {
+            background: #e53e3e;
+        }
+        .status {
+            padding: 16px;
+            border-radius: 8px;
+            margin-bottom: 16px;
+            font-size: 14px;
+        }
+        .status.success {
+            background: #c6f6d5;
+            color: #22543d;
+            border: 2px solid #48bb78;
+        }
+        .status.error {
+            background: #fed7d7;
+            color: #742a2a;
+            border: 2px solid #f56565;
+        }
+        .status.info {
+            background: #bee3f8;
+            color: #2c5282;
+            border: 2px solid #4299e1;
+        }
+        .hidden {
+            display: none;
+        }
+        pre {
+            background: #2d3748;
+            color: #48bb78;
+            padding: 16px;
+            border-radius: 8px;
+            overflow-x: auto;
+            font-size: 13px;
+            margin-top: 12px;
+        }
+        .badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+            background: #667eea;
+            color: white;
+            margin-left: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧹 Clear Cache</h1>
+        <p class="subtitle">Clean up old service workers and caches to upgrade to v19</p>
+
+        <div id="status" class="status info">
+            <strong>Step 1:</strong> Check what needs to be cleared
+        </div>
+
+        <div class="step">
+            <h2>1️⃣ Check Current Status</h2>
+            <p>First, let's see what service workers and caches exist.</p>
+            <button onclick="checkStatus()">🔍 Check Status</button>
+            <pre id="currentStatus" class="hidden"></pre>
+        </div>
+
+        <div class="step">
+            <h2>2️⃣ Clear Old Service Workers</h2>
+            <p>This will unregister ALL service workers. The app will re-register v19 on next page load.</p>
+            <button class="danger" onclick="clearServiceWorkers()">❌ Unregister All Service Workers</button>
+            <pre id="swStatus" class="hidden"></pre>
+        </div>
+
+        <div class="step">
+            <h2>3️⃣ Clear All Caches</h2>
+            <p>This will delete all cached files. New files will be cached with v19.</p>
+            <button class="danger" onclick="clearCaches()">🗑️ Clear All Caches</button>
+            <pre id="cacheStatus" class="hidden"></pre>
+        </div>
+
+        <div class="step">
+            <h2>4️⃣ Reload & Test</h2>
+            <p>After clearing, reload the page to register v19 and test the app.</p>
+            <button onclick="reloadAndTest()">🔄 Reload Page</button>
+        </div>
+
+        <div class="step">
+            <h2>5️⃣ Quick Clear All</h2>
+            <p>Nuclear option: Clear everything and reload in one click.</p>
+            <button class="danger" onclick="clearAll()">💥 Clear All & Reload</button>
+        </div>
+    </div>
+
+    <script>
+        async function checkStatus() {
+            const statusDiv = document.getElementById('status');
+            const statusPre = document.getElementById('currentStatus');
+
+            try {
+                const registrations = await navigator.serviceWorker.getRegistrations();
+                const cacheNames = await caches.keys();
+
+                const info = {
+                    serviceWorkers: registrations.map(reg => ({
+                        scope: reg.scope,
+                        scriptURL: reg.active?.scriptURL || 'Installing...',
+                        state: reg.active?.state || 'Unknown'
+                    })),
+                    caches: cacheNames,
+                    totalSWs: registrations.length,
+                    totalCaches: cacheNames.length
+                };
+
+                statusPre.textContent = JSON.stringify(info, null, 2);
+                statusPre.classList.remove('hidden');
+
+                statusDiv.className = 'status info';
+                statusDiv.innerHTML = `
+                    <strong>Status:</strong>
+                    Found ${info.totalSWs} service worker(s) and ${info.totalCaches} cache(s)
+                `;
+
+            } catch (error) {
+                statusDiv.className = 'status error';
+                statusDiv.textContent = `Error: ${error.message}`;
+            }
+        }
+
+        async function clearServiceWorkers() {
+            const statusDiv = document.getElementById('status');
+            const swPre = document.getElementById('swStatus');
+
+            try {
+                const registrations = await navigator.serviceWorker.getRegistrations();
+                const results = [];
+
+                for (const reg of registrations) {
+                    const scriptURL = reg.active?.scriptURL || reg.installing?.scriptURL || 'Unknown';
+                    const unregistered = await reg.unregister();
+                    results.push({
+                        scriptURL,
+                        unregistered
+                    });
+                }
+
+                swPre.textContent = JSON.stringify(results, null, 2);
+                swPre.classList.remove('hidden');
+
+                statusDiv.className = 'status success';
+                statusDiv.innerHTML = `
+                    <strong>✓ Success:</strong> Unregistered ${results.length} service worker(s)
+                `;
+
+            } catch (error) {
+                statusDiv.className = 'status error';
+                statusDiv.textContent = `Error: ${error.message}`;
+            }
+        }
+
+        async function clearCaches() {
+            const statusDiv = document.getElementById('status');
+            const cachePre = document.getElementById('cacheStatus');
+
+            try {
+                const cacheNames = await caches.keys();
+                const results = [];
+
+                for (const name of cacheNames) {
+                    const deleted = await caches.delete(name);
+                    results.push({
+                        cacheName: name,
+                        deleted
+                    });
+                }
+
+                cachePre.textContent = JSON.stringify(results, null, 2);
+                cachePre.classList.remove('hidden');
+
+                statusDiv.className = 'status success';
+                statusDiv.innerHTML = `
+                    <strong>✓ Success:</strong> Deleted ${results.length} cache(s)
+                `;
+
+            } catch (error) {
+                statusDiv.className = 'status error';
+                statusDiv.textContent = `Error: ${error.message}`;
+            }
+        }
+
+        async function clearAll() {
+            const statusDiv = document.getElementById('status');
+
+            statusDiv.className = 'status info';
+            statusDiv.innerHTML = '<strong>⏳ Processing:</strong> Clearing everything...';
+
+            try {
+                // Clear service workers
+                const registrations = await navigator.serviceWorker.getRegistrations();
+                await Promise.all(registrations.map(reg => reg.unregister()));
+
+                // Clear caches
+                const cacheNames = await caches.keys();
+                await Promise.all(cacheNames.map(name => caches.delete(name)));
+
+                statusDiv.className = 'status success';
+                statusDiv.innerHTML = `
+                    <strong>✓ Complete!</strong>
+                    Cleared ${registrations.length} service worker(s) and ${cacheNames.length} cache(s).
+                    Reloading in 2 seconds...
+                `;
+
+                setTimeout(() => {
+                    window.location.href = '/';
+                }, 2000);
+
+            } catch (error) {
+                statusDiv.className = 'status error';
+                statusDiv.textContent = `Error: ${error.message}`;
+            }
+        }
+
+        function reloadAndTest() {
+            window.location.href = '/';
+        }
+
+        // Auto-check status on load
+        window.addEventListener('load', checkStatus);
+    </script>
+</body>
+</html>
