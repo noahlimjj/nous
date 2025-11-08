@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192" width="192" height="192">
+  <defs>
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300&amp;display=swap');
+      .letter {
+        font-family: 'Inter', -apple-system, system-ui, sans-serif;
+        font-weight: 300;
+        font-size: 138.24px;
+        fill: #5d6b86;
+        text-anchor: middle;
+        dominant-baseline: central;
+        letter-spacing: 1.5px;
+      }
+    </style>
+  </defs>
+
+  <!-- Background (optional - transparent for maskable) -->
+  <rect width="192" height="192" fill="#f8f9fb" opacity="0"/>
+
+  <!-- Circle -->
+  <circle
+    cx="96"
+    cy="96"
+    r="67.19999999999999"
+    fill="none"
+    stroke="#5d6b86"
+    stroke-width="5.76"
+  />
+
+  <!-- Letter 'n' - centered -->
+  <text
+    x="96"
+    y="102.912"
+    class="letter"
+  >n</text>
+</svg>
