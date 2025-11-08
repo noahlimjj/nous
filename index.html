@@ -131,56 +131,93 @@
     </script>
 </head>
 <body>
-    <!-- PWA Service Worker Registration - Phase 2 -->
+    <!-- PWA Service Worker Registration - v19 -->
     <script>
-        // Smart service worker registration - only clear old versions
+        // Smart service worker registration with improved error handling
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', async () => {
-                const CURRENT_SW = '/service-worker-v18.js';
-                const CURRENT_CACHE_PREFIX = 'nous-v18';
+                const CURRENT_SW = '/service-worker-v19.js';
+                const CURRENT_CACHE_PREFIX = 'nous-v19';
 
                 try {
+                    console.log('[PWA] Initializing service worker...');
+
                     // Check existing registrations
                     const registrations = await navigator.serviceWorker.getRegistrations();
                     let hasCurrentVersion = false;
 
                     for (const reg of registrations) {
                         const scriptURL = reg.active?.scriptURL || '';
-                        if (scriptURL.includes('service-worker-v18.js')) {
+                        if (scriptURL.includes('service-worker-v19.js')) {
                             hasCurrentVersion = true;
-                            console.log('✓ Current service worker v18 already registered');
+                            console.log('[PWA] ✓ Service worker v19 already registered');
                         } else {
-                            // Unregister old versions only
-                            console.log('Unregistering old SW:', scriptURL);
+                            // Unregister old versions
+                            console.log('[PWA] Unregistering old SW:', scriptURL);
                             await reg.unregister();
                         }
                     }
 
-                    // Clear old caches (keep v17)
+                    // Clear old caches
                     const cacheNames = await caches.keys();
                     for (const name of cacheNames) {
                         if (!name.includes(CURRENT_CACHE_PREFIX)) {
-                            console.log('Deleting old cache:', name);
+                            console.log('[PWA] Deleting old cache:', name);
                             await caches.delete(name);
                         }
                     }
 
                     // Register current version if not already registered
                     if (!hasCurrentVersion) {
-                        console.log('Registering new service worker:', CURRENT_SW);
-                        const registration = await navigator.serviceWorker.register(CURRENT_SW);
-                        console.log('✓ Service worker registered');
+                        console.log('[PWA] Registering service worker v19...');
+                        const registration = await navigator.serviceWorker.register(CURRENT_SW, {
+                            scope: '/'
+                        });
 
-                        // Auto-update check every 5 minutes (not too aggressive)
+                        // Wait for registration to complete
+                        if (registration.installing) {
+                            console.log('[PWA] Installing service worker...');
+                            await new Promise((resolve) => {
+                                registration.installing.addEventListener('statechange', (e) => {
+                                    if (e.target.state === 'activated') {
+                                        resolve();
+                                    }
+                                });
+                            });
+                        }
+
+                        console.log('[PWA] ✓ Service worker v19 registered successfully');
+
+                        // Check for updates every 5 minutes
                         setInterval(() => {
+                            console.log('[PWA] Checking for updates...');
                             registration.update();
                         }, 5 * 60 * 1000);
+
+                        // Handle updates
+                        registration.addEventListener('updatefound', () => {
+                            const newWorker = registration.installing;
+                            newWorker.addEventListener('statechange', () => {
+                                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                                    console.log('[PWA] New version available! Reload to update.');
+                                }
+                            });
+                        });
                     }
+
+                    // Log cache status
+                    const cache = await caches.open(CURRENT_CACHE_PREFIX);
+                    const cachedRequests = await cache.keys();
+                    console.log(`[PWA] ✓ Cache ready with ${cachedRequests.length} files`);
+
                 } catch (error) {
-                    console.log('Service worker registration skipped:', error.message);
-                    // Silent fail - app works without SW
+                    console.error('[PWA] Service worker registration failed:', error);
+                    console.log('[PWA] App will continue without offline support');
+                    // App continues to work without service worker
                 }
             });
+        } else {
+            console.warn('[PWA] Service workers not supported in this browser');
         }
     </script>
 

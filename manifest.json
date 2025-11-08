@@ -3,6 +3,7 @@
   "short_name": "Nous",
   "description": "A modern study habit tracker and time management app",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
   "background_color": "#f8f9fb",
   "theme_color": "#5d6b86",

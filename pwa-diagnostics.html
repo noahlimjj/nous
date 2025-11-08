@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PWA Diagnostics - Nous</title>
+    <link rel="manifest" href="/manifest.json">
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 16px;
+            padding: 30px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        h1 {
+            color: #2d3748;
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+        .subtitle {
+            color: #718096;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+        .section {
+            background: #f7fafc;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border-left: 4px solid #667eea;
+        }
+        .section h2 {
+            color: #2d3748;
+            font-size: 18px;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .status {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        .status.success { background: #c6f6d5; color: #22543d; }
+        .status.error { background: #fed7d7; color: #742a2a; }
+        .status.warning { background: #feebc8; color: #7c2d12; }
+        .status.info { background: #bee3f8; color: #2c5282; }
+        .detail {
+            background: white;
+            padding: 12px;
+            border-radius: 6px;
+            margin-top: 10px;
+            font-family: 'Monaco', 'Courier New', monospace;
+            font-size: 12px;
+            color: #2d3748;
+            overflow-x: auto;
+        }
+        .detail pre {
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            margin-top: 10px;
+            transition: all 0.2s;
+        }
+        button:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+        button:active {
+            transform: translateY(0);
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+        .card {
+            background: white;
+            padding: 15px;
+            border-radius: 6px;
+            border: 2px solid #e2e8f0;
+        }
+        .card h3 {
+            font-size: 14px;
+            color: #4a5568;
+            margin-bottom: 8px;
+        }
+        .card .value {
+            font-size: 20px;
+            font-weight: 700;
+            color: #2d3748;
+        }
+        .icon-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+            gap: 10px;
+            margin-top: 10px;
+        }
+        .icon-item {
+            text-align: center;
+            padding: 10px;
+            background: white;
+            border-radius: 6px;
+        }
+        .icon-item img {
+            width: 48px;
+            height: 48px;
+            display: block;
+            margin: 0 auto 5px;
+        }
+        .icon-item .size {
+            font-size: 11px;
+            color: #718096;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 PWA Diagnostics</h1>
+        <p class="subtitle">Comprehensive diagnostic tool for Nous PWA on mobile</p>
+
+        <div id="results"></div>
+
+        <button onclick="runDiagnostics()">🔄 Re-run Diagnostics</button>
+        <button onclick="clearCaches()">🗑️ Clear All Caches</button>
+        <button onclick="unregisterAll()">❌ Unregister All SWs</button>
+    </div>
+
+    <script>
+        async function runDiagnostics() {
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.innerHTML = '';
+
+            const tests = [
+                checkBrowserSupport,
+                checkManifest,
+                checkServiceWorker,
+                checkIcons,
+                checkNetworkStatus,
+                checkCaches,
+                checkRegistrations
+            ];
+
+            for (const test of tests) {
+                try {
+                    await test(resultsDiv);
+                } catch (error) {
+                    addSection(resultsDiv, '❌ Test Failed', 'error',
+                        `Error running test: ${error.message}`);
+                }
+            }
+        }
+
+        function addSection(container, title, status, content, detail = null) {
+            const section = document.createElement('div');
+            section.className = 'section';
+
+            const statusClass = {
+                'success': 'success',
+                'error': 'error',
+                'warning': 'warning',
+                'info': 'info'
+            }[status] || 'info';
+
+            section.innerHTML = `
+                <h2>
+                    ${title}
+                    <span class="status ${statusClass}">${status.toUpperCase()}</span>
+                </h2>
+                <p>${content}</p>
+                ${detail ? `<div class="detail"><pre>${detail}</pre></div>` : ''}
+            `;
+            container.appendChild(section);
+        }
+
+        async function checkBrowserSupport(container) {
+            const features = {
+                'Service Worker': 'serviceWorker' in navigator,
+                'Cache API': 'caches' in window,
+                'Fetch API': 'fetch' in window,
+                'Notifications': 'Notification' in window,
+                'Push API': 'PushManager' in window
+            };
+
+            const allSupported = Object.values(features).every(v => v);
+            const status = allSupported ? 'success' : 'warning';
+
+            const detail = Object.entries(features)
+                .map(([key, value]) => `${value ? '✓' : '✗'} ${key}`)
+                .join('\n');
+
+            addSection(container, '🌐 Browser Support', status,
+                allSupported ? 'All PWA features supported' : 'Some features missing',
+                detail);
+        }
+
+        async function checkManifest(container) {
+            try {
+                const response = await fetch('/manifest.json');
+                const manifest = await response.json();
+
+                // Check required fields
+                const required = ['name', 'short_name', 'start_url', 'display', 'icons'];
+                const missing = required.filter(field => !manifest[field]);
+
+                if (missing.length > 0) {
+                    addSection(container, '📄 Manifest.json', 'error',
+                        `Missing required fields: ${missing.join(', ')}`,
+                        JSON.stringify(manifest, null, 2));
+                    return;
+                }
+
+                // Check icons
+                const iconSizes = manifest.icons.map(icon => icon.sizes);
+                const hasRequiredSizes = ['192x192', '512x512'].every(size =>
+                    iconSizes.includes(size)
+                );
+
+                if (!hasRequiredSizes) {
+                    addSection(container, '📄 Manifest.json', 'warning',
+                        'Missing recommended icon sizes (192x192, 512x512)',
+                        JSON.stringify(manifest, null, 2));
+                    return;
+                }
+
+                addSection(container, '📄 Manifest.json', 'success',
+                    `Valid manifest with ${manifest.icons.length} icons`,
+                    JSON.stringify(manifest, null, 2));
+
+            } catch (error) {
+                addSection(container, '📄 Manifest.json', 'error',
+                    `Failed to load manifest: ${error.message}`,
+                    error.stack);
+            }
+        }
+
+        async function checkServiceWorker(container) {
+            if (!('serviceWorker' in navigator)) {
+                addSection(container, '⚙️ Service Worker', 'error',
+                    'Service Worker not supported in this browser');
+                return;
+            }
+
+            try {
+                const registration = await navigator.serviceWorker.getRegistration();
+
+                if (!registration) {
+                    addSection(container, '⚙️ Service Worker', 'warning',
+                        'No service worker registered');
+                    return;
+                }
+
+                const details = {
+                    'Scope': registration.scope,
+                    'Active': registration.active?.scriptURL || 'None',
+                    'Waiting': registration.waiting?.scriptURL || 'None',
+                    'Installing': registration.installing?.scriptURL || 'None',
+                    'State': registration.active?.state || 'Unknown'
+                };
+
+                addSection(container, '⚙️ Service Worker', 'success',
+                    'Service worker registered and active',
+                    Object.entries(details).map(([k, v]) => `${k}: ${v}`).join('\n'));
+
+            } catch (error) {
+                addSection(container, '⚙️ Service Worker', 'error',
+                    `Service worker check failed: ${error.message}`,
+                    error.stack);
+            }
+        }
+
+        async function checkIcons(container) {
+            try {
+                const response = await fetch('/manifest.json');
+                const manifest = await response.json();
+
+                const iconChecks = await Promise.all(
+                    manifest.icons.map(async (icon) => {
+                        try {
+                            const imgResponse = await fetch(icon.src);
+                            return {
+                                ...icon,
+                                status: imgResponse.ok ? 'ok' : 'failed',
+                                statusCode: imgResponse.status
+                            };
+                        } catch (error) {
+                            return {
+                                ...icon,
+                                status: 'error',
+                                error: error.message
+                            };
+                        }
+                    })
+                );
+
+                const allOk = iconChecks.every(icon => icon.status === 'ok');
+                const status = allOk ? 'success' : 'error';
+
+                const detail = iconChecks.map(icon =>
+                    `${icon.status === 'ok' ? '✓' : '✗'} ${icon.sizes} - ${icon.src} (${icon.statusCode || 'error'})`
+                ).join('\n');
+
+                // Create icon grid
+                const iconGrid = document.createElement('div');
+                iconGrid.className = 'icon-grid';
+                iconChecks.forEach(icon => {
+                    if (icon.status === 'ok') {
+                        const iconItem = document.createElement('div');
+                        iconItem.className = 'icon-item';
+                        iconItem.innerHTML = `
+                            <img src="${icon.src}" alt="${icon.sizes}">
+                            <div class="size">${icon.sizes}</div>
+                        `;
+                        iconGrid.appendChild(iconItem);
+                    }
+                });
+
+                const section = document.createElement('div');
+                section.className = 'section';
+                section.innerHTML = `
+                    <h2>
+                        🎨 Icons
+                        <span class="status ${status}">${status.toUpperCase()}</span>
+                    </h2>
+                    <p>${allOk ? 'All icons loading correctly' : 'Some icons failed to load'}</p>
+                    <div class="detail"><pre>${detail}</pre></div>
+                `;
+                section.appendChild(iconGrid);
+                container.appendChild(section);
+
+            } catch (error) {
+                addSection(container, '🎨 Icons', 'error',
+                    `Failed to check icons: ${error.message}`,
+                    error.stack);
+            }
+        }
+
+        async function checkNetworkStatus(container) {
+            const online = navigator.onLine;
+            const connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+
+            const details = {
+                'Online Status': online ? 'Online' : 'Offline',
+                'Effective Type': connection?.effectiveType || 'Unknown',
+                'Downlink': connection?.downlink ? `${connection.downlink} Mbps` : 'Unknown',
+                'RTT': connection?.rtt ? `${connection.rtt} ms` : 'Unknown',
+                'Save Data': connection?.saveData ? 'Enabled' : 'Disabled'
+            };
+
+            addSection(container, '📡 Network Status', online ? 'success' : 'warning',
+                online ? 'Connected to internet' : 'Offline mode',
+                Object.entries(details).map(([k, v]) => `${k}: ${v}`).join('\n'));
+        }
+
+        async function checkCaches(container) {
+            if (!('caches' in window)) {
+                addSection(container, '💾 Caches', 'error', 'Cache API not supported');
+                return;
+            }
+
+            try {
+                const cacheNames = await caches.keys();
+
+                if (cacheNames.length === 0) {
+                    addSection(container, '💾 Caches', 'info', 'No caches found');
+                    return;
+                }
+
+                const cacheDetails = await Promise.all(
+                    cacheNames.map(async (name) => {
+                        const cache = await caches.open(name);
+                        const keys = await cache.keys();
+                        return {
+                            name,
+                            items: keys.length,
+                            urls: keys.map(req => req.url)
+                        };
+                    })
+                );
+
+                const detail = cacheDetails.map(cache =>
+                    `${cache.name} (${cache.items} items):\n  ${cache.urls.map(url => new URL(url).pathname).join('\n  ')}`
+                ).join('\n\n');
+
+                addSection(container, '💾 Caches', 'success',
+                    `${cacheNames.length} cache(s) found`,
+                    detail);
+
+            } catch (error) {
+                addSection(container, '💾 Caches', 'error',
+                    `Failed to check caches: ${error.message}`,
+                    error.stack);
+            }
+        }
+
+        async function checkRegistrations(container) {
+            if (!('serviceWorker' in navigator)) {
+                return;
+            }
+
+            try {
+                const registrations = await navigator.serviceWorker.getRegistrations();
+
+                if (registrations.length === 0) {
+                    addSection(container, '📋 Registrations', 'warning',
+                        'No service worker registrations found');
+                    return;
+                }
+
+                const detail = registrations.map((reg, index) => {
+                    return `Registration #${index + 1}:
+  Scope: ${reg.scope}
+  Active: ${reg.active?.scriptURL || 'None'}
+  Waiting: ${reg.waiting?.scriptURL || 'None'}
+  Installing: ${reg.installing?.scriptURL || 'None'}`;
+                }).join('\n\n');
+
+                addSection(container, '📋 Registrations', 'success',
+                    `${registrations.length} registration(s) found`,
+                    detail);
+
+            } catch (error) {
+                addSection(container, '📋 Registrations', 'error',
+                    `Failed to check registrations: ${error.message}`,
+                    error.stack);
+            }
+        }
+
+        async function clearCaches() {
+            if (confirm('Clear all caches? This will remove all offline data.')) {
+                try {
+                    const cacheNames = await caches.keys();
+                    await Promise.all(cacheNames.map(name => caches.delete(name)));
+                    alert(`Cleared ${cacheNames.length} cache(s)`);
+                    runDiagnostics();
+                } catch (error) {
+                    alert(`Failed to clear caches: ${error.message}`);
+                }
+            }
+        }
+
+        async function unregisterAll() {
+            if (confirm('Unregister all service workers? The page will reload.')) {
+                try {
+                    const registrations = await navigator.serviceWorker.getRegistrations();
+                    await Promise.all(registrations.map(reg => reg.unregister()));
+                    alert(`Unregistered ${registrations.length} service worker(s)`);
+                    window.location.reload();
+                } catch (error) {
+                    alert(`Failed to unregister: ${error.message}`);
+                }
+            }
+        }
+
+        // Run diagnostics on load
+        window.addEventListener('load', runDiagnostics);
+    </script>
+</body>
+</html>
