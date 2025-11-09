@@ -1841,29 +1841,54 @@
                     return;
                 }
 
+                const existingTimer = activeTimers[habitId];
+
+                // OPTIMISTIC UPDATE: Immediately update local state for instant UI response
+                const optimisticTimer = {
+                    habitId,
+                    habitName: habit.name,
+                    startTime: Date.now(),
+                    elapsedBeforePause: existingTimer?.elapsedBeforePause || 0,
+                    isPaused: false,
+                    originalStartTime: existingTimer?.originalStartTime || Date.now()
+                };
+
+                setActiveTimers(prev => ({
+                    ...prev,
+                    [habitId]: optimisticTimer
+                }));
+
+                // Firebase writes in background (UI already updated)
                 try {
                     const timerDocRef = window.doc(db, `/artifacts/${appId}/users/${userId}/activeTimers/${habitId}`);
-                    const existingTimer = activeTimers[habitId];
+                    const userDocRef = window.doc(db, 'users', userId);
 
-                    // Save timer to Firebase with server timestamp
-                    await window.setDoc(timerDocRef, {
+                    // Batch both writes for better performance
+                    const batch = window.writeBatch(db);
+
+                    batch.set(timerDocRef, {
                         habitId,
                         habitName: habit.name,
                         startTime: window.serverTimestamp(),
                         elapsedBeforePause: existingTimer?.elapsedBeforePause || 0,
                         isPaused: false,
-                        // Keep track of original start time for session recording
                         originalStartTime: existingTimer?.originalStartTime || window.serverTimestamp()
                     });
 
-                    // Update currentTopic and lastActive in user profile
-                    const userDocRef = window.doc(db, 'users', userId);
-                    await window.setDoc(userDocRef, {
+                    batch.set(userDocRef, {
                         currentTopic: habit.name,
                         lastActive: window.serverTimestamp()
                     }, { merge: true });
+
+                    await batch.commit();
                 } catch (error) {
                     console.error("Error starting timer:", error);
+                    // Rollback optimistic update on error
+                    setActiveTimers(prev => {
+                        const newTimers = { ...prev };
+                        delete newTimers[habitId];
+                        return newTimers;
+                    });
                     setNotification({ type: 'error', message: 'Failed to start timer.' });
                 }
             }, [db, userId, appId, habits, activeTimers, setNotification]);
@@ -1891,14 +1916,25 @@
                     return;
                 }
 
+                // Calculate total elapsed time including current session
+                const currentElapsed = timer.elapsedBeforePause || 0;
+                const startTimeMs = timer.startTime?.toMillis ? timer.startTime.toMillis() : (timer.startTime || Date.now());
+                const sessionElapsed = timer.startTime ? Date.now() - startTimeMs : 0;
+                const totalElapsed = currentElapsed + sessionElapsed;
+
+                // OPTIMISTIC UPDATE: Immediately update UI
+                setActiveTimers(prev => ({
+                    ...prev,
+                    [habitId]: {
+                        ...prev[habitId],
+                        isPaused: true,
+                        elapsedBeforePause: totalElapsed
+                    }
+                }));
+
+                // Firebase write in background
                 try {
                     const timerDocRef = window.doc(db, `/artifacts/${appId}/users/${userId}/activeTimers/${habitId}`);
-
-                    // Calculate total elapsed time including current session
-                    const currentElapsed = timer.elapsedBeforePause || 0;
-                    const startTimeMs = timer.startTime?.toMillis ? timer.startTime.toMillis() : (timer.startTime || Date.now());
-                    const sessionElapsed = timer.startTime ? Date.now() - startTimeMs : 0;
-                    const totalElapsed = currentElapsed + sessionElapsed;
 
                     await window.updateDoc(timerDocRef, {
                         isPaused: true,
@@ -1907,6 +1943,11 @@
                     });
                 } catch (error) {
                     console.error("Error pausing timer:", error);
+                    // Rollback optimistic update
+                    setActiveTimers(prev => ({
+                        ...prev,
+                        [habitId]: timer
+                    }));
                     setNotification({ type: 'error', message: 'Failed to pause timer.' });
                 }
             }, [db, userId, appId, activeTimers, setNotification]);

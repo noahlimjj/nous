@@ -43,7 +43,7 @@ function createCenteredIconSVG(size) {
   <!-- Letter 'n' - centered -->
   <text
     x="${size / 2}"
-    y="${size / 2 + fontSize * 0.05}"
+    y="${size / 2 - fontSize * 0.06}"
     class="letter"
   >n</text>
 </svg>`;
