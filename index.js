@@ -678,6 +678,38 @@
 
             // Mark migration as complete
             localStorage.setItem(`migration_complete_${userId}`, 'true');
+
+            // Clean up default habits if they exist (one-time cleanup)
+            const defaultHabitsCleanedKey = `default_habits_cleaned_${userId}`;
+            if (localStorage.getItem(defaultHabitsCleanedKey) !== 'true') {
+                try {
+                    console.log('🧹 Cleaning up default habits...');
+                    const habitsRef = window.collection(db, `/artifacts/${TARGET_APP_ID}/users/${userId}/habits`);
+                    const habitsSnapshot = await window.getDocs(habitsRef);
+
+                    let deleted = 0;
+                    for (const habitDoc of habitsSnapshot.docs) {
+                        const habit = habitDoc.data();
+                        if (habit.name === 'Study' || habit.name === 'Exercise') {
+                            await window.deleteDoc(window.doc(db, `/artifacts/${TARGET_APP_ID}/users/${userId}/habits/${habitDoc.id}`));
+                            deleted++;
+                            console.log(`  ✓ Deleted default habit: ${habit.name}`);
+                        }
+                    }
+
+                    if (deleted > 0) {
+                        console.log(`✅ Cleaned up ${deleted} default habit(s)`);
+                    } else {
+                        console.log('ℹ️ No default habits to clean up');
+                    }
+
+                    localStorage.setItem(defaultHabitsCleanedKey, 'true');
+                } catch (error) {
+                    console.error('❌ Error cleaning up default habits:', error);
+                    // Don't block if cleanup fails
+                }
+            }
+
             return TARGET_APP_ID;
         };
 
@@ -6664,24 +6696,30 @@
             const [selectedMetric, setSelectedMetric] = useState('totalHours');
             const [isLoading, setIsLoading] = useState(true);
 
-            // Helper function to calculate daily study hours for a user
+            // Helper function to calculate daily study hours for a user (Singapore timezone)
             const calculateDailyHours = async (userId) => {
                 try {
                     const appId = typeof __app_id !== 'undefined' ? __app_id : 'study-tracker-app';
                     const sessionsQuery = window.collection(db, `/artifacts/${appId}/users/${userId}/sessions`);
 
-                    // Calculate the start and end of today
+                    // Calculate the start and end of today in Singapore timezone (UTC+8)
                     const now = new Date();
-                    const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-                    startOfDay.setHours(0, 0, 0, 0); // Start of day
+                    const singaporeOffset = 8 * 60; // UTC+8 in minutes
+                    const localOffset = now.getTimezoneOffset(); // Local offset from UTC
+                    const offsetDiff = singaporeOffset + localOffset; // Minutes to adjust to Singapore time
 
-                    const endOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-                    endOfDay.setHours(23, 59, 59, 999); // End of day
+                    const startOfDay = new Date();
+                    startOfDay.setHours(0, 0, 0, 0);
+                    startOfDay.setMinutes(startOfDay.getMinutes() - offsetDiff); // Adjust to Singapore midnight
+
+                    const endOfDay = new Date();
+                    endOfDay.setHours(23, 59, 59, 999);
+                    endOfDay.setMinutes(endOfDay.getMinutes() - offsetDiff); // Adjust to Singapore end of day
 
                     const snapshot = await window.getDocs(sessionsQuery);
                     const sessions = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
-                    // Filter sessions to only those from today
+                    // Filter sessions to only those from today (Singapore time)
                     const dailySessions = sessions.filter(session => {
                         const sessionDate = session.startTime.toDate();
                         return sessionDate >= startOfDay && sessionDate <= endOfDay;
@@ -6698,29 +6736,36 @@
                 }
             };
 
-            // Helper function to calculate weekly study hours for a user
+            // Helper function to calculate weekly study hours for a user (Singapore timezone)
             const calculateWeeklyHours = async (userId) => {
                 try {
                     const appId = typeof __app_id !== 'undefined' ? __app_id : 'study-tracker-app';
                     const sessionsQuery = window.collection(db, `/artifacts/${appId}/users/${userId}/sessions`);
-                    
-                    // Calculate the start of the current week (Monday)
+
+                    // Calculate the start of the current week (Monday) in Singapore timezone
                     const now = new Date();
-                    const dayOfWeek = now.getDay(); // 0 (Sunday) to 6 (Saturday)
+                    const singaporeOffset = 8 * 60; // UTC+8 in minutes
+                    const localOffset = now.getTimezoneOffset(); // Local offset from UTC
+                    const offsetDiff = singaporeOffset + localOffset; // Minutes to adjust to Singapore time
+
+                    // Get day of week in Singapore time
+                    const singaporeNow = new Date(now.getTime() - (offsetDiff * 60 * 1000));
+                    const dayOfWeek = singaporeNow.getDay(); // 0 (Sunday) to 6 (Saturday)
                     const daysSinceMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1; // Adjust to make Monday 0
-                    
+
                     const startOfCurrentWeek = new Date(now);
                     startOfCurrentWeek.setDate(now.getDate() - daysSinceMonday);
-                    startOfCurrentWeek.setHours(0, 0, 0, 0); // Start of day
+                    startOfCurrentWeek.setHours(0, 0, 0, 0);
+                    startOfCurrentWeek.setMinutes(startOfCurrentWeek.getMinutes() - offsetDiff); // Adjust to Singapore midnight
 
                     const endOfCurrentWeek = new Date(startOfCurrentWeek);
                     endOfCurrentWeek.setDate(startOfCurrentWeek.getDate() + 7);
-                    endOfCurrentWeek.setHours(23, 59, 59, 999); // End of day
+                    endOfCurrentWeek.setHours(23, 59, 59, 999);
 
                     const snapshot = await window.getDocs(sessionsQuery);
                     const sessions = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                    
-                    // Filter sessions to only those in the current week
+
+                    // Filter sessions to only those in the current week (Singapore time)
                     const weeklySessions = sessions.filter(session => {
                         const sessionDate = session.startTime.toDate();
                         return sessionDate >= startOfCurrentWeek && sessionDate <= endOfCurrentWeek;
@@ -6729,7 +6774,7 @@
                     // Calculate total hours for the week
                     const weeklyTotalMs = weeklySessions.reduce((sum, s) => sum + (s.duration || 0), 0);
                     const weeklyTotalHours = weeklyTotalMs / (1000 * 60 * 60);
-                    
+
                     return weeklyTotalHours;
                 } catch (error) {
                     console.error(`Error calculating weekly hours for user ${userId}:`, error);
@@ -6737,24 +6782,35 @@
                 }
             };
 
-            // Helper function to calculate monthly study hours for a user
+            // Helper function to calculate monthly study hours for a user (Singapore timezone)
             const calculateMonthlyHours = async (userId) => {
                 try {
                     const appId = typeof __app_id !== 'undefined' ? __app_id : 'study-tracker-app';
                     const sessionsQuery = window.collection(db, `/artifacts/${appId}/users/${userId}/sessions`);
-                    
-                    // Calculate the start of the current month
-                    const now = new Date();
-                    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-                    startOfMonth.setHours(0, 0, 0, 0); // Start of day
 
-                    const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-                    endOfMonth.setHours(23, 59, 59, 999); // End of day
+                    // Calculate the start of the current month in Singapore timezone
+                    const now = new Date();
+                    const singaporeOffset = 8 * 60; // UTC+8 in minutes
+                    const localOffset = now.getTimezoneOffset(); // Local offset from UTC
+                    const offsetDiff = singaporeOffset + localOffset; // Minutes to adjust to Singapore time
+
+                    // Get current month in Singapore time
+                    const singaporeNow = new Date(now.getTime() - (offsetDiff * 60 * 1000));
+
+                    const startOfMonth = new Date(singaporeNow.getFullYear(), singaporeNow.getMonth(), 1);
+                    startOfMonth.setHours(0, 0, 0, 0);
+                    // Convert back to local time for comparison
+                    startOfMonth.setMinutes(startOfMonth.getMinutes() - offsetDiff);
+
+                    const endOfMonth = new Date(singaporeNow.getFullYear(), singaporeNow.getMonth() + 1, 0);
+                    endOfMonth.setHours(23, 59, 59, 999);
+                    // Convert back to local time for comparison
+                    endOfMonth.setMinutes(endOfMonth.getMinutes() - offsetDiff);
 
                     const snapshot = await window.getDocs(sessionsQuery);
                     const sessions = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                    
-                    // Filter sessions to only those in the current month
+
+                    // Filter sessions to only those in the current month (Singapore time)
                     const monthlySessions = sessions.filter(session => {
                         const sessionDate = session.startTime.toDate();
                         return sessionDate >= startOfMonth && sessionDate <= endOfMonth;
@@ -6763,7 +6819,7 @@
                     // Calculate total hours for the month
                     const monthlyTotalMs = monthlySessions.reduce((sum, s) => sum + (s.duration || 0), 0);
                     const monthlyTotalHours = monthlyTotalMs / (1000 * 60 * 60);
-                    
+
                     return monthlyTotalHours;
                 } catch (error) {
                     console.error(`Error calculating monthly hours for user ${userId}:`, error);
