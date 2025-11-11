@@ -76,16 +76,17 @@
 
         <div style="margin-top: 30px; padding: 15px; background: #f9fafb; border-radius: 8px; font-size: 14px; color: #6b7280;">
             <strong>What this does:</strong><br>
-            1. Clears the "default_habits_cleaned" localStorage flag<br>
-            2. Reloads the app<br>
-            3. Cleanup runs automatically and deletes defaults from Firebase<br>
-            4. You'll be redirected to the main app
+            1. Scans ALL Firebase locations for "Study" and "Exercise" habits<br>
+            2. Deletes them permanently from Firebase<br>
+            3. Clears the localStorage flag<br>
+            4. Redirects you to the main app
         </div>
     </div>
 
     <script type="module">
         import { initializeApp } from 'https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js';
         import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js';
+        import { getFirestore, collection, getDocs, deleteDoc, doc } from 'https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js';
 
         const config = window.__firebase_config;
 
@@ -98,6 +99,7 @@
 
         const app = initializeApp(config);
         const auth = getAuth(app);
+        const db = getFirestore(app);
 
         let currentUser = null;
 
@@ -113,7 +115,7 @@
             }
         });
 
-        window.clearAndReload = () => {
+        window.clearAndReload = async () => {
             if (!currentUser) {
                 alert('Please login first!');
                 return;
@@ -121,18 +123,76 @@
 
             const userId = currentUser.uid;
             const flagKey = `default_habits_cleaned_${userId}`;
+            const possibleAppIds = ['default-app-id', 'study-tracker-app', 'studyTrackerApp'];
 
-            // Clear the flag
-            localStorage.removeItem(flagKey);
-
-            document.getElementById('status').className = 'status loading';
-            document.getElementById('status').innerHTML = '<strong>🔄 Flag cleared!</strong><br>Redirecting to main app...<br>The cleanup will run automatically.';
             document.getElementById('cleanupBtn').disabled = true;
+            document.getElementById('status').className = 'status loading';
+            document.getElementById('status').innerHTML = '<strong>🔄 Scanning Firebase...</strong><br>Looking for default habits...';
 
-            // Redirect to main app after 2 seconds
-            setTimeout(() => {
-                window.location.href = '/';
-            }, 2000);
+            let totalDeleted = 0;
+            const deletionLog = [];
+
+            try {
+                // Delete from ALL Firebase locations
+                for (const appId of possibleAppIds) {
+                    try {
+                        const habitsRef = collection(db, `/artifacts/${appId}/users/${userId}/habits`);
+                        const habitsSnapshot = await getDocs(habitsRef);
+
+                        for (const habitDoc of habitsSnapshot.docs) {
+                            const habit = habitDoc.data();
+                            if (habit.name === 'Study' || habit.name === 'Exercise') {
+                                await deleteDoc(doc(db, `/artifacts/${appId}/users/${userId}/habits/${habitDoc.id}`));
+                                totalDeleted++;
+                                deletionLog.push(`✓ Deleted "${habit.name}" from ${appId}`);
+                                console.log(`✓ Deleted "${habit.name}" from ${appId}`);
+                            }
+                        }
+                    } catch (error) {
+                        console.warn(`⚠ Could not check ${appId}:`, error);
+                    }
+                }
+
+                // Clear the localStorage flag
+                localStorage.removeItem(flagKey);
+
+                // Show results
+                if (totalDeleted > 0) {
+                    document.getElementById('status').className = 'status success';
+                    document.getElementById('status').innerHTML = `
+                        <strong>✅ Success!</strong><br>
+                        Deleted ${totalDeleted} default habit(s) from Firebase<br>
+                        <br>
+                        ${deletionLog.join('<br>')}
+                        <br><br>
+                        Redirecting to main app...
+                    `;
+                } else {
+                    document.getElementById('status').className = 'status info';
+                    document.getElementById('status').innerHTML = `
+                        <strong>ℹ️ All clear!</strong><br>
+                        No default habits found in Firebase.<br>
+                        <br>
+                        Redirecting to main app...
+                    `;
+                }
+
+                // Redirect after 3 seconds
+                setTimeout(() => {
+                    window.location.href = '/';
+                }, 3000);
+
+            } catch (error) {
+                document.getElementById('status').className = 'status error';
+                document.getElementById('status').innerHTML = `
+                    <strong>❌ Error:</strong><br>
+                    ${error.message}<br>
+                    <br>
+                    Please try refreshing the page.
+                `;
+                document.getElementById('cleanupBtn').disabled = false;
+                console.error('Cleanup error:', error);
+            }
         };
     </script>
 </body>
