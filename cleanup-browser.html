@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin: Cleanup ALL Users - Nous</title>
+    <script src="config.js"></script>
+    <style>
+        body {
+            font-family: 'Monaco', 'Courier New', monospace;
+            max-width: 900px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #1a1a1a;
+            color: #00ff00;
+        }
+        .container {
+            background: #0a0a0a;
+            padding: 30px;
+            border-radius: 12px;
+            border: 2px solid #00ff00;
+        }
+        h1 { color: #00ff00; margin-top: 0; text-align: center; }
+        button {
+            background: #ff0000;
+            color: white;
+            border: 2px solid #ff0000;
+            padding: 16px 32px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 18px;
+            font-weight: bold;
+            margin: 20px 0;
+            display: block;
+            width: 100%;
+        }
+        button:hover { background: #cc0000; }
+        button:disabled {
+            background: #333;
+            border-color: #333;
+            cursor: not-allowed;
+        }
+        #log {
+            margin-top: 20px;
+            padding: 20px;
+            background: #000;
+            border: 1px solid #00ff00;
+            border-radius: 8px;
+            font-size: 13px;
+            line-height: 1.8;
+            max-height: 500px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            font-family: 'Monaco', 'Courier New', monospace;
+        }
+        .warning {
+            background: #ff00001a;
+            border: 2px solid #ff0000;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            color: #ff6666;
+        }
+        .warning h3 {
+            color: #ff0000;
+            margin-top: 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>⚠️ ADMIN: Cleanup Default Habits for ALL Users</h1>
+
+        <div class="warning">
+            <h3>⚠️ DANGEROUS OPERATION</h3>
+            <strong>This will scan ALL users and delete "Study" and "Exercise" habits from everyone's account.</strong>
+            <br><br>
+            This cannot be undone. Only proceed if you are an admin and understand what this does.
+        </div>
+
+        <button id="cleanupBtn" onclick="cleanupAllUsers()">
+            🧹 START CLEANUP FOR ALL USERS
+        </button>
+
+        <div id="log"></div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js';
+        import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js';
+        import { getFirestore, collection, getDocs, query, deleteDoc, doc } from 'https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js';
+
+        const config = window.__firebase_config;
+
+        if (!config) {
+            alert('Firebase config not found!');
+            throw new Error('Firebase config not found');
+        }
+
+        const app = initializeApp(config);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        let currentUser = null;
+
+        function log(message) {
+            const logEl = document.getElementById('log');
+            logEl.textContent += message + '\n';
+            logEl.scrollTop = logEl.scrollHeight;
+            console.log(message);
+        }
+
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                currentUser = user;
+
+                // Check if user is admin
+                const userDoc = await getDocs(query(collection(db, 'users')));
+                const userProfile = userDoc.docs.find(d => d.id === user.uid)?.data();
+
+                if (!userProfile?.admin) {
+                    document.getElementById('cleanupBtn').disabled = true;
+                    log('❌ ERROR: You must be an admin to use this tool');
+                    return;
+                }
+
+                log(`✓ Logged in as admin: ${user.email}`);
+                log(`Ready to cleanup default habits for ALL users`);
+            } else {
+                document.getElementById('cleanupBtn').disabled = true;
+                log('❌ Not logged in. Please login first.');
+            }
+        });
+
+        window.cleanupAllUsers = async () => {
+            if (!currentUser) {
+                alert('Please login first!');
+                return;
+            }
+
+            if (!confirm('⚠️ WARNING: This will delete "Study" and "Exercise" habits from ALL users. Continue?')) {
+                return;
+            }
+
+            document.getElementById('cleanupBtn').disabled = true;
+            log('\n' + '='.repeat(60));
+            log('🚀 Starting cleanup for ALL users...');
+            log('='.repeat(60) + '\n');
+
+            const possibleAppIds = ['default-app-id', 'study-tracker-app', 'studyTrackerApp'];
+            let totalDeleted = 0;
+            const usersProcessed = new Set();
+
+            try {
+                // Get all users from the users collection
+                log('📋 Fetching all users...');
+                const usersSnapshot = await getDocs(collection(db, 'users'));
+                const allUserIds = usersSnapshot.docs.map(doc => doc.id);
+
+                log(`   Found ${allUserIds.length} users in database\n`);
+
+                // Process each user
+                for (let i = 0; i < allUserIds.length; i++) {
+                    const userId = allUserIds[i];
+                    log(`[${i + 1}/${allUserIds.length}] Processing user ${userId.substring(0, 8)}...`);
+
+                    let userDeleted = 0;
+
+                    // Check each appId location
+                    for (const appId of possibleAppIds) {
+                        try {
+                            const habitsRef = collection(db, `artifacts/${appId}/users/${userId}/habits`);
+                            const habitsSnapshot = await getDocs(habitsRef);
+
+                            for (const habitDoc of habitsSnapshot.docs) {
+                                const habit = habitDoc.data();
+                                if (habit.name === 'Study' || habit.name === 'Exercise') {
+                                    await deleteDoc(doc(db, `artifacts/${appId}/users/${userId}/habits/${habitDoc.id}`));
+                                    userDeleted++;
+                                    totalDeleted++;
+                                    log(`      ✓ Deleted "${habit.name}" from ${appId}`);
+                                }
+                            }
+                        } catch (error) {
+                            // Skip if no access to this location
+                            if (error.code !== 'permission-denied') {
+                                log(`      ⚠ Error checking ${appId}: ${error.message}`);
+                            }
+                        }
+                    }
+
+                    if (userDeleted > 0) {
+                        log(`      ✅ Removed ${userDeleted} default habit(s)\n`);
+                        usersProcessed.add(userId);
+                    } else {
+                        log(`      ℹ️  No defaults found\n`);
+                    }
+                }
+
+                log('\n' + '='.repeat(60));
+                log('✅ CLEANUP COMPLETE!');
+                log(`   • Total users checked: ${allUserIds.length}`);
+                log(`   • Users with defaults removed: ${usersProcessed.size}`);
+                log(`   • Total habits deleted: ${totalDeleted}`);
+                log('='.repeat(60));
+
+            } catch (error) {
+                log(`\n❌ ERROR: ${error.message}`);
+                console.error(error);
+            }
+
+            document.getElementById('cleanupBtn').disabled = false;
+            document.getElementById('cleanupBtn').textContent = '🔄 Run Again';
+        };
+    </script>
+</body>
+</html>
