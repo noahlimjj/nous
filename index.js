@@ -1138,6 +1138,23 @@
                 const unsubscribeHabits = window.onSnapshot(habitsCol, async (snapshot) => {
                     const habitsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
+                    // Auto-delete default habits if they exist (runs every time habits load)
+                    const defaultHabits = habitsData.filter(h => h.name === 'Study' || h.name === 'Exercise');
+                    if (defaultHabits.length > 0) {
+                        console.log(`🧹 Found ${defaultHabits.length} default habit(s), auto-deleting...`);
+                        try {
+                            for (const habit of defaultHabits) {
+                                await window.deleteDoc(window.doc(db, `/artifacts/${appId}/users/${userId}/habits/${habit.id}`));
+                                console.log(`  ✓ Deleted default habit: ${habit.name}`);
+                            }
+                            setNotification({ type: 'success', message: 'Removed default habits!' });
+                            // Return early - the snapshot will fire again with updated data
+                            return;
+                        } catch (error) {
+                            console.error('❌ Error auto-deleting default habits:', error);
+                        }
+                    }
+
                     // Initialize order field for existing habits that don't have it
                     const habitsNeedingOrder = habitsData.filter(h => h.order === undefined);
                     if (habitsNeedingOrder.length > 0) {
