@@ -584,6 +584,42 @@
         // This ensures all users' data is in ONE place
         const migrateAndConsolidateData = async (db, userId) => {
             const TARGET_APP_ID = 'study-tracker-app';
+            const possibleAppIds = ['default-app-id', 'study-tracker-app', 'studyTrackerApp'];
+
+            // ALWAYS clean up default habits first, regardless of migration status
+            const defaultHabitsCleanedKey = `default_habits_cleaned_${userId}`;
+            if (localStorage.getItem(defaultHabitsCleanedKey) !== 'true') {
+                try {
+                    console.log('🧹 Cleaning up default habits from all locations...');
+                    let totalDeleted = 0;
+
+                    for (const appId of possibleAppIds) {
+                        try {
+                            const habitsRef = window.collection(db, `/artifacts/${appId}/users/${userId}/habits`);
+                            const habitsSnapshot = await window.getDocs(habitsRef);
+
+                            for (const habitDoc of habitsSnapshot.docs) {
+                                const habit = habitDoc.data();
+                                if (habit.name === 'Study' || habit.name === 'Exercise') {
+                                    await window.deleteDoc(window.doc(db, `/artifacts/${appId}/users/${userId}/habits/${habitDoc.id}`));
+                                    totalDeleted++;
+                                    console.log(`  ✓ Deleted default habit "${habit.name}" from ${appId}`);
+                                }
+                            }
+                        } catch (error) {
+                            console.warn(`  ⚠ Could not clean ${appId}:`, error);
+                        }
+                    }
+
+                    if (totalDeleted > 0) {
+                        console.log(`✅ Cleaned up ${totalDeleted} default habit(s) from all locations`);
+                    }
+
+                    localStorage.setItem(defaultHabitsCleanedKey, 'true');
+                } catch (error) {
+                    console.error('❌ Error cleaning up default habits:', error);
+                }
+            }
 
             // Check if migration already completed for this user
             const migrationComplete = localStorage.getItem(`migration_complete_${userId}`);
@@ -593,7 +629,6 @@
             }
 
             console.log('🔄 Starting automatic data migration...');
-            const possibleAppIds = ['default-app-id', 'study-tracker-app', 'studyTrackerApp'];
 
             const allData = {
                 habits: new Map(),
@@ -684,47 +719,6 @@
 
             // Mark migration as complete
             localStorage.setItem(`migration_complete_${userId}`, 'true');
-
-            // Clean up default habits from ALL locations (one-time cleanup)
-            const defaultHabitsCleanedKey = `default_habits_cleaned_${userId}`;
-            if (localStorage.getItem(defaultHabitsCleanedKey) !== 'true') {
-                try {
-                    console.log('🧹 Cleaning up default habits from all locations...');
-                    let totalDeleted = 0;
-
-                    // Clean up from ALL possible locations to prevent re-migration
-                    for (const appId of possibleAppIds) {
-                        try {
-                            const habitsRef = window.collection(db, `/artifacts/${appId}/users/${userId}/habits`);
-                            const habitsSnapshot = await window.getDocs(habitsRef);
-
-                            let deleted = 0;
-                            for (const habitDoc of habitsSnapshot.docs) {
-                                const habit = habitDoc.data();
-                                if (habit.name === 'Study' || habit.name === 'Exercise') {
-                                    await window.deleteDoc(window.doc(db, `/artifacts/${appId}/users/${userId}/habits/${habitDoc.id}`));
-                                    deleted++;
-                                    totalDeleted++;
-                                    console.log(`  ✓ Deleted default habit "${habit.name}" from ${appId}`);
-                                }
-                            }
-                        } catch (error) {
-                            console.warn(`  ⚠ Could not clean ${appId}:`, error);
-                        }
-                    }
-
-                    if (totalDeleted > 0) {
-                        console.log(`✅ Cleaned up ${totalDeleted} default habit(s) from all locations`);
-                    } else {
-                        console.log('ℹ️ No default habits to clean up');
-                    }
-
-                    localStorage.setItem(defaultHabitsCleanedKey, 'true');
-                } catch (error) {
-                    console.error('❌ Error cleaning up default habits:', error);
-                    // Don't block if cleanup fails
-                }
-            }
 
             return TARGET_APP_ID;
         };
