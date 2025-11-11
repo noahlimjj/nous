@@ -610,8 +610,14 @@
                     const habitsRef = window.collection(db, `/artifacts/${appId}/users/${userId}/habits`);
                     const habitsSnapshot = await window.getDocs(habitsRef);
                     habitsSnapshot.forEach(doc => {
+                        const habitData = doc.data();
+                        // Skip default habits during migration
+                        if (habitData.name === 'Study' || habitData.name === 'Exercise') {
+                            console.log(`  ⏭️ Skipping default habit: ${habitData.name}`);
+                            return;
+                        }
                         if (!allData.habits.has(doc.id) || appId === TARGET_APP_ID) {
-                            allData.habits.set(doc.id, doc.data());
+                            allData.habits.set(doc.id, habitData);
                         }
                     });
 
@@ -679,26 +685,36 @@
             // Mark migration as complete
             localStorage.setItem(`migration_complete_${userId}`, 'true');
 
-            // Clean up default habits if they exist (one-time cleanup)
+            // Clean up default habits from ALL locations (one-time cleanup)
             const defaultHabitsCleanedKey = `default_habits_cleaned_${userId}`;
             if (localStorage.getItem(defaultHabitsCleanedKey) !== 'true') {
                 try {
-                    console.log('🧹 Cleaning up default habits...');
-                    const habitsRef = window.collection(db, `/artifacts/${TARGET_APP_ID}/users/${userId}/habits`);
-                    const habitsSnapshot = await window.getDocs(habitsRef);
+                    console.log('🧹 Cleaning up default habits from all locations...');
+                    let totalDeleted = 0;
 
-                    let deleted = 0;
-                    for (const habitDoc of habitsSnapshot.docs) {
-                        const habit = habitDoc.data();
-                        if (habit.name === 'Study' || habit.name === 'Exercise') {
-                            await window.deleteDoc(window.doc(db, `/artifacts/${TARGET_APP_ID}/users/${userId}/habits/${habitDoc.id}`));
-                            deleted++;
-                            console.log(`  ✓ Deleted default habit: ${habit.name}`);
+                    // Clean up from ALL possible locations to prevent re-migration
+                    for (const appId of possibleAppIds) {
+                        try {
+                            const habitsRef = window.collection(db, `/artifacts/${appId}/users/${userId}/habits`);
+                            const habitsSnapshot = await window.getDocs(habitsRef);
+
+                            let deleted = 0;
+                            for (const habitDoc of habitsSnapshot.docs) {
+                                const habit = habitDoc.data();
+                                if (habit.name === 'Study' || habit.name === 'Exercise') {
+                                    await window.deleteDoc(window.doc(db, `/artifacts/${appId}/users/${userId}/habits/${habitDoc.id}`));
+                                    deleted++;
+                                    totalDeleted++;
+                                    console.log(`  ✓ Deleted default habit "${habit.name}" from ${appId}`);
+                                }
+                            }
+                        } catch (error) {
+                            console.warn(`  ⚠ Could not clean ${appId}:`, error);
                         }
                     }
 
-                    if (deleted > 0) {
-                        console.log(`✅ Cleaned up ${deleted} default habit(s)`);
+                    if (totalDeleted > 0) {
+                        console.log(`✅ Cleaned up ${totalDeleted} default habit(s) from all locations`);
                     } else {
                         console.log('ℹ️ No default habits to clean up');
                     }

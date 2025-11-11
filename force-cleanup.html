@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Force Cleanup - Nous</title>
+    <!-- Load config FIRST -->
+    <script src="config.js"></script>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        h1 { color: #333; margin-top: 0; }
+        button {
+            background: #7c3aed;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px 5px;
+        }
+        button:hover { background: #6d28d9; }
+        .status {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 8px;
+            background: #f3f4f6;
+            white-space: pre-wrap;
+            font-family: monospace;
+            font-size: 14px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .warning {
+            background: #fef3c7;
+            border-left: 4px solid #f59e0b;
+            padding: 12px;
+            margin: 15px 0;
+        }
+        .info {
+            background: #dbeafe;
+            border-left: 4px solid #3b82f6;
+            padding: 12px;
+            margin: 15px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧹 Force Default Habits Cleanup</h1>
+
+        <div class="info">
+            <strong>What this does:</strong> Removes "Study" and "Exercise" default habits from ALL Firebase locations and resets the cleanup flag so it runs again.
+        </div>
+
+        <div class="warning">
+            <strong>⚠️ Make sure you've deployed the latest code first!</strong><br>
+            This tool works with the new cleanup logic.
+        </div>
+
+        <button onclick="forceCleanup()">🔄 Force Cleanup Now</button>
+        <button onclick="clearFlags()">🏁 Clear localStorage Flags Only</button>
+
+        <div id="status" class="status">Ready. Click "Force Cleanup Now" to begin.</div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js';
+        import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js';
+        import { getFirestore, collection, getDocs, deleteDoc, doc } from 'https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js';
+
+        const config = window.__firebase_config;
+
+        if (!config) {
+            document.getElementById('status').textContent = '❌ Error: config.js not found or __firebase_config not defined';
+            throw new Error('Firebase config not found');
+        }
+
+        const app = initializeApp(config);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        let currentUser = null;
+
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                currentUser = user;
+                log(`✓ Logged in as: ${user.email}`);
+            } else {
+                log('❌ Not logged in. Please login at the main app first.');
+            }
+        });
+
+        function log(message) {
+            const status = document.getElementById('status');
+            status.textContent += '\n' + message;
+            status.scrollTop = status.scrollHeight;
+        }
+
+        window.clearFlags = () => {
+            if (!currentUser) {
+                log('❌ Please login first!');
+                return;
+            }
+
+            const userId = currentUser.uid;
+            localStorage.removeItem(`migration_complete_${userId}`);
+            localStorage.removeItem(`default_habits_cleaned_${userId}`);
+            log('🏁 Cleared localStorage flags');
+            log('ℹ️  Reload the main app to trigger migration and cleanup');
+        };
+
+        window.forceCleanup = async () => {
+            if (!currentUser) {
+                log('❌ Please login first!');
+                return;
+            }
+
+            const userId = currentUser.uid;
+            log('\n🧹 Starting forced cleanup...');
+            log('━'.repeat(50));
+
+            const possibleAppIds = ['default-app-id', 'study-tracker-app', 'studyTrackerApp'];
+            let totalDeleted = 0;
+
+            for (const appId of possibleAppIds) {
+                try {
+                    log(`\n📍 Checking ${appId}...`);
+                    const habitsRef = collection(db, `/artifacts/${appId}/users/${userId}/habits`);
+                    const habitsSnapshot = await getDocs(habitsRef);
+
+                    log(`  Found ${habitsSnapshot.size} total habits`);
+
+                    let deleted = 0;
+                    for (const habitDoc of habitsSnapshot.docs) {
+                        const habit = habitDoc.data();
+                        if (habit.name === 'Study' || habit.name === 'Exercise') {
+                            await deleteDoc(doc(db, `/artifacts/${appId}/users/${userId}/habits/${habitDoc.id}`));
+                            deleted++;
+                            totalDeleted++;
+                            log(`  ✓ Deleted "${habit.name}" (ID: ${habitDoc.id})`);
+                        }
+                    }
+
+                    if (deleted === 0) {
+                        log(`  ℹ️  No default habits found in ${appId}`);
+                    }
+                } catch (error) {
+                    log(`  ⚠️  Error checking ${appId}: ${error.message}`);
+                }
+            }
+
+            log('\n' + '━'.repeat(50));
+            if (totalDeleted > 0) {
+                log(`✅ SUCCESS! Deleted ${totalDeleted} default habit(s) from all locations`);
+            } else {
+                log('ℹ️  No default habits found in any location');
+            }
+
+            // Reset the cleanup flag so it runs again on next login
+            localStorage.removeItem(`default_habits_cleaned_${userId}`);
+            log('🏁 Reset cleanup flag');
+            log('\n💡 Refresh the main app to verify habits are gone!');
+        };
+    </script>
+</body>
+</html>
