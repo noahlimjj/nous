@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clear Defaults - Nous</title>
+    <script src="config.js"></script>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+            text-align: center;
+        }
+        .container {
+            background: white;
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        h1 { color: #333; margin-top: 0; }
+        button {
+            background: #7c3aed;
+            color: white;
+            border: none;
+            padding: 16px 32px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 18px;
+            margin: 20px 0;
+        }
+        button:hover { background: #6d28d9; }
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        .status {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 8px;
+            font-size: 16px;
+            line-height: 1.6;
+        }
+        .info {
+            background: #dbeafe;
+            border-left: 4px solid #3b82f6;
+        }
+        .success {
+            background: #d1fae5;
+            border-left: 4px solid #10b981;
+        }
+        .error {
+            background: #fee2e2;
+            border-left: 4px solid #ef4444;
+        }
+        .loading {
+            background: #fef3c7;
+            border-left: 4px solid #f59e0b;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧹 Remove Default Habits</h1>
+
+        <div id="status" class="status info">
+            <strong>Ready!</strong><br>
+            Click the button below to clear your localStorage flag and trigger cleanup.
+        </div>
+
+        <button id="cleanupBtn" onclick="clearAndReload()">
+            Clear Flag & Reload
+        </button>
+
+        <div style="margin-top: 30px; padding: 15px; background: #f9fafb; border-radius: 8px; font-size: 14px; color: #6b7280;">
+            <strong>What this does:</strong><br>
+            1. Clears the "default_habits_cleaned" localStorage flag<br>
+            2. Reloads the app<br>
+            3. Cleanup runs automatically and deletes defaults from Firebase<br>
+            4. You'll be redirected to the main app
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js';
+        import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js';
+
+        const config = window.__firebase_config;
+
+        if (!config) {
+            document.getElementById('status').className = 'status error';
+            document.getElementById('status').innerHTML = '<strong>Error:</strong><br>Firebase config not found. Please check config.js';
+            document.getElementById('cleanupBtn').disabled = true;
+            throw new Error('Firebase config not found');
+        }
+
+        const app = initializeApp(config);
+        const auth = getAuth(app);
+
+        let currentUser = null;
+
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                currentUser = user;
+                document.getElementById('status').className = 'status success';
+                document.getElementById('status').innerHTML = `<strong>✓ Logged in as:</strong><br>${user.email}<br><br>Ready to clear defaults!`;
+            } else {
+                document.getElementById('status').className = 'status error';
+                document.getElementById('status').innerHTML = '<strong>Not logged in</strong><br>Please login at the main app first, then come back here.';
+                document.getElementById('cleanupBtn').disabled = true;
+            }
+        });
+
+        window.clearAndReload = () => {
+            if (!currentUser) {
+                alert('Please login first!');
+                return;
+            }
+
+            const userId = currentUser.uid;
+            const flagKey = `default_habits_cleaned_${userId}`;
+
+            // Clear the flag
+            localStorage.removeItem(flagKey);
+
+            document.getElementById('status').className = 'status loading';
+            document.getElementById('status').innerHTML = '<strong>🔄 Flag cleared!</strong><br>Redirecting to main app...<br>The cleanup will run automatically.';
+            document.getElementById('cleanupBtn').disabled = true;
+
+            // Redirect to main app after 2 seconds
+            setTimeout(() => {
+                window.location.href = '/';
+            }, 2000);
+        };
+    </script>
+</body>
+</html>
