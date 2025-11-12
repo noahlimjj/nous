@@ -1091,10 +1091,51 @@
             const [showInviteModal, setShowInviteModal] = useState(false);
             const [inviteSessionId, setInviteSessionId] = useState(null);
             const [friends, setFriends] = useState([]);
+            const [friendsDailyHours, setFriendsDailyHours] = useState({}); // Real-time daily hours
             const [selectedInviteFriends, setSelectedInviteFriends] = useState([]);
             const [sessionInvites, setSessionInvites] = useState([]);
             const [pings, setPings] = useState({});
             const [lastPingTime, setLastPingTime] = useState({});
+
+            // Helper function to calculate daily hours for a user (Singapore timezone) - REAL-TIME
+            const calculateDailyHours = async (targetUserId) => {
+                try {
+                    const appIdToUse = typeof __app_id !== 'undefined' ? __app_id : 'study-tracker-app';
+                    const sessionsQuery = window.collection(db, `/artifacts/${appIdToUse}/users/${targetUserId}/sessions`);
+
+                    // Calculate the start and end of today in Singapore timezone (UTC+8)
+                    const now = new Date();
+                    const singaporeOffset = 8 * 60; // UTC+8 in minutes
+                    const localOffset = now.getTimezoneOffset(); // Local offset from UTC
+                    const offsetDiff = singaporeOffset + localOffset; // Minutes to adjust to Singapore time
+
+                    const startOfDay = new Date();
+                    startOfDay.setHours(0, 0, 0, 0);
+                    startOfDay.setMinutes(startOfDay.getMinutes() - offsetDiff); // Adjust to Singapore midnight
+
+                    const endOfDay = new Date();
+                    endOfDay.setHours(23, 59, 59, 999);
+                    endOfDay.setMinutes(endOfDay.getMinutes() - offsetDiff); // Adjust to Singapore end of day
+
+                    const snapshot = await window.getDocs(sessionsQuery);
+                    const sessionsList = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+                    // Filter sessions to only those from today (Singapore time)
+                    const dailySessions = sessionsList.filter(session => {
+                        const sessionDate = session.startTime.toDate();
+                        return sessionDate >= startOfDay && sessionDate <= endOfDay;
+                    });
+
+                    // Calculate total hours for the day
+                    const dailyTotalMs = dailySessions.reduce((sum, s) => sum + (s.duration || 0), 0);
+                    const dailyTotalHours = dailyTotalMs / (1000 * 60 * 60);
+
+                    return dailyTotalHours;
+                } catch (error) {
+                    console.error(`Error calculating daily hours for user ${targetUserId}:`, error);
+                    return 0;
+                }
+            };
 
             // Audio context for all sounds (reused to avoid creating multiple contexts)
             const audioContextRef = useRef(null);
@@ -2377,6 +2418,26 @@
 
                 fetchFriends();
             }, [db, userId]);
+
+            // Calculate real-time daily hours for all friends in Dashboard
+            useEffect(() => {
+                if (!db || !friends || friends.length === 0) return;
+
+                const calculateAllFriendsDailyHours = async () => {
+                    const dailyData = {};
+                    for (const friend of friends) {
+                        const hours = await calculateDailyHours(friend.userId);
+                        dailyData[friend.userId] = hours;
+                    }
+                    setFriendsDailyHours(dailyData);
+                };
+
+                calculateAllFriendsDailyHours();
+
+                // Refresh every 30 seconds to keep it up-to-date
+                const interval = setInterval(calculateAllFriendsDailyHours, 30000);
+                return () => clearInterval(interval);
+            }, [db, friends]);
 
             // Open invite modal for existing session
             const handleOpenInviteModal = (sessionId) => {
@@ -5583,6 +5644,7 @@
             const [friendRequests, setFriendRequests] = useState([]);
             const [nousRequests, setNousRequests] = useState([]);
             const [friends, setFriends] = useState([]);
+            const [friendsDailyHours, setFriendsDailyHours] = useState({}); // Real-time daily hours
             const [suggestedFriends, setSuggestedFriends] = useState([]);
             const [searchTerm, setSearchTerm] = useState('');
             const [searchResult, setSearchResult] = useState(null);
@@ -5595,6 +5657,46 @@
             const [friendCodeInput, setFriendCodeInput] = useState('');
             const [isLoading, setIsLoading] = useState(true);
             const [isSearching, setIsSearching] = useState(false);
+
+            // Helper function to calculate daily hours for a user (Singapore timezone) - REAL-TIME
+            const calculateDailyHours = async (targetUserId) => {
+                try {
+                    const appId = typeof __app_id !== 'undefined' ? __app_id : 'study-tracker-app';
+                    const sessionsQuery = window.collection(db, `/artifacts/${appId}/users/${targetUserId}/sessions`);
+
+                    // Calculate the start and end of today in Singapore timezone (UTC+8)
+                    const now = new Date();
+                    const singaporeOffset = 8 * 60; // UTC+8 in minutes
+                    const localOffset = now.getTimezoneOffset(); // Local offset from UTC
+                    const offsetDiff = singaporeOffset + localOffset; // Minutes to adjust to Singapore time
+
+                    const startOfDay = new Date();
+                    startOfDay.setHours(0, 0, 0, 0);
+                    startOfDay.setMinutes(startOfDay.getMinutes() - offsetDiff); // Adjust to Singapore midnight
+
+                    const endOfDay = new Date();
+                    endOfDay.setHours(23, 59, 59, 999);
+                    endOfDay.setMinutes(endOfDay.getMinutes() - offsetDiff); // Adjust to Singapore end of day
+
+                    const snapshot = await window.getDocs(sessionsQuery);
+                    const sessions = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+                    // Filter sessions to only those from today (Singapore time)
+                    const dailySessions = sessions.filter(session => {
+                        const sessionDate = session.startTime.toDate();
+                        return sessionDate >= startOfDay && sessionDate <= endOfDay;
+                    });
+
+                    // Calculate total hours for the day
+                    const dailyTotalMs = dailySessions.reduce((sum, s) => sum + (s.duration || 0), 0);
+                    const dailyTotalHours = dailyTotalMs / (1000 * 60 * 60);
+
+                    return dailyTotalHours;
+                } catch (error) {
+                    console.error(`Error calculating daily hours for user ${targetUserId}:`, error);
+                    return 0;
+                }
+            };
 
             // Load friend requests and friendships
             useEffect(() => {
@@ -5703,6 +5805,26 @@
                     unsubscribeNousRequests();
                 };
             }, [db, userId, setNotification]);
+
+            // Calculate real-time daily hours for all friends
+            useEffect(() => {
+                if (!db || !friends || friends.length === 0) return;
+
+                const calculateAllFriendsDailyHours = async () => {
+                    const dailyData = {};
+                    for (const friend of friends) {
+                        const hours = await calculateDailyHours(friend.userId);
+                        dailyData[friend.userId] = hours;
+                    }
+                    setFriendsDailyHours(dailyData);
+                };
+
+                calculateAllFriendsDailyHours();
+
+                // Refresh every 30 seconds to keep it up-to-date
+                const interval = setInterval(calculateAllFriendsDailyHours, 30000);
+                return () => clearInterval(interval);
+            }, [db, friends]);
 
             // Load suggested friends (active users, friends of friends, and NoahLim)
             useEffect(() => {
@@ -6462,10 +6584,10 @@
                                                         `${friend.stats.currentStreak} day streak 🔥`
                                                     )
                                                 ),
-                                                // Today's hours
+                                                // Today's hours (real-time calculated)
                                                 React.createElement('div', { className: "flex items-center gap-4 text-sm text-calm-700 mt-1", style: { fontWeight: 300 } },
                                                     React.createElement('span', null,
-                                                        `Today: ${friend.stats?.hoursToday?.toFixed(1) || 0}h`
+                                                        `Today: ${(friendsDailyHours[friend.userId] !== undefined ? friendsDailyHours[friend.userId] : friend.stats?.hoursToday || 0).toFixed(1)}h`
                                                     )
                                                 )
                                             ),
