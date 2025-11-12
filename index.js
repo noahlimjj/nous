@@ -5687,8 +5687,18 @@
                         return sessionDate >= startOfDay && sessionDate <= endOfDay;
                     });
 
-                    // Calculate total hours for the day
-                    const dailyTotalMs = dailySessions.reduce((sum, s) => sum + (s.duration || 0), 0);
+                    // Calculate total hours for the day (including ACTIVE sessions)
+                    const dailyTotalMs = dailySessions.reduce((sum, s) => {
+                        if (s.duration) {
+                            // Completed session - use duration
+                            return sum + s.duration;
+                        } else if (s.startTime && !s.endTime) {
+                            // ACTIVE session - calculate elapsed time from startTime to now
+                            const elapsed = now.getTime() - s.startTime.toDate().getTime();
+                            return sum + elapsed;
+                        }
+                        return sum;
+                    }, 0);
                     const dailyTotalHours = dailyTotalMs / (1000 * 60 * 60);
 
                     return dailyTotalHours;
@@ -6874,8 +6884,18 @@
                         return sessionDate >= startOfDay && sessionDate <= endOfDay;
                     });
 
-                    // Calculate total hours for the day
-                    const dailyTotalMs = dailySessions.reduce((sum, s) => sum + (s.duration || 0), 0);
+                    // Calculate total hours for the day (including ACTIVE sessions)
+                    const dailyTotalMs = dailySessions.reduce((sum, s) => {
+                        if (s.duration) {
+                            // Completed session - use duration
+                            return sum + s.duration;
+                        } else if (s.startTime && !s.endTime) {
+                            // ACTIVE session - calculate elapsed time from startTime to now
+                            const elapsed = now.getTime() - s.startTime.toDate().getTime();
+                            return sum + elapsed;
+                        }
+                        return sum;
+                    }, 0);
                     const dailyTotalHours = dailyTotalMs / (1000 * 60 * 60);
 
                     return dailyTotalHours;
