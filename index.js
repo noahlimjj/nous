@@ -1100,6 +1100,11 @@
             // Helper function to calculate daily hours for a user (Singapore timezone) - REAL-TIME
             const calculateDailyHours = async (targetUserId) => {
                 try {
+                    // Skip if offline or Firebase not available
+                    if (!navigator.onLine || !db || !window.getDocs) {
+                        return 0;
+                    }
+
                     const appIdToUse = typeof __app_id !== 'undefined' ? __app_id : 'study-tracker-app';
                     const sessionsQuery = window.collection(db, `/artifacts/${appIdToUse}/users/${targetUserId}/sessions`);
 
@@ -1132,7 +1137,10 @@
 
                     return dailyTotalHours;
                 } catch (error) {
-                    console.error(`Error calculating daily hours for user ${targetUserId}:`, error);
+                    // Only log errors that aren't network-related
+                    if (!error.message?.includes('network') && !error.message?.includes('offline')) {
+                        console.error(`Error calculating daily hours for user ${targetUserId}:`, error);
+                    }
                     return 0;
                 }
             };
@@ -2424,6 +2432,11 @@
                 if (!db || !friends || friends.length === 0) return;
 
                 const calculateAllFriendsDailyHours = async () => {
+                    // Skip if offline or Firebase not available
+                    if (!navigator.onLine || !db || !window.getDocs) {
+                        return;
+                    }
+
                     const dailyData = {};
                     for (const friend of friends) {
                         const hours = await calculateDailyHours(friend.userId);
@@ -2434,8 +2447,12 @@
 
                 calculateAllFriendsDailyHours();
 
-                // Refresh every 30 seconds to keep it up-to-date
-                const interval = setInterval(calculateAllFriendsDailyHours, 30000);
+                // Refresh every 30 seconds to keep it up-to-date (only when online)
+                const interval = setInterval(() => {
+                    if (navigator.onLine && db) {
+                        calculateAllFriendsDailyHours();
+                    }
+                }, 30000);
                 return () => clearInterval(interval);
             }, [db, friends]);
 
