@@ -1,7 +1,7 @@
 // Offline Timer Manager
 // Handles timer operations when offline and syncs to Firestore when back online
 
-(function() {
+(function () {
     'use strict';
 
     const OFFLINE_TIMERS_KEY = 'nous_offline_timers';
@@ -190,6 +190,19 @@
         };
     }
 
+    // Reset timer offline (discard current session)
+    function resetTimerOffline(habitId) {
+        const timers = getOfflineTimers();
+
+        if (timers[habitId]) {
+            delete timers[habitId];
+            saveOfflineTimers(timers);
+            console.log('[Offline Timer] Reset (discarded):', habitId);
+            return true;
+        }
+        return false;
+    }
+
     // Get current elapsed time for a timer
     function getElapsedTime(habitId) {
         const timers = getOfflineTimers();
@@ -270,6 +283,7 @@
         pause: pauseTimerOffline,
         resume: resumeTimerOffline,
         stop: stopTimerOffline,
+        reset: resetTimerOffline,
         getElapsedTime,
 
         // Data management
