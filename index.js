@@ -3436,8 +3436,8 @@ const Dashboard = ({ db, userId, setNotification, activeTimers, setActiveTimers,
                         onClick: handleInviteToSession,
                         disabled: selectedInviteFriends.length === 0,
                         className: `px-4 py-2 rounded-lg transition ${selectedInviteFriends.length === 0
-                                ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                                : 'bg-purple-600 text-white hover:bg-purple-700'
+                            ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                            : 'bg-purple-600 text-white hover:bg-purple-700'
                             }`,
                         style: { fontWeight: 400 }
                     }, "Send Invites")
@@ -3448,290 +3448,321 @@ const Dashboard = ({ db, userId, setNotification, activeTimers, setActiveTimers,
 };
 
 const Reports = ({ db, userId, setNotification }) => {
-    const [reportData, setReportData] = useState([]);
+    const [viewMode, setViewMode] = useState('week'); // 'week' | 'day'
+    const [selectedDate, setSelectedDate] = useState(new Date());
     const [sessions, setSessions] = useState([]);
-    const [isLoading, setIsLoading] = useState(true);
-    const [month, setMonth] = useState(new Date().toISOString().slice(0, 7));
-    const [viewMode, setViewMode] = useState('monthly'); // 'monthly' or 'weekly'
-    const [weeklyData, setWeeklyData] = useState([]);
-    const [timeOfDayData, setTimeOfDayData] = useState([]);
+    const [isLoading, setIsLoading] = useState(false);
+    const [stats, setStats] = useState({
+        totalDuration: 0,
+        dailyAverage: 0,
+        mostUsedHabit: null,
+        mostFrequentHabit: null
+    });
+    const [chartData, setChartData] = useState([]);
+    const [habitBreakdown, setHabitBreakdown] = useState([]);
 
     const appId = typeof __app_id !== 'undefined' ? __app_id : 'study-tracker-app';
 
+    // Helper to get start and end of period
+    const getPeriodRange = (date, mode) => {
+        const start = new Date(date);
+
+        if (mode === 'week') {
+            const day = start.getDay();
+            const diff = start.getDate() - day + (day === 0 ? -6 : 1); // Adjust when day is sunday
+            start.setDate(diff); // Monday
+            start.setHours(0, 0, 0, 0);
+
+            const end = new Date(start);
+            end.setDate(start.getDate() + 6); // Sunday
+            end.setHours(23, 59, 59, 999);
+            return { start, end };
+        } else {
+            const end = new Date(date);
+            start.setHours(0, 0, 0, 0);
+            end.setHours(23, 59, 59, 999);
+            return { start, end };
+        }
+    };
+
+    const navigateDate = (direction) => {
+        const newDate = new Date(selectedDate);
+        if (viewMode === 'week') {
+            newDate.setDate(newDate.getDate() + (direction * 7));
+        } else {
+            newDate.setDate(newDate.getDate() + direction);
+        }
+        setSelectedDate(newDate);
+    };
+
+    const formatDateRange = () => {
+        const { start, end } = getPeriodRange(selectedDate, viewMode);
+        if (viewMode === 'day') {
+            if (start.toDateString() === new Date().toDateString()) return 'Today';
+            return start.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
+        } else {
+            return `${start.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} – ${end.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`;
+        }
+    };
+
+    // Data Fetching
     useEffect(() => {
         if (!db || !userId) return;
 
-        const fetchReportData = async () => {
+        const fetchData = async () => {
             setIsLoading(true);
             try {
-                const [year, monthNum] = month.split('-').map(Number);
-                const startDate = new Date(year, monthNum - 1, 1);
-                const endDate = new Date(year, monthNum, 0, 23, 59, 59);
-
+                const { start, end } = getPeriodRange(selectedDate, viewMode);
                 const sessionsQuery = window.query(
                     window.collection(db, `/artifacts/${appId}/users/${userId}/sessions`),
-                    window.where('startTime', '>=', window.Timestamp.fromDate(startDate)),
-                    window.where('startTime', '<=', window.Timestamp.fromDate(endDate))
+                    window.where('startTime', '>=', window.Timestamp.fromDate(start)),
+                    window.where('startTime', '<=', window.Timestamp.fromDate(end))
                 );
 
                 const snapshot = await window.getDocs(sessionsQuery);
-                const monthlySessions = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                monthlySessions.sort((a, b) => b.startTime.toMillis() - a.startTime.toMillis());
-                setSessions(monthlySessions);
+                const fetchedSessions = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                setSessions(fetchedSessions);
 
-                const data = monthlySessions.reduce((acc, session) => {
-                    acc[session.habitName] = (acc[session.habitName] || 0) + session.duration;
-                    return acc;
-                }, {});
-
-                const formattedData = Object.entries(data).map(([name, duration]) => ({ name, duration }));
-                setReportData(formattedData);
-
+                processData(fetchedSessions, start, end);
             } catch (error) {
-                console.error("Error fetching report data:", error);
+                console.error("Error fetching reports:", error);
                 setNotification({ type: 'error', message: 'Failed to load report data.' });
             } finally {
                 setIsLoading(false);
             }
         };
 
-        fetchReportData();
-    }, [db, userId, month, appId, setNotification]);
+        fetchData();
+    }, [db, userId, selectedDate, viewMode, appId]);
 
-    // Fetch weekly and time-of-day data
-    useEffect(() => {
-        if (!db || !userId || viewMode !== 'weekly') return;
+    const processData = (data, start, end) => {
+        // 1. Calculate Total Duration
+        const totalMs = data.reduce((acc, s) => acc + (s.duration || 0), 0);
 
-        const fetchWeeklyData = async () => {
-            try {
-                // Get all sessions
-                const sessionsQuery = window.collection(db, `/artifacts/${appId}/users/${userId}/sessions`);
-                const snapshot = await window.getDocs(sessionsQuery);
-                const allSessions = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        // 2. Habit Breakdown
+        const habitMap = {};
+        const habitCountMap = {};
+        data.forEach(s => {
+            habitMap[s.habitName] = (habitMap[s.habitName] || 0) + (s.duration || 0);
+            habitCountMap[s.habitName] = (habitCountMap[s.habitName] || 0) + 1;
+        });
 
-                // Get start of week (Sunday) for the last 8 weeks
-                const weeks = [];
-                for (let i = 0; i < 8; i++) {
-                    const date = new Date();
-                    date.setDate(date.getDate() - (i * 7));
-                    const startOfWeek = new Date(date);
-                    startOfWeek.setDate(date.getDate() - date.getDay());
-                    startOfWeek.setHours(0, 0, 0, 0);
+        const sortedHabits = Object.entries(habitMap)
+            .map(([name, duration]) => ({ name, duration, count: habitCountMap[name] }))
+            .sort((a, b) => b.duration - a.duration);
 
-                    const endOfWeek = new Date(startOfWeek);
-                    endOfWeek.setDate(startOfWeek.getDate() + 6);
-                    endOfWeek.setHours(23, 59, 59, 999);
+        const sortedByCount = [...sortedHabits].sort((a, b) => b.count - a.count);
 
-                    const weekSessions = allSessions.filter(session => {
-                        const sessionTime = session.startTime.toMillis();
-                        return sessionTime >= startOfWeek.getTime() && sessionTime <= endOfWeek.getTime();
-                    });
+        setHabitBreakdown(sortedHabits);
 
-                    const totalDuration = weekSessions.reduce((sum, s) => sum + s.duration, 0);
-                    weeks.push({
-                        weekStart: startOfWeek,
-                        weekEnd: endOfWeek,
-                        totalHours: totalDuration / (1000 * 60 * 60),
-                        sessions: weekSessions
-                    });
-                }
+        // 3. Stats
+        setStats({
+            totalDuration: totalMs,
+            dailyAverage: viewMode === 'week' ? totalMs / 7 : totalMs, // For day view, avg is total
+            mostUsedHabit: sortedHabits[0] || null,
+            mostFrequentHabit: sortedByCount[0] || null
+        });
 
-                weeks.reverse(); // Show oldest to newest
-                setWeeklyData(weeks);
+        // 4. Chart Data
+        let chart = [];
+        if (viewMode === 'week') {
+            // 7 days
+            const days = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
+            const dayBuckets = Array(7).fill(0);
 
-                // Calculate time of day distribution (for all time) - Singapore timezone (UTC+8)
-                const hourBuckets = Array(24).fill(0);
-                allSessions.forEach(session => {
-                    // Convert to Singapore time (UTC+8)
-                    const date = new Date(session.startTime.toMillis());
-                    const singaporeHour = new Date(date.toLocaleString('en-US', { timeZone: 'Asia/Singapore' })).getHours();
-                    hourBuckets[singaporeHour] += session.duration;
-                });
+            data.forEach(s => {
+                const d = new Date(s.startTime.toMillis());
+                // Get day index (Mon=0, Sun=6)
+                let dayIdx = d.getDay() - 1;
+                if (dayIdx === -1) dayIdx = 6;
+                dayBuckets[dayIdx] += s.duration;
+            });
 
-                const timeOfDayStats = hourBuckets.map((duration, hour) => ({
-                    hour,
-                    duration,
-                    label: `${hour.toString().padStart(2, '0')}:00`
-                })).filter(item => item.duration > 0);
+            const maxVal = Math.max(...dayBuckets, 1); // Avoid div by zero
+            chart = dayBuckets.map((val, idx) => ({
+                label: days[idx],
+                value: val,
+                heightPct: (val / maxVal) * 100,
+                isToday: new Date().getDay() - 1 === idx // Rough approximation
+            }));
+        } else {
+            // 24 hours (4-hour buckets for simplicity or 24 bars)
+            const hourBuckets = Array(24).fill(0);
+            data.forEach(s => {
+                // Convert to Singapore time (UTC+8) or local?
+                // Using local based on browser for visual consistency with logic elsewhere
+                const d = new Date(s.startTime.toMillis());
+                // Adjust for Singapore if needed, but let's stick to local rendering for now or reuse existing logic
+                // Reuse existing Singapore logic if possible, otherwise use local
+                const hour = d.getHours();
+                hourBuckets[hour] += s.duration;
+            });
 
-                setTimeOfDayData(timeOfDayStats);
-            } catch (error) {
-                console.error("Error fetching weekly data:", error);
-            }
-        };
-
-        fetchWeeklyData();
-    }, [db, userId, appId, viewMode]);
-
-    const handleDeleteSession = async (sessionId) => {
-        if (window.confirm("Are you sure you want to delete this session? This cannot be undone.")) {
-            try {
-                const sessionDocRef = window.doc(db, `/artifacts/${appId}/users/${userId}/sessions/${sessionId}`);
-                await window.deleteDoc(sessionDocRef);
-                setNotification({ type: 'success', message: 'Session deleted successfully.' });
-                // Refresh data after deletion
-                const [year, monthNum] = month.split('-').map(Number);
-                const startDate = new Date(year, monthNum - 1, 1);
-                const endDate = new Date(year, monthNum, 0, 23, 59, 59);
-                const sessionsQuery = window.query(
-                    window.collection(db, `/artifacts/${appId}/users/${userId}/sessions`),
-                    window.where('startTime', '>=', window.Timestamp.fromDate(startDate)),
-                    window.where('startTime', '<=', window.Timestamp.fromDate(endDate))
-                );
-                const snapshot = await window.getDocs(sessionsQuery);
-                const monthlySessions = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                monthlySessions.sort((a, b) => b.startTime.toMillis() - a.startTime.toMillis());
-                setSessions(monthlySessions);
-                const data = monthlySessions.reduce((acc, session) => {
-                    acc[session.habitName] = (acc[session.habitName] || 0) + session.duration;
-                    return acc;
-                }, {});
-                const formattedData = Object.entries(data).map(([name, duration]) => ({ name, duration }));
-                setReportData(formattedData);
-            } catch (error) {
-                console.error("Error deleting session:", error);
-                setNotification({ type: 'error', message: 'Failed to delete session.' });
-            }
+            const maxVal = Math.max(...hourBuckets, 1);
+            chart = hourBuckets.map((val, idx) => ({
+                label: idx % 6 === 0 ? `${idx}` : '', // Show label every 6 hours
+                value: val,
+                heightPct: (val / maxVal) * 100,
+            }));
         }
+        setChartData(chart);
     };
 
-    const maxDuration = Math.max(...reportData.map(d => d.duration), 0);
-    const maxWeeklyHours = Math.max(...weeklyData.map(w => w.totalHours), 0);
-    const maxTimeOfDay = Math.max(...timeOfDayData.map(t => t.duration), 0);
-    const colors = ['bg-blue-500', 'bg-green-500', 'bg-yellow-500', 'bg-purple-500', 'bg-pink-500', 'bg-indigo-500'];
+    const formatDurationHrs = (ms) => {
+        const hrs = ms / (1000 * 60 * 60);
+        return hrs.toFixed(1) + 'h';
+    };
 
-    return React.createElement('div', { className: "max-w-7xl mx-auto p-4 sm:p-6 lg:p-8" },
-        React.createElement('h2', { className: "text-3xl text-gray-800 mb-4", style: { fontWeight: 300 } }, "reports"),
+    const formatDurationFull = (ms) => {
+        const seconds = Math.floor((ms / 1000) % 60);
+        const minutes = Math.floor((ms / (1000 * 60)) % 60);
+        const hours = Math.floor((ms / (1000 * 60 * 60)));
+        if (hours > 0) return `${hours}h ${minutes}m`;
+        return `${minutes}m`;
+    };
 
-        // View toggle buttons
-        React.createElement('div', { className: "mb-6 flex gap-2" },
-            React.createElement('button', {
-                onClick: () => setViewMode('monthly'),
-                className: `px-4 py-2 rounded-lg transition ${viewMode === 'monthly' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`
-            }, "monthly"),
-            React.createElement('button', {
-                onClick: () => setViewMode('weekly'),
-                className: `px-4 py-2 rounded-lg transition ${viewMode === 'weekly' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`
-            }, "weekly")
+    return React.createElement('div', { className: "max-w-4xl mx-auto p-4 sm:p-6 lg:p-8" },
+        // Header with Date Nav and Toggle
+        React.createElement('div', { className: "flex flex-col md:flex-row justify-between items-center mb-8 gap-4" },
+            React.createElement('h2', { className: "text-3xl font-light text-gray-800 dark:text-gray-100" }, "reports"),
+
+            React.createElement('div', { className: "flex items-center gap-4 bg-white dark:bg-gray-800 p-1 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700" },
+                React.createElement('div', { className: "segmented-control" },
+                    React.createElement('button', {
+                        className: viewMode === 'day' ? 'active' : '',
+                        onClick: () => setViewMode('day')
+                    }, "Day"),
+                    React.createElement('button', {
+                        className: viewMode === 'week' ? 'active' : '',
+                        onClick: () => setViewMode('week')
+                    }, "Week")
+                )
+            )
         ),
 
-        // Month selector (only for monthly view)
-        viewMode === 'monthly' && React.createElement('div', { className: "mb-6" },
-            React.createElement('label', { htmlFor: "month-select", className: "mr-2", style: { fontWeight: 400 } }, "select month:"),
-            React.createElement('input', {
-                type: "month",
-                id: "month-select",
-                value: month,
-                onChange: e => setMonth(e.target.value),
-                className: "p-2 border border-gray-300 rounded-lg"
-            })
+        // Date Navigator
+        React.createElement('div', { className: "flex justify-center items-center mb-8" },
+            React.createElement('button', { onClick: () => navigateDate(-1), className: "p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition" },
+                React.createElement('svg', { width: "24", height: "24", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2" }, React.createElement('path', { d: "M15 18l-6-6 6-6" }))
+            ),
+            React.createElement('span', { className: "mx-4 text-lg font-medium text-gray-700 dark:text-gray-200 min-w-[200px] text-center" }, formatDateRange()),
+            React.createElement('button', { onClick: () => navigateDate(1), className: "p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition" },
+                React.createElement('svg', { width: "24", height: "24", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2" }, React.createElement('path', { d: "M9 18l6-6-6-6" }))
+            )
         ),
 
-        // Monthly view
-        viewMode === 'monthly' && (isLoading ?
-            React.createElement('div', { className: "flex justify-center items-center p-8" },
-                React.createElement(LoaderIcon),
-                React.createElement('span', { className: "ml-2" }, "generating report...")
-            ) :
-            React.createElement('div', { className: "grid grid-cols-1 md:grid-cols-2 gap-8" },
-                // Chart Section
-                React.createElement('div', { className: "bg-white p-6 rounded-lg shadow-sm" },
-                    React.createElement('h3', { className: "text-xl mb-4", style: { fontWeight: 300 } }, "habit totals"),
+        isLoading ?
+            React.createElement('div', { className: "flex justify-center p-12" }, React.createElement('div', { className: "animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500" }))
+            : React.createElement('div', { className: "space-y-6" },
+
+                // Hero Chart Card
+                React.createElement('div', { className: "stat-card" },
+                    React.createElement('div', { className: "flex justify-between items-end mb-6" },
+                        React.createElement('div', null,
+                            React.createElement('p', { className: "text-gray-500 dark:text-gray-400 text-sm font-medium uppercase tracking-wide mb-1" },
+                                viewMode === 'week' ? "Weekly Total" : "Daily Total"
+                            ),
+                            React.createElement('h3', { className: "text-4xl font-light text-gray-900 dark:text-white" },
+                                formatDurationHrs(stats.totalDuration)
+                            )
+                        ),
+                        React.createElement('div', { className: "text-right" },
+                            React.createElement('p', { className: "text-gray-500 dark:text-gray-400 text-sm" }, "Daily Average"),
+                            React.createElement('p', { className: "text-xl font-medium text-gray-800 dark:text-gray-200" },
+                                formatDurationHrs(stats.dailyAverage)
+                            )
+                        )
+                    ),
+
+                    // Bar Chart
+                    React.createElement('div', { className: "h-48 flex justify-between gap-2 pt-4 border-t border-gray-100 dark:border-gray-700" },
+                        chartData.length > 0 ? chartData.map((bar, idx) =>
+                            React.createElement('div', { key: idx, className: "chart-bar-container flex-1 group" },
+                                React.createElement('div', {
+                                    className: `chart-bar w-full max-w-[30px] rounded-t-md mx-auto ${bar.isToday ? 'bg-blue-600 dark:bg-blue-500' : 'bg-gray-300 dark:bg-gray-600'} group-hover:bg-blue-400 transition-all`,
+                                    style: {
+                                        height: `${Math.max(bar.heightPct, 4)}%`,
+                                        opacity: bar.value === 0 ? 0.3 : 1
+                                    }
+                                }),
+                                React.createElement('div', { className: "mt-2 text-xs text-gray-400 dark:text-gray-500 font-medium" }, bar.label),
+                                // Tooltip
+                                React.createElement('div', { className: "absolute bottom-full mb-2 bg-gray-900 text-white text-xs py-1 px-2 rounded opacity-0 group-hover:opacity-100 transition pointer-events-none whitespace-nowrap z-10" },
+                                    formatDurationFull(bar.value)
+                                )
+                            )
+                        ) : React.createElement('div', { className: "w-full text-center text-gray-400" }, "No data")
+                    )
+                ),
+
+                // Stats Grid
+                React.createElement('div', { className: "reports-grid" },
+                    React.createElement('div', { className: "stat-card" },
+                        React.createElement('div', { className: "flex items-start justify-between" },
+                            React.createElement('div', null,
+                                React.createElement('p', { className: "text-gray-500 dark:text-gray-400 text-xs uppercase tracking-wide font-bold" }, "Most Used"),
+                                React.createElement('h4', { className: "text-lg font-medium text-gray-900 dark:text-white mt-1" },
+                                    stats.mostUsedHabit ? stats.mostUsedHabit.name : "-"
+                                )
+                            ),
+                            React.createElement('div', { className: "bg-blue-100 dark:bg-blue-900/30 p-2 rounded-lg" },
+                                React.createElement('svg', { className: "w-5 h-5 text-blue-600 dark:text-blue-400", fill: "none", stroke: "currentColor", viewBox: "0 0 24 24" },
+                                    React.createElement('path', { strokeLinecap: "round", strokeLinejoin: "round", strokeWidth: "2", d: "M13 10V3L4 14h7v7l9-11h-7z" })
+                                )
+                            )
+                        ),
+                        React.createElement('p', { className: "text-sm text-gray-600 dark:text-gray-400 mt-2" },
+                            stats.mostUsedHabit ? formatDurationFull(stats.mostUsedHabit.duration) : "No activity"
+                        )
+                    ),
+
+                    React.createElement('div', { className: "stat-card" },
+                        React.createElement('div', { className: "flex items-start justify-between" },
+                            React.createElement('div', null,
+                                React.createElement('p', { className: "text-gray-500 dark:text-gray-400 text-xs uppercase tracking-wide font-bold" }, "Top Habit"),
+                                React.createElement('h4', { className: "text-lg font-medium text-gray-900 dark:text-white mt-1" },
+                                    stats.mostFrequentHabit ? stats.mostFrequentHabit.name : "-"
+                                )
+                            ),
+                            React.createElement('div', { className: "bg-green-100 dark:bg-green-900/30 p-2 rounded-lg" },
+                                React.createElement('svg', { className: "w-5 h-5 text-green-600 dark:text-green-400", fill: "none", stroke: "currentColor", viewBox: "0 0 24 24" },
+                                    React.createElement('path', { strokeLinecap: "round", strokeLinejoin: "round", strokeWidth: "2", d: "M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" })
+                                )
+                            )
+                        ),
+                        React.createElement('p', { className: "text-sm text-gray-600 dark:text-gray-400 mt-2" },
+                            stats.mostFrequentHabit ? `${stats.mostFrequentHabit.count} sessions` : "No sessions"
+                        )
+                    )
+                ),
+
+                // Detailed List
+                React.createElement('div', { className: "stat-card" },
+                    React.createElement('h3', { className: "text-lg font-medium text-gray-900 dark:text-white mb-4" }, "Details"),
                     React.createElement('div', { className: "space-y-4" },
-                        reportData.length > 0 ? reportData.map((item, index) =>
-                            React.createElement('div', { key: item.name },
-                                React.createElement('div', { className: "flex justify-between mb-1 text-sm", style: { fontWeight: 400 } },
-                                    React.createElement('span', null, item.name),
-                                    React.createElement('span', null, formatTime(item.duration))
+                        habitBreakdown.length > 0 ? habitBreakdown.map((item, idx) =>
+                            React.createElement('div', { key: item.name, className: "group" },
+                                React.createElement('div', { className: "flex justify-between items-center mb-1" },
+                                    React.createElement('div', { className: "flex items-center gap-2" },
+                                        React.createElement('span', { className: "text-gray-800 dark:text-gray-200 font-medium" }, item.name),
+                                        React.createElement('span', { className: "text-xs text-gray-500" }, `${item.count} sessions`)
+                                    ),
+                                    React.createElement('span', { className: "text-gray-800 dark:text-gray-200 font-medium" }, formatDurationFull(item.duration))
                                 ),
-                                React.createElement('div', { className: "w-full bg-gray-200 rounded-full h-4" },
+                                React.createElement('div', { className: "w-full bg-gray-100 dark:bg-gray-700/50 rounded-full h-2 overflow-hidden" },
                                     React.createElement('div', {
-                                        className: `${colors[index % colors.length]} h-4 rounded-full`,
-                                        style: { width: `${maxDuration > 0 ? (item.duration / maxDuration) * 100 : 0}%` }
+                                        className: "h-full rounded-full transition-all duration-1000 ease-out",
+                                        style: {
+                                            width: `${(item.duration / stats.totalDuration) * 100}%`,
+                                            backgroundColor: ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899'][idx % 5]
+                                        }
                                     })
                                 )
                             )
-                        ) : React.createElement('p', null, "no data for this month.")
-                    )
-                ),
-
-                // Sessions List
-                React.createElement('div', { className: "bg-white p-4 rounded-lg shadow-sm" },
-                    React.createElement('h3', { className: "text-xl mb-4", style: { fontWeight: 300 } }, "session log"),
-                    React.createElement('div', { className: "space-y-3 max-h-[400px] overflow-y-auto" },
-                        sessions.length > 0 ? sessions.map(session =>
-                            React.createElement('div', { key: session.id, className: "border-b pb-2 last:border-b-0 flex items-center justify-between gap-2" },
-                                React.createElement('div', { className: "flex-grow" },
-                                    React.createElement('p', { style: { fontWeight: 400 } }, session.habitName),
-                                    React.createElement('div', { className: "flex justify-between text-sm text-gray-600" },
-                                        React.createElement('span', null, formatDate(session.startTime)),
-                                        React.createElement('span', null, formatTime(session.duration))
-                                    )
-                                ),
-                                React.createElement('button', {
-                                    onClick: () => handleDeleteSession(session.id),
-                                    className: "p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition flex-shrink-0",
-                                    title: "Delete session"
-                                },
-                                    React.createElement(TrashIcon)
-                                )
-                            )
-                        ) :
-                            React.createElement('p', { className: "text-gray-500" }, "no sessions recorded this month.")
+                        ) : React.createElement('p', { className: "text-gray-500 text-center py-4" }, "No usage data for this period")
                     )
                 )
             )
-        ),
-
-        // Weekly view
-        viewMode === 'weekly' && React.createElement('div', { className: "space-y-8" },
-            // Weekly hours over time
-            React.createElement('div', { className: "bg-white p-6 rounded-lg shadow-sm" },
-                React.createElement('h3', { className: "text-xl mb-4", style: { fontWeight: 300 } }, "weekly hours (last 8 weeks)"),
-                React.createElement('div', { className: "space-y-3" },
-                    weeklyData.length > 0 ? weeklyData.map((week, index) =>
-                        React.createElement('div', { key: index },
-                            React.createElement('div', { className: "flex justify-between mb-1 text-sm", style: { fontWeight: 400 } },
-                                React.createElement('span', null,
-                                    `${week.weekStart.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - ${week.weekEnd.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`
-                                ),
-                                React.createElement('span', null, `${week.totalHours.toFixed(1)}h`)
-                            ),
-                            React.createElement('div', { className: "w-full bg-gray-200 rounded-full h-4" },
-                                React.createElement('div', {
-                                    className: "bg-blue-500 h-4 rounded-full",
-                                    style: { width: `${maxWeeklyHours > 0 ? (week.totalHours / maxWeeklyHours) * 100 : 0}%` }
-                                })
-                            )
-                        )
-                    ) : React.createElement('p', { className: "text-gray-500" }, "no data available.")
-                )
-            ),
-
-            // Time of day analysis
-            timeOfDayData.length > 0 && React.createElement('div', { className: "bg-white p-6 rounded-lg shadow-sm" },
-                React.createElement('h3', { className: "text-xl mb-4", style: { fontWeight: 300 } }, "time of day analysis"),
-                React.createElement('p', { className: "text-sm text-gray-600 mb-4" },
-                    `you study most at ${timeOfDayData.reduce((max, item) => item.duration > max.duration ? item : max, timeOfDayData[0]).label}`
-                ),
-                React.createElement('div', { className: "space-y-2" },
-                    timeOfDayData.sort((a, b) => b.duration - a.duration).slice(0, 10).map((item, index) =>
-                        React.createElement('div', { key: item.hour },
-                            React.createElement('div', { className: "flex justify-between mb-1 text-sm", style: { fontWeight: 400 } },
-                                React.createElement('span', null, item.label),
-                                React.createElement('span', null, formatTime(item.duration))
-                            ),
-                            React.createElement('div', { className: "w-full bg-gray-200 rounded-full h-3" },
-                                React.createElement('div', {
-                                    className: `${colors[index % colors.length]} h-3 rounded-full`,
-                                    style: { width: `${maxTimeOfDay > 0 ? (item.duration / maxTimeOfDay) * 100 : 0}%` }
-                                })
-                            )
-                        )
-                    )
-                )
-            )
-        )
     );
 };
 
@@ -4384,37 +4415,83 @@ const GrowthTree = ({ sessions, db, userId, setNotification }) => {
         ];
 
         // Enhanced branch paths with natural, realistic shapes
-        const branches = [
-            // Main branches - larger, thicker, more natural curves
-            { d: "M100,120 Q82,110 70,90 Q65,80 60,68", width: 6, color: trunkDark, delay: 0, visible: branchGrowth > 0 },
-            { d: "M100,120 Q118,110 130,90 Q135,80 140,68", width: 6, color: trunkDark, delay: 0.05, visible: branchGrowth > 0.05 },
+        let branches = [];
 
-            // Secondary main branches with organic curves
-            { d: "M100,115 Q78,105 68,88 Q62,76 58,64", width: 5, color: trunkMid, delay: 0.1, visible: branchGrowth > 0.15 },
-            { d: "M100,115 Q122,105 132,88 Q138,76 142,64", width: 5, color: trunkMid, delay: 0.15, visible: branchGrowth > 0.2 },
+        if (treeType === 'pine') {
+            // PINE TREE STRUCTURE (Conical, straight trunk)
+            const trunkColor = adjustColor(mainBranchColor, 0.8);
+            branches = [
+                // Straight strong trunk
+                { d: "M100,125 L100,40", width: 10, color: trunkDark, delay: 0, visible: trunkGrowth > 0 },
 
-            // Mid-level branches - varied angles
-            { d: "M70,90 Q65,82 62,72 Q60,65 58,58", width: 4, color: trunkMid, delay: 0.2, visible: branchGrowth > 0.3 },
-            { d: "M130,90 Q135,82 138,72 Q140,65 142,58", width: 4, color: trunkMid, delay: 0.22, visible: branchGrowth > 0.32 },
-            { d: "M100,110 Q88,98 80,82 Q76,72 72,60", width: 4, color: trunkLight, delay: 0.24, visible: branchGrowth > 0.35 },
-            { d: "M100,110 Q112,98 120,82 Q124,72 128,60", width: 4, color: trunkLight, delay: 0.26, visible: branchGrowth > 0.38 },
+                // Lower branches (Wide)
+                { d: "M100,110 L70,118", width: 5, color: trunkColor, delay: 0.05, visible: branchGrowth > 0.05 },
+                { d: "M100,110 L130,118", width: 5, color: trunkColor, delay: 0.05, visible: branchGrowth > 0.05 },
 
-            // Tertiary branches - creating fuller canopy
-            { d: "M68,88 Q62,80 58,70 Q55,62 52,54", width: 3, color: trunkLight, delay: 0.3, visible: branchGrowth > 0.45 },
-            { d: "M132,88 Q138,80 142,70 Q145,62 148,54", width: 3, color: trunkLight, delay: 0.32, visible: branchGrowth > 0.48 },
-            { d: "M80,82 Q74,74 70,64 Q67,56 64,48", width: 3, color: trunkGrey, delay: 0.34, visible: branchGrowth > 0.5 },
-            { d: "M120,82 Q126,74 130,64 Q133,56 136,48", width: 3, color: trunkGrey, delay: 0.36, visible: branchGrowth > 0.52 },
+                // Mid branches
+                { d: "M100,90 L75,98", width: 4, color: trunkColor, delay: 0.1, visible: branchGrowth > 0.15 },
+                { d: "M100,90 L125,98", width: 4, color: trunkColor, delay: 0.1, visible: branchGrowth > 0.15 },
 
-            // Fine detail branches - natural extensions
-            { d: "M60,68 Q56,62 54,54 Q52,48 50,42", width: 2.5, color: trunkGrey, delay: 0.4, visible: branchGrowth > 0.6 },
-            { d: "M140,68 Q144,62 146,54 Q148,48 150,42", width: 2.5, color: trunkGrey, delay: 0.42, visible: branchGrowth > 0.62 },
-            { d: "M72,60 Q68,54 65,46 Q63,40 61,34", width: 2, color: trunkLight, delay: 0.44, visible: branchGrowth > 0.65 },
-            { d: "M128,60 Q132,54 135,46 Q137,40 139,34", width: 2, color: trunkLight, delay: 0.46, visible: branchGrowth > 0.68 },
+                // Upper branches (Narrower)
+                { d: "M100,70 L80,76", width: 4, color: trunkColor, delay: 0.15, visible: branchGrowth > 0.25 },
+                { d: "M100,70 L120,76", width: 4, color: trunkColor, delay: 0.15, visible: branchGrowth > 0.25 },
 
-            // Extra small branches for density
-            { d: "M62,72 Q58,66 55,58", width: 2, color: trunkOrange, delay: 0.48, visible: branchGrowth > 0.72 },
-            { d: "M138,72 Q142,66 145,58", width: 2, color: trunkOrange, delay: 0.5, visible: branchGrowth > 0.75 },
-        ];
+                // Top branches
+                { d: "M100,55 L85,60", width: 3, color: trunkColor, delay: 0.2, visible: branchGrowth > 0.35 },
+                { d: "M100,55 L115,60", width: 3, color: trunkColor, delay: 0.2, visible: branchGrowth > 0.35 },
+            ];
+        } else if (treeType === 'cherry' || treeType === 'sakura') {
+            // CHERRY BLOSSOM STRUCTURE (Elegant, spreading)
+            branches = [
+                // Curving main trunk
+                { d: "M100,120 Q95,90 100,70", width: 7, color: trunkDark, delay: 0, visible: trunkGrowth > 0 },
+
+                // Spreading main branches
+                { d: "M100,100 Q70,90 60,70", width: 5, color: trunkMid, delay: 0.05, visible: branchGrowth > 0.1 },
+                { d: "M100,100 Q130,90 140,70", width: 5, color: trunkMid, delay: 0.05, visible: branchGrowth > 0.1 },
+
+                // Secondary arching branches
+                { d: "M60,70 Q50,60 45,80", width: 3, color: trunkLight, delay: 0.15, visible: branchGrowth > 0.2 },
+                { d: "M140,70 Q150,60 155,80", width: 3, color: trunkLight, delay: 0.15, visible: branchGrowth > 0.2 },
+
+                // Upward filling branches
+                { d: "M100,70 Q80,50 85,40", width: 4, color: trunkMid, delay: 0.1, visible: branchGrowth > 0.15 },
+                { d: "M100,70 Q120,50 115,40", width: 4, color: trunkMid, delay: 0.1, visible: branchGrowth > 0.15 },
+            ];
+        } else {
+            // DEFAULT OAK/DECIDUOUS STRUCTURE
+            branches = [
+                // Main branches - larger, thicker, more natural curves
+                { d: "M100,120 Q82,110 70,90 Q65,80 60,68", width: 6, color: trunkDark, delay: 0, visible: branchGrowth > 0 },
+                { d: "M100,120 Q118,110 130,90 Q135,80 140,68", width: 6, color: trunkDark, delay: 0.05, visible: branchGrowth > 0.05 },
+
+                // Secondary main branches with organic curves
+                { d: "M100,115 Q78,105 68,88 Q62,76 58,64", width: 5, color: trunkMid, delay: 0.1, visible: branchGrowth > 0.15 },
+                { d: "M100,115 Q122,105 132,88 Q138,76 142,64", width: 5, color: trunkMid, delay: 0.15, visible: branchGrowth > 0.2 },
+
+                // Mid-level branches - varied angles
+                { d: "M70,90 Q65,82 62,72 Q60,65 58,58", width: 4, color: trunkMid, delay: 0.2, visible: branchGrowth > 0.3 },
+                { d: "M130,90 Q135,82 138,72 Q140,65 142,58", width: 4, color: trunkMid, delay: 0.22, visible: branchGrowth > 0.32 },
+                { d: "M100,110 Q88,98 80,82 Q76,72 72,60", width: 4, color: trunkLight, delay: 0.24, visible: branchGrowth > 0.35 },
+                { d: "M100,110 Q112,98 120,82 Q124,72 128,60", width: 4, color: trunkLight, delay: 0.26, visible: branchGrowth > 0.38 },
+
+                // Tertiary branches - creating fuller canopy
+                { d: "M68,88 Q62,80 58,70 Q55,62 52,54", width: 3, color: trunkLight, delay: 0.3, visible: branchGrowth > 0.45 },
+                { d: "M132,88 Q138,80 142,70 Q145,62 148,54", width: 3, color: trunkLight, delay: 0.32, visible: branchGrowth > 0.48 },
+                { d: "M80,82 Q74,74 70,64 Q67,56 64,48", width: 3, color: trunkGrey, delay: 0.34, visible: branchGrowth > 0.5 },
+                { d: "M120,82 Q126,74 130,64 Q133,56 136,48", width: 3, color: trunkGrey, delay: 0.36, visible: branchGrowth > 0.52 },
+
+                // Fine detail branches - natural extensions
+                { d: "M60,68 Q56,62 54,54 Q52,48 50,42", width: 2.5, color: trunkGrey, delay: 0.4, visible: branchGrowth > 0.6 },
+                { d: "M140,68 Q144,62 146,54 Q148,48 150,42", width: 2.5, color: trunkGrey, delay: 0.42, visible: branchGrowth > 0.62 },
+                { d: "M72,60 Q68,54 65,46 Q63,40 61,34", width: 2, color: trunkLight, delay: 0.44, visible: branchGrowth > 0.65 },
+                { d: "M128,60 Q132,54 135,46 Q137,40 139,34", width: 2, color: trunkLight, delay: 0.46, visible: branchGrowth > 0.68 },
+
+                // Extra small branches for density
+                { d: "M62,72 Q58,66 55,58", width: 2, color: trunkOrange, delay: 0.48, visible: branchGrowth > 0.72 },
+                { d: "M138,72 Q142,66 145,58", width: 2, color: trunkOrange, delay: 0.5, visible: branchGrowth > 0.75 },
+            ];
+        }
 
         // ENHANCED: Leaves change as tree matures!
         // Young trees (0-50% growth): Lighter, fewer leaves
@@ -4462,66 +4539,115 @@ const GrowthTree = ({ sessions, db, userId, setNotification }) => {
         };
 
         // Enhanced leaf positions with size, color, and SHAPE variety!
-        const leaves = [
-            // Top cluster - crown of the tree (MIX of shapes)
-            { x: 100, y: 42, size: 16, color: getLeafColor(0), shape: 'oval', delay: 0, visible: leafGrowth > 0 },
-            { x: 94, y: 46, size: 14, color: getLeafColor(1), shape: 'circle', delay: 0.02, visible: leafGrowth > 0.03 },
-            { x: 106, y: 46, size: 14, color: getLeafColor(2), shape: 'triangle', delay: 0.04, visible: leafGrowth > 0.06 },
-            { x: 88, y: 50, size: 13, color: getLeafColor(3), shape: 'oval', delay: 0.06, visible: leafGrowth > 0.09 },
-            { x: 112, y: 50, size: 13, color: getLeafColor(4), shape: 'diamond', delay: 0.08, visible: leafGrowth > 0.12 },
-            { x: 100, y: 52, size: 12, color: getLeafColor(5), shape: 'circle', delay: 0.09, visible: leafGrowth > 0.14 },
+        let leaves = [];
 
-            // Upper canopy - dense foliage (VARIED SHAPES!)
-            { x: 82, y: 56, size: 15, color: getLeafColor(6), shape: 'rectangle', delay: 0.1, visible: leafGrowth > 0.16 },
-            { x: 118, y: 56, size: 15, color: getLeafColor(7), shape: 'oval', delay: 0.12, visible: leafGrowth > 0.18 },
-            { x: 75, y: 60, size: 14, color: getLeafColor(8), shape: 'hexagon', delay: 0.14, visible: leafGrowth > 0.2 },
-            { x: 125, y: 60, size: 14, color: getLeafColor(9), shape: 'circle', delay: 0.16, visible: leafGrowth > 0.22 },
-            { x: 90, y: 62, size: 13, color: getLeafColor(10), shape: 'oval', delay: 0.18, visible: leafGrowth > 0.24 },
-            { x: 110, y: 62, size: 13, color: getLeafColor(11), shape: 'triangle', delay: 0.2, visible: leafGrowth > 0.26 },
-            { x: 96, y: 58, size: 11, color: getLeafColor(12), shape: 'circle', delay: 0.21, visible: leafGrowth > 0.27 },
-            { x: 104, y: 58, size: 11, color: getLeafColor(13), shape: 'diamond', delay: 0.22, visible: leafGrowth > 0.28 },
+        if (treeType === 'pine') {
+            // PINE LEAVES - Conical distribution
+            for (let i = 0; i < 50; i++) {
+                // Cone shaope math
+                const y = 40 + Math.random() * 80; // Top to bottom
+                const widthAtY = (y - 40) * 0.6; // Wider at bottom
+                const x = 100 + (Math.random() * widthAtY * 2 - widthAtY);
 
-            // Middle section - widest part of canopy (MORE VARIETY!)
-            { x: 68, y: 66, size: 16, color: getLeafColor(14), shape: 'star', delay: 0.24, visible: leafGrowth > 0.3 },
-            { x: 132, y: 66, size: 16, color: getLeafColor(15), shape: 'oval', delay: 0.26, visible: leafGrowth > 0.32 },
-            { x: 78, y: 70, size: 15, color: getLeafColor(16), shape: 'circle', delay: 0.28, visible: leafGrowth > 0.34 },
-            { x: 122, y: 70, size: 15, color: getLeafColor(17), shape: 'fan', delay: 0.3, visible: leafGrowth > 0.36 },
-            { x: 60, y: 72, size: 14, color: getLeafColor(18), shape: 'oval', delay: 0.32, visible: leafGrowth > 0.38 },
-            { x: 140, y: 72, size: 14, color: getLeafColor(19), shape: 'heart', delay: 0.34, visible: leafGrowth > 0.4 },
-            { x: 88, y: 74, size: 13, color: getLeafColor(20), shape: 'circle', delay: 0.36, visible: leafGrowth > 0.42 },
-            { x: 112, y: 74, size: 13, color: getLeafColor(21), shape: 'triangle', delay: 0.38, visible: leafGrowth > 0.44 },
-            { x: 100, y: 76, size: 12, color: getLeafColor(22), shape: 'oval', delay: 0.4, visible: leafGrowth > 0.46 },
-            { x: 72, y: 76, size: 12, color: getLeafColor(23), shape: 'diamond', delay: 0.42, visible: leafGrowth > 0.48 },
-            { x: 128, y: 76, size: 12, color: getLeafColor(24), shape: 'circle', delay: 0.44, visible: leafGrowth > 0.5 },
+                leaves.push({
+                    x, y,
+                    size: 8 + Math.random() * 6,
+                    color: getLeafColor(i),
+                    shape: 'triangle',
+                    delay: (y - 40) / 100, // Top leaves grow first? or bottom? Let's say random or bottom up
+                    visible: leafGrowth > ((y - 40) / 100) * 0.8
+                });
+            }
+        } else if (treeType === 'cherry' || treeType === 'sakura') {
+            // CHERRY LEAVES - Clustered around branch ends
+            const clusters = [
+                { x: 100, y: 35, r: 25 }, // Top
+                { x: 60, y: 70, r: 20 },  // Left
+                { x: 140, y: 70, r: 20 }, // Right
+                { x: 45, y: 80, r: 15 },  // Far Left
+                { x: 155, y: 80, r: 15 }, // Far Right
+            ];
 
-            // Lower-middle section (EVEN MORE SHAPES!)
-            { x: 64, y: 80, size: 14, color: getLeafColor(25), shape: 'oval', delay: 0.46, visible: leafGrowth > 0.52 },
-            { x: 136, y: 80, size: 14, color: getLeafColor(26), shape: 'hexagon', delay: 0.48, visible: leafGrowth > 0.54 },
-            { x: 76, y: 82, size: 13, color: getLeafColor(27), shape: 'circle', delay: 0.5, visible: leafGrowth > 0.56 },
-            { x: 124, y: 82, size: 13, color: getLeafColor(28), shape: 'oval', delay: 0.52, visible: leafGrowth > 0.58 },
-            { x: 84, y: 84, size: 12, color: getLeafColor(29), shape: 'rectangle', delay: 0.54, visible: leafGrowth > 0.6 },
-            { x: 116, y: 84, size: 12, color: getLeafColor(30), shape: 'oval', delay: 0.56, visible: leafGrowth > 0.62 },
-            { x: 94, y: 86, size: 11, color: getLeafColor(31), shape: 'circle', delay: 0.58, visible: leafGrowth > 0.64 },
-            { x: 106, y: 86, size: 11, color: getLeafColor(32), shape: 'triangle', delay: 0.6, visible: leafGrowth > 0.66 },
+            let leafIdx = 0;
+            clusters.forEach(cluster => {
+                for (let i = 0; i < 12; i++) {
+                    const angle = Math.random() * Math.PI * 2;
+                    const dist = Math.random() * cluster.r;
+                    leaves.push({
+                        x: cluster.x + Math.cos(angle) * dist,
+                        y: cluster.y + Math.sin(angle) * dist,
+                        size: 10 + Math.random() * 8,
+                        color: getLeafColor(leafIdx++),
+                        shape: Math.random() > 0.3 ? 'circle' : 'fan', // Mix shapes
+                        delay: Math.random() * 0.5,
+                        visible: leafGrowth > Math.random() * 0.5
+                    });
+                }
+            });
+        } else {
+            // DEFAULT OAK LEAVES
+            leaves = [
+                // Top cluster - crown of the tree (MIX of shapes)
+                { x: 100, y: 42, size: 16, color: getLeafColor(0), shape: 'oval', delay: 0, visible: leafGrowth > 0 },
+                { x: 94, y: 46, size: 14, color: getLeafColor(1), shape: 'circle', delay: 0.02, visible: leafGrowth > 0.03 },
+                { x: 106, y: 46, size: 14, color: getLeafColor(2), shape: 'triangle', delay: 0.04, visible: leafGrowth > 0.06 },
+                { x: 88, y: 50, size: 13, color: getLeafColor(3), shape: 'oval', delay: 0.06, visible: leafGrowth > 0.09 },
+                { x: 112, y: 50, size: 13, color: getLeafColor(4), shape: 'diamond', delay: 0.08, visible: leafGrowth > 0.12 },
+                { x: 100, y: 52, size: 12, color: getLeafColor(5), shape: 'circle', delay: 0.09, visible: leafGrowth > 0.14 },
 
-            // Lower outer leaves - creating natural edge (FULL VARIETY!)
-            { x: 56, y: 76, size: 13, color: getLeafColor(33), shape: 'oval', delay: 0.62, visible: leafGrowth > 0.68 },
-            { x: 144, y: 76, size: 13, color: getLeafColor(34), shape: 'diamond', delay: 0.64, visible: leafGrowth > 0.7 },
-            { x: 62, y: 68, size: 12, color: getLeafColor(35), shape: 'circle', delay: 0.66, visible: leafGrowth > 0.72 },
-            { x: 138, y: 68, size: 12, color: getLeafColor(36), shape: 'oval', delay: 0.68, visible: leafGrowth > 0.74 },
-            { x: 70, y: 88, size: 11, color: getLeafColor(37), shape: 'fan', delay: 0.7, visible: leafGrowth > 0.76 },
-            { x: 130, y: 88, size: 11, color: getLeafColor(38), shape: 'circle', delay: 0.72, visible: leafGrowth > 0.78 },
+                // Upper canopy - dense foliage (VARIED SHAPES!)
+                { x: 82, y: 56, size: 15, color: getLeafColor(6), shape: 'rectangle', delay: 0.1, visible: leafGrowth > 0.16 },
+                { x: 118, y: 56, size: 15, color: getLeafColor(7), shape: 'oval', delay: 0.12, visible: leafGrowth > 0.18 },
+                { x: 75, y: 60, size: 14, color: getLeafColor(8), shape: 'hexagon', delay: 0.14, visible: leafGrowth > 0.2 },
+                { x: 125, y: 60, size: 14, color: getLeafColor(9), shape: 'circle', delay: 0.16, visible: leafGrowth > 0.22 },
+                { x: 90, y: 62, size: 13, color: getLeafColor(10), shape: 'oval', delay: 0.18, visible: leafGrowth > 0.24 },
+                { x: 110, y: 62, size: 13, color: getLeafColor(11), shape: 'triangle', delay: 0.2, visible: leafGrowth > 0.26 },
+                { x: 96, y: 58, size: 11, color: getLeafColor(12), shape: 'circle', delay: 0.21, visible: leafGrowth > 0.27 },
+                { x: 104, y: 58, size: 11, color: getLeafColor(13), shape: 'diamond', delay: 0.22, visible: leafGrowth > 0.28 },
 
-            // Fill gaps for fuller appearance (MAXIMUM VARIETY!)
-            { x: 80, y: 66, size: 10, color: getLeafColor(39), shape: 'oval', delay: 0.74, visible: leafGrowth > 0.8 },
-            { x: 120, y: 66, size: 10, color: getLeafColor(40), shape: 'star', delay: 0.76, visible: leafGrowth > 0.82 },
-            { x: 92, y: 68, size: 10, color: getLeafColor(41), shape: 'circle', delay: 0.78, visible: leafGrowth > 0.84 },
-            { x: 108, y: 68, size: 10, color: getLeafColor(42), shape: 'heart', delay: 0.8, visible: leafGrowth > 0.86 },
-            { x: 86, y: 78, size: 10, color: getLeafColor(43), shape: 'oval', delay: 0.82, visible: leafGrowth > 0.88 },
-            { x: 114, y: 78, size: 10, color: getLeafColor(44), shape: 'triangle', delay: 0.84, visible: leafGrowth > 0.9 },
-            { x: 98, y: 72, size: 9, color: getLeafColor(45), shape: 'circle', delay: 0.86, visible: leafGrowth > 0.92 },
-            { x: 102, y: 80, size: 9, color: getLeafColor(46), shape: 'oval', delay: 0.88, visible: leafGrowth > 0.94 },
-        ];
+                // Middle section - widest part of canopy (MORE VARIETY!)
+                { x: 68, y: 66, size: 16, color: getLeafColor(14), shape: 'star', delay: 0.24, visible: leafGrowth > 0.3 },
+                { x: 132, y: 66, size: 16, color: getLeafColor(15), shape: 'oval', delay: 0.26, visible: leafGrowth > 0.32 },
+                { x: 78, y: 70, size: 15, color: getLeafColor(16), shape: 'circle', delay: 0.28, visible: leafGrowth > 0.34 },
+                { x: 122, y: 70, size: 15, color: getLeafColor(17), shape: 'fan', delay: 0.3, visible: leafGrowth > 0.36 },
+                { x: 60, y: 72, size: 14, color: getLeafColor(18), shape: 'oval', delay: 0.32, visible: leafGrowth > 0.38 },
+                { x: 140, y: 72, size: 14, color: getLeafColor(19), shape: 'heart', delay: 0.34, visible: leafGrowth > 0.4 },
+                { x: 88, y: 74, size: 13, color: getLeafColor(20), shape: 'circle', delay: 0.36, visible: leafGrowth > 0.42 },
+                { x: 112, y: 74, size: 13, color: getLeafColor(21), shape: 'triangle', delay: 0.38, visible: leafGrowth > 0.44 },
+                { x: 100, y: 76, size: 12, color: getLeafColor(22), shape: 'oval', delay: 0.4, visible: leafGrowth > 0.46 },
+                { x: 72, y: 76, size: 12, color: getLeafColor(23), shape: 'diamond', delay: 0.42, visible: leafGrowth > 0.48 },
+                { x: 128, y: 76, size: 12, color: getLeafColor(24), shape: 'circle', delay: 0.44, visible: leafGrowth > 0.5 },
+
+                // Lower-middle section (EVEN MORE SHAPES!)
+                { x: 64, y: 80, size: 14, color: getLeafColor(25), shape: 'oval', delay: 0.46, visible: leafGrowth > 0.52 },
+                { x: 136, y: 80, size: 14, color: getLeafColor(26), shape: 'hexagon', delay: 0.48, visible: leafGrowth > 0.54 },
+                { x: 76, y: 82, size: 13, color: getLeafColor(27), shape: 'circle', delay: 0.5, visible: leafGrowth > 0.56 },
+                { x: 124, y: 82, size: 13, color: getLeafColor(28), shape: 'oval', delay: 0.52, visible: leafGrowth > 0.58 },
+                { x: 84, y: 84, size: 12, color: getLeafColor(29), shape: 'rectangle', delay: 0.54, visible: leafGrowth > 0.6 },
+                { x: 116, y: 84, size: 12, color: getLeafColor(30), shape: 'oval', delay: 0.56, visible: leafGrowth > 0.62 },
+                { x: 94, y: 86, size: 11, color: getLeafColor(31), shape: 'circle', delay: 0.58, visible: leafGrowth > 0.64 },
+                { x: 106, y: 86, size: 11, color: getLeafColor(32), shape: 'triangle', delay: 0.6, visible: leafGrowth > 0.66 },
+
+                // Lower outer leaves - creating natural edge (FULL VARIETY!)
+                { x: 56, y: 76, size: 13, color: getLeafColor(33), shape: 'oval', delay: 0.62, visible: leafGrowth > 0.68 },
+                { x: 144, y: 76, size: 13, color: getLeafColor(34), shape: 'diamond', delay: 0.64, visible: leafGrowth > 0.7 },
+                { x: 62, y: 68, size: 12, color: getLeafColor(35), shape: 'circle', delay: 0.66, visible: leafGrowth > 0.72 },
+                { x: 138, y: 68, size: 12, color: getLeafColor(36), shape: 'oval', delay: 0.68, visible: leafGrowth > 0.74 },
+                { x: 70, y: 88, size: 11, color: getLeafColor(37), shape: 'fan', delay: 0.7, visible: leafGrowth > 0.76 },
+                { x: 130, y: 88, size: 11, color: getLeafColor(38), shape: 'circle', delay: 0.72, visible: leafGrowth > 0.78 },
+
+                // Fill gaps for fuller appearance (MAXIMUM VARIETY!)
+                // Fill gaps for fuller appearance (MAXIMUM VARIETY!)
+                { x: 80, y: 66, size: 10, color: getLeafColor(39), shape: 'oval', delay: 0.74, visible: leafGrowth > 0.8 },
+                { x: 120, y: 66, size: 10, color: getLeafColor(40), shape: 'star', delay: 0.76, visible: leafGrowth > 0.82 },
+                { x: 92, y: 68, size: 10, color: getLeafColor(41), shape: 'circle', delay: 0.78, visible: leafGrowth > 0.84 },
+                { x: 108, y: 68, size: 10, color: getLeafColor(42), shape: 'heart', delay: 0.8, visible: leafGrowth > 0.86 },
+                { x: 86, y: 78, size: 10, color: getLeafColor(43), shape: 'oval', delay: 0.82, visible: leafGrowth > 0.88 },
+                { x: 114, y: 78, size: 10, color: getLeafColor(44), shape: 'triangle', delay: 0.84, visible: leafGrowth > 0.9 },
+                { x: 98, y: 72, size: 9, color: getLeafColor(45), shape: 'circle', delay: 0.86, visible: leafGrowth > 0.92 },
+                { x: 102, y: 80, size: 9, color: getLeafColor(46), shape: 'oval', delay: 0.88, visible: leafGrowth > 0.94 },
+            ];
+        }
 
         // Minecraft-style fruits (apples, sweet berries, glow berries) - hidden for seedlings and pine
         const fruits = (fruitGrowth > 0 && treeType !== 'seedling' && treeType !== 'pine') ? [
@@ -6795,8 +6921,8 @@ const Friends = ({ db, userId, setNotification, userProfile }) => {
                         onClick: handleSendNousRequest,
                         disabled: selectedFriends.length === 0 || !selectedHabit,
                         className: `px-4 py-2 rounded-lg transition ${selectedFriends.length === 0 || !selectedHabit
-                                ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                                : 'bg-purple-600 text-white hover:bg-purple-700'
+                            ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                            : 'bg-purple-600 text-white hover:bg-purple-700'
                             }`,
                         style: { fontWeight: 400 }
                     }, "Send Request")
@@ -6870,8 +6996,8 @@ const Friends = ({ db, userId, setNotification, userProfile }) => {
                         onClick: handleAcceptNousRequest,
                         disabled: !selectedHabit,
                         className: `px-4 py-2 rounded-lg transition ${!selectedHabit
-                                ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                                : 'bg-purple-600 text-white hover:bg-purple-700'
+                            ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                            : 'bg-purple-600 text-white hover:bg-purple-700'
                             }`,
                         style: { fontWeight: 400 }
                     }, "Accept & Join")
@@ -7237,8 +7363,8 @@ const Leaderboard = ({ db, userId, setNotification, userProfile }) => {
                         key: metric.key,
                         onClick: () => setSelectedMetric(metric.key),
                         className: `px-4 py-2 rounded-lg transition ${selectedMetric === metric.key
-                                ? 'bg-calm-600 text-white'
-                                : 'bg-calm-100 text-calm-700 hover:bg-calm-200'
+                            ? 'bg-calm-600 text-white'
+                            : 'bg-calm-100 text-calm-700 hover:bg-calm-200'
                             }`,
                         style: { fontWeight: selectedMetric === metric.key ? 400 : 300 }
                     }, metric.label)
@@ -7258,8 +7384,8 @@ const Leaderboard = ({ db, userId, setNotification, userProfile }) => {
                         return React.createElement('div', {
                             key: friend.userId,
                             className: `p-4 rounded-lg border-2 transition ${friend.isCurrentUser
-                                    ? 'bg-blue-50 border-blue-200'
-                                    : 'bg-calm-50 border-calm-200 hover:border-calm-300'
+                                ? 'bg-blue-50 border-blue-200'
+                                : 'bg-calm-50 border-calm-200 hover:border-calm-300'
                                 }`
                         },
                             React.createElement('div', { className: "flex justify-between items-center" },
@@ -7427,14 +7553,18 @@ function App() {
             try {
                 // Check if Firebase app is already initialized to avoid duplicate initialization
                 let app;
-                try {
-                    app = window.initializeApp(firebaseConfig);
-                } catch (error) {
-                    if (error.code === 'app/duplicate-app' || error.message.includes('already exists')) {
-                        app = window.getApp(); // Get the existing app
-                    } else {
-                        throw error; // Re-throw if it's a different error
+                if (typeof window.initializeApp === 'function') {
+                    try {
+                        app = window.initializeApp(firebaseConfig);
+                    } catch (error) {
+                        if (error.code === 'app/duplicate-app' || error.message.includes('already exists')) {
+                            app = window.getApp(); // Get the existing app
+                        } else {
+                            throw error; // Re-throw if it's a different error
+                        }
                     }
+                } else {
+                    console.warn('Firebase SDK not loaded - Offline Mode');
                 }
 
                 const authInstance = window.getAuth(app);

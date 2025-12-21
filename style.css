@@ -11,7 +11,7 @@ body {
     font-weight: 400;
     background-color: #f8f9fb;
     transition: background-color 0.4s cubic-bezier(0.4, 0, 0.2, 1),
-                color 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        color 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 /* Light mode default backgrounds */
@@ -29,7 +29,12 @@ body {
 }
 
 /* Regular weight for all headers */
-h1, h2, h3, h4, h5, h6 {
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
     font-weight: 400;
 }
 
@@ -96,13 +101,31 @@ body.night-mode::after {
 }
 
 @keyframes twinkle1 {
-    0%, 100% { transform: translate(0, 0); opacity: 0.25; }
-    50% { transform: translate(-12px, -12px); opacity: 0.35; }
+
+    0%,
+    100% {
+        transform: translate(0, 0);
+        opacity: 0.25;
+    }
+
+    50% {
+        transform: translate(-12px, -12px);
+        opacity: 0.35;
+    }
 }
 
 @keyframes twinkle2 {
-    0%, 100% { transform: translate(0, 0); opacity: 0.2; }
-    50% { transform: translate(-18px, -18px); opacity: 0.3; }
+
+    0%,
+    100% {
+        transform: translate(0, 0);
+        opacity: 0.2;
+    }
+
+    50% {
+        transform: translate(-18px, -18px);
+        opacity: 0.3;
+    }
 }
 
 /* Elegant shooting stars */
@@ -111,6 +134,7 @@ body.night-mode::after {
         transform: translate(150vw, -50vh) scale(0.5);
         opacity: 0.8;
     }
+
     100% {
         transform: translate(-50vw, 150vh) scale(0);
         opacity: 0;
@@ -148,7 +172,7 @@ body.night-mode #root {
     z-index: 10;
 }
 
-body.night-mode #root > div {
+body.night-mode #root>div {
     background-color: transparent !important;
     position: relative;
 }
@@ -194,22 +218,22 @@ body.night-mode .bg-blue-100 {
 
 body.night-mode .bg-gradient-to-b {
     background: linear-gradient(to bottom,
-        rgba(30, 58, 95, 0.4) 0%,
-        rgba(15, 61, 48, 0.4) 100%) !important;
+            rgba(30, 58, 95, 0.4) 0%,
+            rgba(15, 61, 48, 0.4) 100%) !important;
     backdrop-filter: blur(8px);
 }
 
 body.night-mode .bg-gradient-to-r {
     background: linear-gradient(to right,
-        rgba(30, 58, 95, 0.4) 0%,
-        rgba(45, 27, 78, 0.4) 100%) !important;
+            rgba(30, 58, 95, 0.4) 0%,
+            rgba(45, 27, 78, 0.4) 100%) !important;
     backdrop-filter: blur(8px);
 }
 
 body.night-mode .bg-gradient-to-br {
     background: linear-gradient(to bottom right,
-        rgba(30, 58, 95, 0.4) 0%,
-        rgba(45, 27, 78, 0.4) 100%) !important;
+            rgba(30, 58, 95, 0.4) 0%,
+            rgba(45, 27, 78, 0.4) 100%) !important;
     backdrop-filter: blur(8px);
 }
 
@@ -325,8 +349,8 @@ body.night-mode button[class*="bg-blue"],
 body.night-mode button[class*="bg-purple"],
 body.night-mode button[class*="bg-green"] {
     background: linear-gradient(135deg,
-        rgba(var(--button-color, 59, 130, 246), 0.8) 0%,
-        rgba(var(--button-color, 59, 130, 246), 0.6) 100%) !important;
+            rgba(var(--button-color, 59, 130, 246), 0.8) 0%,
+            rgba(var(--button-color, 59, 130, 246), 0.6) 100%) !important;
     backdrop-filter: blur(12px);
     border: 1px solid rgba(255, 255, 255, 0.2) !important;
     box-shadow:
@@ -406,9 +430,7 @@ body.night-mode svg polygon[fill] {
     stroke: #34d399 !important;
     stroke-width: 1 !important;
     opacity: 1 !important;
-    filter: brightness(1.3) saturate(1.4)
-            drop-shadow(0 0 4px rgba(52, 211, 153, 0.6))
-            drop-shadow(0 0 8px rgba(52, 211, 153, 0.3)) !important;
+    filter: brightness(1.3) saturate(1.4) drop-shadow(0 0 4px rgba(52, 211, 153, 0.6)) drop-shadow(0 0 8px rgba(52, 211, 153, 0.3)) !important;
 }
 
 /* Premium headings */
@@ -436,9 +458,7 @@ body.night-mode .circle-flow {
     fill: none !important;
     stroke-width: 3 !important;
     opacity: 0.95 !important;
-    filter: drop-shadow(0 0 24px rgba(74, 222, 128, 0.8))
-            drop-shadow(0 0 16px rgba(74, 222, 128, 0.6))
-            drop-shadow(0 0 8px rgba(74, 222, 128, 0.4));
+    filter: drop-shadow(0 0 24px rgba(74, 222, 128, 0.8)) drop-shadow(0 0 16px rgba(74, 222, 128, 0.6)) drop-shadow(0 0 8px rgba(74, 222, 128, 0.4));
     stroke-dasharray: none !important;
     animation: none !important;
     stroke-linecap: round !important;
@@ -478,17 +498,20 @@ body.night-mode strong {
 body.night-mode,
 body.night-mode * {
     transition: background-color 0.4s cubic-bezier(0.4, 0, 0.2, 1),
-                color 0.4s cubic-bezier(0.4, 0, 0.2, 1),
-                border-color 0.4s cubic-bezier(0.4, 0, 0.2, 1),
-                box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        color 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+        border-color 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+        box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 /* Premium animations */
 @keyframes neuron-pulse {
-    0%, 100% {
+
+    0%,
+    100% {
         opacity: 1;
         transform: scale(1);
     }
+
     50% {
         opacity: 0.85;
         transform: scale(1.05);
@@ -500,9 +523,12 @@ body.night-mode * {
 }
 
 @keyframes soft-glow {
-    0%, 100% {
+
+    0%,
+    100% {
         box-shadow: 0 0 12px rgba(107, 141, 214, 0.3), 0 0 24px rgba(107, 141, 214, 0.1);
     }
+
     50% {
         box-shadow: 0 0 20px rgba(107, 141, 214, 0.5), 0 0 40px rgba(107, 141, 214, 0.2);
     }
@@ -516,6 +542,7 @@ body.night-mode * {
     0% {
         stroke-dashoffset: 0;
     }
+
     100% {
         stroke-dashoffset: -200;
     }
@@ -632,7 +659,7 @@ body.night-mode header a:hover {
 }
 
 /* Ensure proper z-index layering */
-body.night-mode > div,
+body.night-mode>div,
 body.night-mode main,
 body.night-mode section,
 body.night-mode article,
@@ -642,6 +669,7 @@ body.night-mode aside {
 
 /* Accessibility: Respect prefers-reduced-motion */
 @media (prefers-reduced-motion: reduce) {
+
     body.night-mode::before,
     body.night-mode::after {
         animation: none !important;
@@ -657,4 +685,133 @@ body.night-mode aside {
         animation-iteration-count: 1 !important;
         transition-duration: 0.01ms !important;
     }
+}
+
+/* ============================================
+   REPORT PAGE - SCREEN TIME STYLE
+   ============================================ */
+
+/* Segmented Control - Pill Style */
+.segmented-control {
+    background-color: #e5e7eb;
+    border-radius: 8px;
+    padding: 2px;
+    display: inline-flex;
+    position: relative;
+    border: 1px solid rgba(0, 0, 0, 0.04);
+}
+
+body.night-mode .segmented-control {
+    background-color: rgba(30, 41, 59, 1);
+    border-color: rgba(255, 255, 255, 0.05);
+}
+
+.segmented-control button {
+    padding: 4px 16px;
+    font-size: 13px;
+    font-weight: 500;
+    border-radius: 6px;
+    color: #4b5563;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    z-index: 1;
+}
+
+body.night-mode .segmented-control button {
+    color: #94a3b8;
+}
+
+.segmented-control button.active {
+    background-color: white;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1), 0 1px 1px rgba(0, 0, 0, 0.06);
+    color: #000;
+}
+
+body.night-mode .segmented-control button.active {
+    background-color: #3b82f6;
+    color: white;
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+}
+
+/* Chart Bars */
+.chart-bar-container {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    align-items: center;
+    position: relative;
+}
+
+.chart-bar {
+    width: 100%;
+    max-width: 32px;
+    /* Flexible width for consistent look */
+    background-color: #3b82f6;
+    border-radius: 4px;
+    border-bottom-left-radius: 2px;
+    border-bottom-right-radius: 2px;
+    transition: height 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+    min-height: 4px;
+    /* Ensure 0 values are slightly visible or handle efficiently */
+    position: relative;
+}
+
+.chart-bar.empty {
+    background-color: transparent;
+    opacity: 0;
+}
+
+.chart-bar.selected {
+    background-color: #2563eb;
+    box-shadow: 0 0 10px rgba(37, 99, 235, 0.3);
+}
+
+body.night-mode .chart-bar {
+    background-color: #3b82f6;
+}
+
+body.night-mode .chart-bar.selected {
+    background-color: #60a5fa;
+    box-shadow: 0 0 15px rgba(96, 165, 250, 0.5);
+}
+
+/* Category Bars (Progress bars in list) */
+.category-bar-bg {
+    background-color: #f3f4f6;
+    border-radius: 4px;
+    height: 6px;
+    overflow: hidden;
+    width: 100%;
+}
+
+body.night-mode .category-bar-bg {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+.category-bar-fill {
+    height: 100%;
+    border-radius: 4px;
+    transition: width 1s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Stat Cards */
+.stat-card {
+    background: white;
+    border-radius: 16px;
+    padding: 16px;
+    border: 1px solid rgba(0, 0, 0, 0.03);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+}
+
+body.night-mode .stat-card {
+    background: rgba(30, 41, 59, 0.6);
+    border-color: rgba(148, 163, 184, 0.1);
+}
+
+/* Utility for layout */
+.reports-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 24px;
 }
