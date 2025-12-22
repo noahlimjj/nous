@@ -537,6 +537,7 @@ const generateUniqueFriendCode = async (db) => {
 };
 
 // Tree types with unlock requirements (total hours studied)
+// Tree types with unlock requirements (total hours studied)
 const TREE_TYPES = [
     { id: 'oak', name: 'Oak', requiredHours: 0, color: '#4a7c2c', leafShapes: ['oval', 'circle'], leafColors: ['#3E7C17', '#5DAE49', '#A1C349', '#4a7c2c', '#6d9f4f'], branchColor: '#5A3E1B' },
     { id: 'maple', name: 'Maple', requiredHours: 5, color: '#d94f04', leafShapes: ['star', 'diamond'], leafColors: ['#FF4C29', '#FFB84C', '#D94F04', '#c2410c', '#f97316'], branchColor: '#6B2B06' },
@@ -546,8 +547,11 @@ const TREE_TYPES = [
     { id: 'cypress', name: 'Cypress', requiredHours: 75, color: '#4d7c0f', leafShapes: ['hexagon', 'diamond'], leafColors: ['#557A46', '#A9C46C', '#7BA23F', '#65a30d', '#84cc16'], branchColor: '#4B3D28' },
     { id: 'birch', name: 'Birch', requiredHours: 100, color: '#fde047', leafShapes: ['diamond', 'triangle'], leafColors: ['#C7E6D7', '#fef08a', '#fde047', '#facc15', '#eab308'], branchColor: '#8E7C5D' },
     { id: 'sakura', name: 'Ancient Sakura', requiredHours: 150, color: '#db2777', leafShapes: ['circle', 'fan'], leafColors: ['#F8C8DC', '#FADADD', '#FFD6E8', '#fbcfe8', '#f9a8d4', '#f472b6', '#ec4899', '#e11d48'], branchColor: '#705243' },
-    { id: 'baobab', name: 'Baobab', requiredHours: 250, color: '#4d7c0f', leafShapes: ['star', 'circle'], leafColors: ['#8ABF69', '#C8E7A7', '#EBF2C0', '#4d7c0f', '#a3e635'], branchColor: '#8B5A2B' },
+    { id: 'jacaranda', name: 'Jacaranda', requiredHours: 200, color: '#8b5cf6', leafShapes: ['oval', 'circle'], leafColors: ['#A78BFA', '#8B5CF6', '#7C3AED', '#C4B5FD', '#DDD6FE'], branchColor: '#4B5563' },
+    { id: 'baobab', name: 'Baobab', requiredHours: 250, color: '#65a30d', leafShapes: ['star', 'circle'], leafColors: ['#8ABF69', '#C8E7A7', '#EBF2C0', '#4d7c0f', '#a3e635'], branchColor: '#8B5A2B' },
+    { id: 'flame', name: 'Flame Tree', requiredHours: 300, color: '#ef4444', leafShapes: ['diamond', 'fan'], leafColors: ['#FCA5A5', '#F87171', '#EF4444', '#DC2626', '#B91C1C'], branchColor: '#7F1D1D' },
     { id: 'magnolia', name: 'Magnolia', requiredHours: 400, color: '#e879f9', leafShapes: ['oval', 'heart'], leafColors: ['#F6D6AD', '#EFBBCF', '#E6AACE', '#f5d0fe', '#f0abfc'], branchColor: '#7E6651' },
+    { id: 'wisteria', name: 'Wisteria', requiredHours: 500, color: '#6366f1', leafShapes: ['circle', 'oval'], leafColors: ['#818CF8', '#6366F1', '#4F46E5', '#C7D2FE', '#E0E7FF'], branchColor: '#374151' },
     {
         id: 'starry-night',
         name: 'Starry Night Tree',
@@ -557,6 +561,7 @@ const TREE_TYPES = [
         leafColors: ['#000080', '#000066', '#191970', '#00008B', '#0000CD'],
         leafShapes: ['star', 'diamond', 'circle'],
     },
+    { id: 'rainbow', name: 'Rainbow Eucalyptus', requiredHours: 700, color: '#10b981', leafShapes: ['oval', 'diamond'], leafColors: ['#34D399', '#60A5FA', '#F472B6', '#FBBF24', '#A78BFA'], branchColor: '#78350F' },
     { id: 'redwood', name: 'Redwood', requiredHours: 800, color: '#7f1d1d', leafShapes: ['rectangle', 'triangle'], leafColors: ['#8B4513', '#A0522D', '#D2691E', '#CD853F', '#DEB887'], branchColor: '#4A2C2A' },
     { id: 'ginkgo', name: 'Ginkgo', requiredHours: 1000, color: '#facc15', leafShapes: ['fan'], leafColors: ['#F0E68C', '#EEE8AA', '#FAFAD2', '#FFFFE0', '#FFFACD'], branchColor: '#8C5E24' }
 ];
@@ -3679,10 +3684,10 @@ const Reports = ({ db, userId, setNotification }) => {
                         chartData.length > 0 ? chartData.map((bar, idx) =>
                             React.createElement('div', { key: idx, className: "chart-bar-container flex-1 group" },
                                 React.createElement('div', {
-                                    className: `chart-bar w-full max-w-[30px] rounded-t-md mx-auto ${bar.isToday ? 'bg-blue-600 dark:bg-blue-500' : 'bg-gray-300 dark:bg-gray-600'} group-hover:bg-blue-400 transition-all`,
+                                    className: `chart-bar w-full max-w-[30px] rounded-t-md mx-auto ${bar.isToday ? 'bg-blue-600 dark:bg-blue-500' : 'bg-indigo-300 dark:bg-indigo-600'} group-hover:bg-blue-400 transition-all`,
                                     style: {
                                         height: `${Math.max(bar.heightPct, 4)}%`,
-                                        opacity: bar.value === 0 ? 0.3 : 1
+                                        opacity: bar.value === 0 ? 0.5 : 1
                                     }
                                 }),
                                 React.createElement('div', { className: "mt-2 text-xs text-gray-400 dark:text-gray-500 font-medium" }, bar.label),
@@ -3749,7 +3754,7 @@ const Reports = ({ db, userId, setNotification }) => {
                                     ),
                                     React.createElement('span', { className: "text-gray-800 dark:text-gray-200 font-medium" }, formatDurationFull(item.duration))
                                 ),
-                                React.createElement('div', { className: "w-full bg-gray-100 dark:bg-gray-700/50 rounded-full h-2 overflow-hidden" },
+                                React.createElement('div', { className: "w-full bg-gray-100 dark:bg-gray-700/50 rounded-full h-4 overflow-hidden" },
                                     React.createElement('div', {
                                         className: "h-full rounded-full transition-all duration-1000 ease-out",
                                         style: {
