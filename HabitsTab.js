@@ -132,6 +132,35 @@
                 const habitsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 setHabits(habitsData);
 
+                // --- RESTORE / SEED DATA LOGIC (Requested by User) ---
+                const desiredHabits = [
+                    { title: "Make bed", icon: "home", difficulty: "easy" },
+                    { title: "Meditate in the morning", icon: "user", difficulty: "medium" },
+                    { title: "BJJ", icon: "zap", difficulty: "hard" },
+                    { title: "Medical School", icon: "book", difficulty: "hard" },
+                    { title: "Research", icon: "search", difficulty: "hard" },
+                    { title: "Anki", icon: "book", difficulty: "medium" }
+                ];
+
+                desiredHabits.forEach(async (seed) => {
+                    const exists = habitsData.some(h => (h.title || h.habitName || h.name || '').toLowerCase() === seed.title.toLowerCase());
+                    if (!exists) {
+                        console.log(`Seeding restored habit: ${seed.title}`);
+                        const newId = Date.now().toString() + Math.random().toString(36).substr(2, 5);
+                        await window.setDoc(window.doc(db, `/artifacts/${appId}/users/${userId}/habits/${newId}`), {
+                            id: newId,
+                            title: seed.title,
+                            difficulty: seed.difficulty,
+                            icon: seed.icon,
+                            streak: 0,
+                            completedToday: false,
+                            lastCompleted: null,
+                            completionDates: [],
+                            createdAt: new Date().toISOString()
+                        });
+                    }
+                });
+
                 // Migration: Check for local habits and migrate ONE TIME if Firestore is empty
                 const localHabits = JSON.parse(localStorage.getItem('nous_habits') || '[]');
                 if (habitsData.length === 0 && localHabits.length > 0) {
