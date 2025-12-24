@@ -1,6 +1,6 @@
 // Service Worker v22 - Improved manifest.json handling and mobile PWA support
 // Fixed: Don't fail installation if manifest.json caching fails
-const CACHE_VERSION = 'nous-v22-2025-12-24';
+const CACHE_VERSION = 'nous-v23-2025-12-24';
 const CACHE_NAME = CACHE_VERSION;
 
 // Critical files for offline functionality
