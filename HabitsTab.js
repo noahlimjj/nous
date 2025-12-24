@@ -146,15 +146,14 @@
 
     // --- CONFETTI HELPER ---
     const triggerConfetti = () => {
-        const colors = ['#ffffff', '#f0f0f0', '#e0e0e0']; // White shades
-        for (let i = 0; i < 50; i++) {
-            const confetto = document.createElement('div');
-            confetto.className = 'confetto';
-            confetto.style.left = Math.random() * 100 + 'vw';
-            confetto.style.animationDuration = (Math.random() * 2 + 1) + 's';
-            confetto.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
-            document.body.appendChild(confetto);
-            setTimeout(() => confetto.remove(), 3000);
+        if (typeof window.confetti === 'function') {
+            window.confetti({
+                particleCount: 100,
+                spread: 70,
+                origin: { y: 0.6 }
+            });
+        } else {
+            console.warn('Canvas confetti library not loaded');
         }
     };
 
@@ -190,11 +189,13 @@
                     { title: "Make bed", icon: "home", difficulty: "easy" },
                     { title: "Meditate in the morning", icon: "user", difficulty: "medium" },
                     { title: "BJJ", icon: "zap", difficulty: "hard" },
+                    { title: "Medical School", icon: "book", difficulty: "hard" },
+                    { title: "Research", icon: "search", difficulty: "hard" },
                     { title: "Anki", icon: "book", difficulty: "medium" }
                 ];
 
                 desiredHabits.forEach(async (seed) => {
-                    const exists = habitsData.some(h => h.title.toLowerCase() === seed.title.toLowerCase());
+                    const exists = habitsData.some(h => h.title && h.title.toLowerCase() === seed.title.toLowerCase());
                     if (!exists) {
                         const habitId = Date.now().toString() + Math.random().toString(36).substr(2, 5);
                         const newH = {
@@ -361,11 +362,14 @@
 
         const [timerHabit, setTimerHabit] = useState(null);
 
-        return React.createElement("div", { className: `container mx-auto px-4 ${isWidget ? 'py-4' : 'py-8'} max-w-4xl min-h-screen text-slate-800` },
+        // Date String for Bottom
+        const todayDateString = new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+
+        return React.createElement("div", { className: `container mx-auto px-4 ${isWidget ? 'py-4' : 'py-8'} max-w-4xl min-h-screen text-slate-800 font-sans` },
 
             // Top Bar: Today's Header (Widget Only) or Shop Header
             !isWidget ? React.createElement("div", { className: "flex justify-between items-center mb-8" },
-                React.createElement("h1", { className: "text-3xl font-bold tracking-tight text-gray-900 dark:text-white" }, "Rewards Shop"),
+                React.createElement("h1", { className: "text-3xl font-bold tracking-tight text-gray-900 dark:text-white lowercase" }, "rewards shop"),
                 React.createElement("div", { className: "flex items-center gap-3 bg-white dark:bg-slate-800 px-4 py-2 rounded-full shadow-sm border border-gray-100 dark:border-slate-700" },
                     React.createElement("div", { className: "text-yellow-500" }, React.createElement(Icon, { name: "coins", size: 24 })),
                     React.createElement("span", { className: "text-xl font-bold font-mono dark:text-white" }, wallet.coins)
@@ -374,76 +378,79 @@
                 // Header for Widget Mode (Today View)
                 React.createElement("div", { className: "flex justify-between items-center mb-6" },
                     React.createElement("div", { className: "flex items-center gap-3" },
-                        React.createElement("div", { className: "p-2 bg-pink-500/10 rounded-xl" },
-                            React.createElement(Icon, { name: "menu", size: 24, className: "text-pink-500" })
+                        React.createElement("div", { className: "p-2 bg-transparent rounded-xl" },
+                            // Using menu icon or similar? keeping simple
+                            React.createElement(Icon, { name: "menu", size: 24, className: "text-gray-900 dark:text-white" })
                         ),
-                        React.createElement("h1", { className: "text-2xl font-bold text-gray-900 dark:text-white" }, "Today")
+                        React.createElement("h1", { className: "text-2xl font-bold text-gray-900 dark:text-white lowercase" }, "today")
                     ),
                     React.createElement("div", { className: "flex items-center gap-4" },
                         React.createElement(Icon, { name: "search", size: 24, className: "text-gray-400" }),
                         React.createElement(Icon, { name: "clock", size: 24, className: "text-gray-400" }),
-                        React.createElement("div", { className: "w-8 h-8 rounded-full bg-indigo-500 flex items-center justify-center text-white font-bold text-xs" }, "?")
+                        React.createElement("div", { className: "w-8 h-8 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center text-gray-500 font-bold text-xs" }, "?")
                     )
-                ),
-                React.createElement(CalendarStrip, null)
+                )
             ),
 
             // Main Content
             (isWidget && !showShop) ? React.createElement(React.Fragment, null,
                 // --- HABITS LIST ---
-                React.createElement("div", { className: "space-y-4" },
-                    habits.map(habit =>
-                        React.createElement("div", {
+                React.createElement("div", { className: "space-y-4 mt-6" },
+                    habits.map(habit => {
+                        if (!habit || !habit.title) return null; // Filter undefined
+                        return React.createElement("div", {
                             key: habit.id,
-                            className: `group relative rounded-3xl p-5 transition-all ${habit.completedToday
-                                ? 'bg-gray-900/40 dark:bg-black/40 opacity-60'
-                                : 'bg-[#1a1b1e] dark:bg-[#1a1b1e] shadow-lg shadow-black/5'}`
+                            className: `group relative rounded-3xl p-5 transition-all flex items-center justify-between ${habit.completedToday
+                                ? 'opacity-60'
+                                : 'hover:bg-gray-50 dark:hover:bg-gray-800/50'}`
                         },
-                            React.createElement("div", { className: "flex items-center justify-between gap-4" },
-                                // Left: Icon & Info
-                                React.createElement("div", { className: "flex items-start gap-4 flex-1 min-w-0" },
-                                    // Icon Box
-                                    React.createElement("div", { className: `p-3 rounded-2xl ${habit.completedToday ? 'bg-gray-800' : 'bg-gray-800'} text-pink-500` },
-                                        React.createElement(Icon, { name: habit.icon || "leaf", size: 24 })
-                                    ),
-                                    React.createElement("div", { className: "flex-1" },
-                                        React.createElement("h3", { className: `text-lg font-medium text-white leading-tight mb-1` }, habit.title),
-                                        React.createElement("div", { className: "flex items-center gap-3" },
-                                            // Tag
-                                            React.createElement("span", { className: "text-orange-500 text-xs font-bold uppercase tracking-wider" }, "Habit"),
-                                            // Stats (Streak)
-                                            habit.streak > 0 && React.createElement("div", { className: "flex items-center gap-1 text-xs text-gray-400" },
-                                                React.createElement(Icon, { name: "fire", size: 12 }),
-                                                React.createElement("span", null, habit.streak)
-                                            )
-                                        )
+
+                            // Left: Icon & Info
+                            React.createElement("div", { className: "flex items-center gap-4 flex-1 min-w-0" },
+                                // Icon Box - Simplified
+                                React.createElement("div", { className: "text-gray-900 dark:text-white" },
+                                    React.createElement(Icon, { name: habit.icon || "leaf", size: 24 })
+                                ),
+                                React.createElement("div", { className: "flex-1" },
+                                    React.createElement("h3", { className: `text-lg font-medium text-gray-900 dark:text-white leading-tight mb-0.5 lowercase` }, habit.title),
+                                    React.createElement("div", { className: "flex items-center gap-2" },
+                                        React.createElement("span", { className: "text-gray-400 text-xs font-bold uppercase tracking-wider" }, "HABIT"),
+                                        habit.streak > 0 && React.createElement("span", { className: "text-gray-400 text-xs" }, ` • ${habit.streak} streak`)
+                                    )
+                                )
+                            ),
+
+                            // Right: Checkmark Button
+                            React.createElement("div", { className: "flex items-center gap-4" },
+                                // Delete/Timer Actions (Hover) - Moved here to match request
+                                !habit.completedToday && React.createElement("div", { className: "flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity" },
+                                    React.createElement("button", { onClick: (e) => { e.stopPropagation(); deleteHabit(habit.id); }, className: "p-2 text-gray-400 hover:text-red-500 transition" },
+                                        React.createElement(Icon, { name: "trash", size: 18 })
                                     )
                                 ),
 
-                                // Right: Checkmark Button
+                                // The Big Tick
                                 React.createElement("button", {
                                     onClick: () => completeHabit(habit.id),
                                     disabled: habit.completedToday,
-                                    className: `w-9 h-9 rounded-full flex items-center justify-center transition-all duration-300 ${habit.completedToday
-                                        ? 'bg-green-500 text-white'
-                                        : 'bg-gray-700 text-gray-500 hover:bg-gray-600'}`
+                                    className: `w-10 h-10 rounded-full flex items-center justify-center transition-all duration-300 ${habit.completedToday
+                                        ? 'bg-green-500 text-white shadow-md scale-110'
+                                        : 'bg-gray-200 dark:bg-gray-700 text-gray-400 hover:bg-gray-300 dark:hover:bg-gray-600'}`
                                 }, React.createElement(Icon, { name: "check", size: 20, strokeWidth: 3 }))
-                            ),
-
-                            // Delete/Timer Actions (Hover)
-                            !habit.completedToday && React.createElement("div", { className: "absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity" },
-                                React.createElement("button", { onClick: (e) => { e.stopPropagation(); deleteHabit(habit.id); }, className: "p-1.5 text-red-500 bg-red-500/10 rounded-lg" },
-                                    React.createElement(Icon, { name: "x", size: 14 })
-                                )
                             )
-                        )
-                    )
+                        );
+                    })
+                ),
+
+                // Date at the bottom as requested
+                React.createElement("div", { className: "mt-12 text-center" },
+                    React.createElement("p", { className: "text-gray-400 uppercase tracking-widest text-sm" }, todayDateString)
                 ),
 
                 // Floating Action Button (FAB)
                 React.createElement("button", {
                     onClick: () => setShowAddHabit(true),
-                    className: "fixed bottom-24 right-6 w-14 h-14 bg-pink-600 text-white rounded-2xl shadow-xl shadow-pink-600/30 flex items-center justify-center hover:scale-105 transition-transform z-40"
+                    className: "fixed bottom-8 right-6 w-14 h-14 bg-blue-600 text-white rounded-full shadow-xl flex items-center justify-center hover:scale-105 transition-transform z-40"
                 }, React.createElement(Icon, { name: "plus", size: 28 })),
 
                 // Render Timer Modal
@@ -456,9 +463,9 @@
 
                 // Add Habit Form Modal
                 showAddHabit && React.createElement("div", { className: "fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4" },
-                    React.createElement("form", { onSubmit: addHabit, className: "bg-[#1a1b1e] p-6 rounded-3xl w-full max-w-sm border border-gray-800" },
+                    React.createElement("form", { onSubmit: addHabit, className: "bg-white dark:bg-gray-900 p-6 rounded-3xl w-full max-w-sm border border-gray-100 dark:border-gray-800" },
                         React.createElement("div", { className: "flex justify-between items-center mb-6" },
-                            React.createElement("h3", { className: "text-xl font-bold text-white" }, "New Habit"),
+                            React.createElement("h3", { className: "text-xl font-bold text-gray-900 dark:text-white lowercase" }, "new habit"),
                             React.createElement("button", { type: "button", onClick: () => setShowAddHabit(false), className: "text-gray-500 hover:text-white" },
                                 React.createElement(Icon, { name: "x", size: 24 })
                             )
@@ -467,11 +474,11 @@
                             type: "text",
                             value: newHabit.title,
                             onChange: e => setNewHabit({ ...newHabit, title: e.target.value }),
-                            placeholder: "Habit title...",
-                            className: "w-full bg-gray-800 text-white px-4 py-3 rounded-xl mb-4 border-none focus:ring-2 focus:ring-pink-500 outline-none",
+                            placeholder: "habit title...",
+                            className: "w-full bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white px-4 py-3 rounded-xl mb-4 border-none focus:ring-2 focus:ring-blue-500 outline-none lowercase",
                             autoFocus: true
                         }),
-                        React.createElement("button", { type: "submit", className: "w-full py-3 bg-pink-600 text-white rounded-xl font-bold hover:bg-pink-700 transition" }, "Create")
+                        React.createElement("button", { type: "submit", className: "w-full py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition lowercase" }, "create")
                     )
                 )
             ) : (
@@ -484,37 +491,37 @@
                                 key: reward.id,
                                 onClick: () => buyReward(reward.id),
                                 disabled: wallet.coins < reward.cost || isPurchased,
-                                className: `relative flex flex-col items-center p-6 rounded-3xl transition-all text-center border-2 
+                                className: `relative flex flex-col items-center p-6 rounded-3xl transition-all text-center border-2
                                     ${isPurchased ? 'border-gray-800 bg-gray-900 opacity-50 line-through' :
-                                        wallet.coins >= reward.cost ? 'bg-[#1a1b1e] border-gray-800 hover:border-pink-500' : 'bg-[#1a1b1e] border-gray-800 opacity-60'}`
+                                        wallet.coins >= reward.cost ? 'bg-white dark:bg-slate-800 border-gray-100 dark:border-slate-700 hover:border-blue-500' : 'bg-gray-50 dark:bg-slate-900 border-transparent opacity-60'}`
                             },
                                 isPurchased && React.createElement("div", { className: "absolute inset-0 flex items-center justify-center z-10" },
                                     React.createElement("div", { className: "w-full h-1 bg-red-500 absolute rotate-12" })
                                 ),
                                 React.createElement("div", { className: "text-4xl mb-3" }, "🎁"),
-                                React.createElement("h3", { className: "font-bold text-white mb-1" }, reward.title),
-                                React.createElement("div", { className: "text-pink-500 font-mono font-bold" }, reward.cost + " coins"),
+                                React.createElement("h3", { className: "font-bold text-gray-900 dark:text-white mb-1 lowercase" }, reward.title),
+                                React.createElement("div", { className: "text-blue-500 font-mono font-bold" }, reward.cost + " coins"),
                                 React.createElement("button", {
                                     onClick: (e) => { e.stopPropagation(); deleteReward(reward.id); },
-                                    className: "absolute top-2 right-2 text-gray-600 hover:text-red-500"
+                                    className: "absolute top-2 right-2 text-gray-400 hover:text-red-500"
                                 }, React.createElement(Icon, { name: "x", size: 16 }))
                             );
                         }),
                         React.createElement("button", {
                             onClick: () => setShowAddReward(true),
-                            className: "flex flex-col items-center justify-center p-6 rounded-3xl border-2 border-dashed border-gray-800 text-gray-500 hover:text-pink-500 hover:border-pink-500 transition min-h-[160px]"
+                            className: "flex flex-col items-center justify-center p-6 rounded-3xl border-2 border-dashed border-gray-300 dark:border-gray-700 text-gray-400 hover:text-blue-500 hover:border-blue-500 transition min-h-[160px]"
                         },
                             React.createElement(Icon, { name: "plus", size: 32 }),
-                            React.createElement("span", { className: "mt-2 font-medium" }, "Add Reward")
+                            React.createElement("span", { className: "mt-2 font-medium lowercase" }, "add reward")
                         )
                     )
                 )
             ),
             // Add Reward Modal
             showAddReward && React.createElement("div", { className: "fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4" },
-                React.createElement("form", { onSubmit: addReward, className: "bg-[#1a1b1e] p-6 rounded-3xl w-full max-w-sm border border-gray-800" },
+                React.createElement("form", { onSubmit: addReward, className: "bg-white dark:bg-gray-900 p-6 rounded-3xl w-full max-w-sm border border-gray-100 dark:border-gray-800" },
                     React.createElement("div", { className: "flex justify-between items-center mb-6" },
-                        React.createElement("h3", { className: "text-xl font-bold text-white" }, "New Reward"),
+                        React.createElement("h3", { className: "text-xl font-bold text-gray-900 dark:text-white lowercase" }, "new reward"),
                         React.createElement("button", { type: "button", onClick: () => setShowAddReward(false), className: "text-gray-500 hover:text-white" },
                             React.createElement(Icon, { name: "x", size: 24 })
                         )
@@ -523,18 +530,18 @@
                         type: "text",
                         value: newReward.title,
                         onChange: e => setNewReward({ ...newReward, title: e.target.value }),
-                        placeholder: "Reward title...",
-                        className: "w-full bg-gray-800 text-white px-4 py-3 rounded-xl mb-4 border-none focus:ring-2 focus:ring-pink-500 outline-none",
+                        placeholder: "reward title...",
+                        className: "w-full bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white px-4 py-3 rounded-xl mb-4 border-none focus:ring-2 focus:ring-blue-500 outline-none lowercase",
                         autoFocus: true
                     }),
                     React.createElement("input", {
                         type: "number",
                         value: newReward.cost,
                         onChange: e => setNewReward({ ...newReward, cost: e.target.value }),
-                        placeholder: "Cost",
-                        className: "w-full bg-gray-800 text-white px-4 py-3 rounded-xl mb-6 border-none focus:ring-2 focus:ring-pink-500 outline-none"
+                        placeholder: "cost",
+                        className: "w-full bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white px-4 py-3 rounded-xl mb-6 border-none focus:ring-2 focus:ring-blue-500 outline-none"
                     }),
-                    React.createElement("button", { type: "submit", className: "w-full py-3 bg-pink-600 text-white rounded-xl font-bold hover:bg-pink-700 transition" }, "Create")
+                    React.createElement("button", { type: "submit", className: "w-full py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition lowercase" }, "create")
                 )
             )
         );
