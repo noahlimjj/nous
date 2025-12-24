@@ -1952,14 +1952,14 @@ const Dashboard = ({ db, userId, setNotification, activeTimers, setActiveTimers,
         // OFFLINE MODE: Use offline timer manager
         if (!navigator.onLine && window.OfflineTimerManager) {
             console.log('[Offline] Starting timer locally:', habit.name);
-            window.OfflineTimerManager.start(habitId, habit.name, 0);
+            window.OfflineTimerManager.start(habitId, habit.title || habit.name, 0);
 
             // Update local state so UI shows timer running
             setActiveTimers(prev => ({
                 ...prev,
                 [habitId]: {
                     habitId,
-                    habitName: habit.name,
+                    habitName: habit.title || habit.name,
                     startTime: Date.now(),
                     isPaused: false,
                     isOffline: true,
@@ -1967,7 +1967,7 @@ const Dashboard = ({ db, userId, setNotification, activeTimers, setActiveTimers,
                 }
             }));
 
-            setNotification({ type: 'success', message: `Timer started offline: ${habit.name}` });
+            setNotification({ type: 'success', message: `Timer started offline: ${habit.title || habit.name}` });
             return;
         }
 
@@ -1976,7 +1976,7 @@ const Dashboard = ({ db, userId, setNotification, activeTimers, setActiveTimers,
         // OPTIMISTIC UPDATE: Immediately update local state for instant UI response
         const optimisticTimer = {
             habitId,
-            habitName: habit.name,
+            habitName: habit.title || habit.name,
             startTime: Date.now(),
             elapsedBeforePause: existingTimer?.elapsedBeforePause || 0,
             isPaused: false,
@@ -1998,7 +1998,7 @@ const Dashboard = ({ db, userId, setNotification, activeTimers, setActiveTimers,
 
             batch.set(timerDocRef, {
                 habitId,
-                habitName: habit.name,
+                habitName: habit.title || habit.name,
                 startTime: window.serverTimestamp(),
                 elapsedBeforePause: existingTimer?.elapsedBeforePause || 0,
                 isPaused: false,
@@ -2006,7 +2006,7 @@ const Dashboard = ({ db, userId, setNotification, activeTimers, setActiveTimers,
             });
 
             batch.set(userDocRef, {
-                currentTopic: habit.name,
+                currentTopic: habit.title || habit.name,
                 lastActive: window.serverTimestamp()
             }, { merge: true });
 
