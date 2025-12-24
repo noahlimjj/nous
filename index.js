@@ -521,10 +521,25 @@ const getMilliseconds = (totalMilliseconds) => {
     return Math.floor((totalMilliseconds % 1000) / 10);
 };
 
+// Function to safe-convert any date-like object to a JS Date
+const toDate = (timestamp) => {
+    if (!timestamp) return null;
+    if (timestamp.toDate && typeof timestamp.toDate === 'function') {
+        return timestamp.toDate();
+    }
+    if (timestamp instanceof Date) {
+        return timestamp;
+    }
+    // Handle string or number (milliseconds)
+    return new Date(timestamp);
+};
+
 // Function to format Firestore Timestamp to a readable date
 const formatDate = (timestamp) => {
-    if (!timestamp) return 'N/A';
-    return timestamp.toDate().toLocaleDateString('en-US', {
+    const date = toDate(timestamp);
+    if (!date) return 'N/A';
+
+    return date.toLocaleDateString('en-US', {
         month: 'short',
         day: 'numeric',
         year: 'numeric'
@@ -1046,7 +1061,7 @@ const updateUserStats = async (db, userId, sessions) => {
         let checkDate = new Date(today);
 
         const sortedSessions = [...sessions].sort((a, b) =>
-            b.startTime.toMillis() - a.startTime.toMillis()
+            toDate(b.startTime).getTime() - toDate(a.startTime).getTime()
         );
 
         for (let i = 0; i < 365; i++) {
@@ -1055,7 +1070,7 @@ const updateUserStats = async (db, userId, sessions) => {
             dayEnd.setHours(23, 59, 59, 999);
 
             const hasSessionOnDay = sortedSessions.some(s => {
-                const sessionDate = s.startTime.toDate();
+                const sessionDate = toDate(s.startTime);
                 return sessionDate >= dayStart && sessionDate <= dayEnd;
             });
 
@@ -1089,7 +1104,7 @@ const updateUserStats = async (db, userId, sessions) => {
         todayEnd.setMinutes(todayEnd.getMinutes() - offsetDiff); // Adjust to Singapore end of day
 
         const todaySessions = sessions.filter(s => {
-            const sessionDate = s.startTime.toDate();
+            const sessionDate = toDate(s.startTime);
             return sessionDate >= todayStart && sessionDate <= todayEnd;
         });
 
@@ -1179,7 +1194,7 @@ const Dashboard = ({ db, userId, setNotification, activeTimers, setActiveTimers,
 
             // Filter sessions to only those from today (Singapore time)
             const dailySessions = sessionsList.filter(session => {
-                const sessionDate = session.startTime.toDate();
+                const sessionDate = toDate(session.startTime);
                 return sessionDate >= startOfDay && sessionDate <= endOfDay;
             });
 
@@ -1999,14 +2014,14 @@ const Dashboard = ({ db, userId, setNotification, activeTimers, setActiveTimers,
         // OFFLINE MODE: Use offline timer manager
         if (!navigator.onLine && window.OfflineTimerManager) {
             console.log('[Offline] Starting timer locally:', habit.name);
-            window.OfflineTimerManager.start(habitId, habit.name, 0);
+            window.OfflineTimerManager.start(habitId, habit.title || habit.name, 0);
 
             // Update local state so UI shows timer running
             setActiveTimers(prev => ({
                 ...prev,
                 [habitId]: {
                     habitId,
-                    habitName: habit.name,
+                    habitName: habit.title || habit.name,
                     startTime: Date.now(),
                     isPaused: false,
                     isOffline: true,
@@ -2014,7 +2029,7 @@ const Dashboard = ({ db, userId, setNotification, activeTimers, setActiveTimers,
                 }
             }));
 
-            setNotification({ type: 'success', message: `Timer started offline: ${habit.name}` });
+            setNotification({ type: 'success', message: `Timer started offline: ${habit.title || habit.name}` });
             return;
         }
 
@@ -2045,7 +2060,7 @@ const Dashboard = ({ db, userId, setNotification, activeTimers, setActiveTimers,
 
             batch.set(timerDocRef, {
                 habitId,
-                habitName: habit.name,
+                habitName: habit.title || habit.name,
                 startTime: window.serverTimestamp(),
                 elapsedBeforePause: existingTimer?.elapsedBeforePause || 0,
                 isPaused: false,
@@ -2053,7 +2068,7 @@ const Dashboard = ({ db, userId, setNotification, activeTimers, setActiveTimers,
             });
 
             batch.set(userDocRef, {
-                currentTopic: habit.name,
+                currentTopic: habit.title || habit.name,
                 lastActive: window.serverTimestamp()
             }, { merge: true });
 
@@ -5915,7 +5930,7 @@ const Friends = ({ db, userId, setNotification, userProfile }) => {
 
             // Filter sessions to only those from today (Singapore time)
             const dailySessions = sessions.filter(session => {
-                const sessionDate = session.startTime.toDate();
+                const sessionDate = toDate(session.startTime);
                 return sessionDate >= startOfDay && sessionDate <= endOfDay;
             });
 
@@ -5926,7 +5941,7 @@ const Friends = ({ db, userId, setNotification, userProfile }) => {
                     return sum + s.duration;
                 } else if (s.startTime && !s.endTime) {
                     // ACTIVE session - calculate elapsed time from startTime to now
-                    const elapsed = now.getTime() - s.startTime.toDate().getTime();
+                    const elapsed = now.getTime() - toDate(s.startTime).getTime();
                     return sum + elapsed;
                 }
                 return sum;
@@ -6788,7 +6803,7 @@ const Friends = ({ db, userId, setNotification, userProfile }) => {
                                             (() => {
                                                 if (!friend.currentTopic || !friend.lastActive) return null;
 
-                                                const lastActiveDate = friend.lastActive.toDate ? friend.lastActive.toDate() : new Date(friend.lastActive);
+                                                const lastActiveDate = toDate(friend.lastActive);
                                                 const now = new Date();
                                                 const threeMinutesAgo = new Date(now.getTime() - 3 * 60 * 1000);
 
@@ -7110,7 +7125,7 @@ const Leaderboard = ({ db, userId, setNotification, userProfile }) => {
 
             // Filter sessions to only those from today (Singapore time)
             const dailySessions = sessions.filter(session => {
-                const sessionDate = session.startTime.toDate();
+                const sessionDate = toDate(session.startTime);
                 return sessionDate >= startOfDay && sessionDate <= endOfDay;
             });
 
@@ -7121,7 +7136,7 @@ const Leaderboard = ({ db, userId, setNotification, userProfile }) => {
                     return sum + s.duration;
                 } else if (s.startTime && !s.endTime) {
                     // ACTIVE session - calculate elapsed time from startTime to now
-                    const elapsed = now.getTime() - s.startTime.toDate().getTime();
+                    const elapsed = now.getTime() - toDate(s.startTime).getTime();
                     return sum + elapsed;
                 }
                 return sum;
@@ -7166,7 +7181,7 @@ const Leaderboard = ({ db, userId, setNotification, userProfile }) => {
 
             // Filter sessions to only those in the current week (Singapore time)
             const weeklySessions = sessions.filter(session => {
-                const sessionDate = session.startTime.toDate();
+                const sessionDate = toDate(session.startTime);
                 return sessionDate >= startOfCurrentWeek && sessionDate <= endOfCurrentWeek;
             });
 
@@ -7211,7 +7226,7 @@ const Leaderboard = ({ db, userId, setNotification, userProfile }) => {
 
             // Filter sessions to only those in the current month (Singapore time)
             const monthlySessions = sessions.filter(session => {
-                const sessionDate = session.startTime.toDate();
+                const sessionDate = toDate(session.startTime);
                 return sessionDate >= startOfMonth && sessionDate <= endOfMonth;
             });
 

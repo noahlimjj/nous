@@ -135,8 +135,8 @@
                 return React.createElement("div", {
                     key: i,
                     className: `flex flex - col items - center justify - center w - 12 h - 16 rounded - 2xl transition - all flex - shrink - 0 mx - 1 ${isToday
-                            ? 'bg-pink-500 text-white shadow-lg shadow-pink-500/30 scale-105'
-                            : 'bg-white dark:bg-slate-800 text-gray-400 dark:text-slate-500 border border-transparent dark:border-slate-700'
+                        ? 'bg-pink-500 text-white shadow-lg shadow-pink-500/30 scale-105'
+                        : 'bg-white dark:bg-slate-800 text-gray-400 dark:text-slate-500 border border-transparent dark:border-slate-700'
                         } `
                 },
                     React.createElement("span", { className: "text-[10px] font-medium lowercase tracking-wide opacity-80" }, dayName),
@@ -185,35 +185,6 @@
             const unsubscribeHabits = window.onSnapshot(habitsCol, (snapshot) => {
                 const habitsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 setHabits(habitsData);
-
-                // --- RESTORE / SEED DATA LOGIC ---
-                const desiredHabits = [
-                    { title: "Make bed", icon: "home", difficulty: "easy" },
-                    { title: "Meditate in the morning", icon: "user", difficulty: "medium" },
-                    { title: "BJJ", icon: "zap", difficulty: "hard" },
-                    { title: "Medical School", icon: "book", difficulty: "hard" },
-                    { title: "Research", icon: "search", difficulty: "hard" },
-                    { title: "Anki", icon: "book", difficulty: "medium" }
-                ];
-
-                desiredHabits.forEach(async (seed) => {
-                    const exists = habitsData.some(h => h.title && h.title.toLowerCase() === seed.title.toLowerCase());
-                    if (!exists) {
-                        const habitId = Date.now().toString() + Math.random().toString(36).substr(2, 5);
-                        const newH = {
-                            id: habitId,
-                            title: seed.title,
-                            difficulty: seed.difficulty,
-                            streak: 0,
-                            completedToday: false,
-                            lastCompleted: null,
-                            completionDates: [],
-                            createdAt: new Date().toISOString(),
-                            icon: seed.icon
-                        };
-                        await window.setDoc(window.doc(db, `/artifacts/${appId}/users/${userId}/habits/${habitId}`), newH);
-                    }
-                });
             });
 
             // Rewards Collection
