@@ -378,8 +378,8 @@
                                     onClick: () => completeHabit(habit.id),
                                     disabled: habit.completedToday,
                                     className: `w-14 h-14 rounded-full flex items-center justify-center transition-all duration-300 border-2 ${habit.completedToday
-                                        ? 'bg-emerald-500 border-emerald-500 text-white shadow-md scale-105'
-                                        : 'bg-transparent border-slate-200 dark:border-slate-700 text-transparent hover:border-emerald-400 hover:bg-emerald-50/10'}`
+                                        ? 'bg-green-500 border-green-500 text-white shadow-md scale-105'
+                                        : 'bg-gray-50 border-gray-300 text-gray-300 hover:border-green-400 hover:text-green-400 dark:bg-slate-800 dark:border-slate-600 dark:text-gray-600'}`
                                 }, React.createElement(Icon, { name: "check", size: 28, strokeWidth: 3 }))
                             )
                         )
