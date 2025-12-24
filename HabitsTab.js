@@ -1,3 +1,4 @@
+
 (function () {
     const { useState, useEffect, useMemo } = React;
 
@@ -5,7 +6,8 @@
 
     const Icon = ({ name, size = 20, className = "" }) => {
         const icons = {
-            check: "M20 6L9 17l-5-5",
+            check: "M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z", // Filled circle check
+            checkSimple: "M20 6L9 17l-5-5",
             plus: "M12 4v16m8-8H4",
             trash: "M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16",
             clock: "M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z",
@@ -28,8 +30,8 @@
             width: size,
             height: size,
             viewBox: "0 0 24 24",
-            fill: "none",
-            stroke: "currentColor",
+            fill: name === 'check' ? "currentColor" : "none", // Fill for the new check icon
+            stroke: name === 'check' ? "none" : "currentColor", // No stroke for filled icon
             strokeWidth: "2",
             strokeLinecap: "round",
             strokeLinejoin: "round",
@@ -82,14 +84,14 @@
             const totalSeconds = Math.floor(ms / 1000);
             const m = Math.floor(totalSeconds / 60).toString().padStart(2, '0');
             const s = (totalSeconds % 60).toString().padStart(2, '0');
-            return `${m}:${s}`;
+            return `${m}:${s} `;
         };
 
         return React.createElement("div", { className: "fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200" },
             React.createElement("div", { className: "bg-white dark:bg-slate-800 p-8 rounded-3xl shadow-2xl w-full max-w-sm flex flex-col items-center gap-6 border border-gray-100 dark:border-slate-700" },
                 React.createElement("div", { className: "text-center" },
                     React.createElement("h3", { className: "text-lg font-medium text-gray-500 dark:text-gray-400 lowercase mb-1" }, "active session"),
-                    React.createElement("h2", { className: "text-2xl font-light text-gray-900 dark:text-white" }, habit.title)
+                    React.createElement("h2", { className: "text-2xl font-light text-gray-900 dark:text-white lowercase" }, habit.title)
                 ),
                 React.createElement("div", { className: "text-7xl font-mono font-light text-indigo-600 dark:text-indigo-400 tabular-nums tracking-tight my-4" },
                     formatTime(elapsed)
@@ -97,7 +99,7 @@
                 React.createElement("div", { className: "flex items-center gap-4 w-full" },
                     React.createElement("button", {
                         onClick: toggleTimer,
-                        className: `flex-1 py-4 rounded-2xl flex items-center justify-center gap-2 transition-all ${isRunning ? 'bg-orange-100 text-orange-600 hover:bg-orange-200' : 'bg-green-100 text-green-600 hover:bg-green-200'}`
+                        className: `flex - 1 py - 4 rounded - 2xl flex items - center justify - center gap - 2 transition - all ${isRunning ? 'bg-orange-100 text-orange-600 hover:bg-orange-200' : 'bg-green-100 text-green-600 hover:bg-green-200'} `
                     },
                         React.createElement(Icon, { name: isRunning ? "pause" : "play", size: 24 }),
                         React.createElement("span", { className: "font-medium lowercase" }, isRunning ? "pause" : "resume")
@@ -127,17 +129,17 @@
         return React.createElement("div", { className: "flex items-center justify-between mb-8 overflow-x-auto pb-2 no-scrollbar" },
             days.map((date, i) => {
                 const isToday = date.getDate() === today.getDate();
-                const dayName = date.toLocaleDateString('en-US', { weekday: 'short' });
+                const dayName = date.toLocaleDateString('en-US', { weekday: 'short' }).toLowerCase();
                 const dayNum = date.getDate();
 
                 return React.createElement("div", {
                     key: i,
-                    className: `flex flex-col items-center justify-center w-12 h-16 rounded-2xl transition-all flex-shrink-0 mx-1 ${isToday
-                        ? 'bg-pink-500 text-white shadow-lg shadow-pink-500/30 scale-105'
-                        : 'bg-white dark:bg-slate-800 text-gray-400 dark:text-slate-500 border border-transparent dark:border-slate-700'
-                        }`
+                    className: `flex flex - col items - center justify - center w - 12 h - 16 rounded - 2xl transition - all flex - shrink - 0 mx - 1 ${isToday
+                            ? 'bg-pink-500 text-white shadow-lg shadow-pink-500/30 scale-105'
+                            : 'bg-white dark:bg-slate-800 text-gray-400 dark:text-slate-500 border border-transparent dark:border-slate-700'
+                        } `
                 },
-                    React.createElement("span", { className: "text-[10px] font-medium uppercase tracking-wide opacity-80" }, dayName),
+                    React.createElement("span", { className: "text-[10px] font-medium lowercase tracking-wide opacity-80" }, dayName),
                     React.createElement("span", { className: "text-lg font-bold" }, dayNum)
                 );
             })
@@ -179,7 +181,7 @@
             if (!db || !userId) return;
 
             // Habits Collection
-            const habitsCol = window.collection(db, `/artifacts/${appId}/users/${userId}/habits`);
+            const habitsCol = window.collection(db, `/ artifacts / ${appId} /users/${userId}/habits`);
             const unsubscribeHabits = window.onSnapshot(habitsCol, (snapshot) => {
                 const habitsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 setHabits(habitsData);
@@ -378,18 +380,18 @@
                 // Header for Widget Mode (Today View)
                 React.createElement("div", { className: "flex justify-between items-center mb-6" },
                     React.createElement("div", { className: "flex items-center gap-3" },
-                        React.createElement("div", { className: "p-2 bg-transparent rounded-xl" },
-                            // Using menu icon or similar? keeping simple
-                            React.createElement(Icon, { name: "menu", size: 24, className: "text-gray-900 dark:text-white" })
+                        React.createElement("div", { className: "p-2 bg-pink-500/10 rounded-xl" },
+                            React.createElement(Icon, { name: "menu", size: 24, className: "text-pink-500" })
                         ),
                         React.createElement("h1", { className: "text-2xl font-bold text-gray-900 dark:text-white lowercase" }, "today")
                     ),
                     React.createElement("div", { className: "flex items-center gap-4" },
                         React.createElement(Icon, { name: "search", size: 24, className: "text-gray-400" }),
                         React.createElement(Icon, { name: "clock", size: 24, className: "text-gray-400" }),
-                        React.createElement("div", { className: "w-8 h-8 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center text-gray-500 font-bold text-xs" }, "?")
+                        React.createElement("div", { className: "w-8 h-8 rounded-full bg-indigo-500 flex items-center justify-center text-white font-bold text-xs" }, "?")
                     )
-                )
+                ),
+                React.createElement(CalendarStrip, null)
             ),
 
             // Main Content
@@ -412,10 +414,15 @@
                                     React.createElement(Icon, { name: habit.icon || "leaf", size: 24 })
                                 ),
                                 React.createElement("div", { className: "flex-1" },
-                                    React.createElement("h3", { className: `text-lg font-medium text-gray-900 dark:text-white leading-tight mb-0.5 lowercase` }, habit.title),
-                                    React.createElement("div", { className: "flex items-center gap-2" },
-                                        React.createElement("span", { className: "text-gray-400 text-xs font-bold uppercase tracking-wider" }, "HABIT"),
-                                        habit.streak > 0 && React.createElement("span", { className: "text-gray-400 text-xs" }, ` • ${habit.streak} streak`)
+                                    React.createElement("h3", { className: `text-lg font-medium text-white leading-tight mb-1 lowercase` }, habit.title),
+                                    React.createElement("div", { className: "flex items-center gap-3" },
+                                        // Tag
+                                        React.createElement("span", { className: "text-orange-500 text-xs font-bold lowercase tracking-wider" }, "habit"),
+                                        // Stats (Streak)
+                                        habit.streak > 0 && React.createElement("div", { className: "flex items-center gap-1 text-xs text-gray-400" },
+                                            React.createElement(Icon, { name: "fire", size: 12 }),
+                                            React.createElement("span", null, habit.streak)
+                                        )
                                     )
                                 )
                             ),
@@ -423,7 +430,7 @@
                             // Right: Checkmark Button
                             React.createElement("div", { className: "flex items-center gap-4" },
                                 // Delete/Timer Actions (Hover) - Moved here to match request
-                                !habit.completedToday && React.createElement("div", { className: "flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity" },
+                                !habit.completedToday && React.createElement("div", { className: "flex gap-2" },
                                     React.createElement("button", { onClick: (e) => { e.stopPropagation(); deleteHabit(habit.id); }, className: "p-2 text-gray-400 hover:text-red-500 transition" },
                                         React.createElement(Icon, { name: "trash", size: 18 })
                                     )
@@ -433,10 +440,10 @@
                                 React.createElement("button", {
                                     onClick: () => completeHabit(habit.id),
                                     disabled: habit.completedToday,
-                                    className: `w-10 h-10 rounded-full flex items-center justify-center transition-all duration-300 ${habit.completedToday
-                                        ? 'bg-green-500 text-white shadow-md scale-110'
-                                        : 'bg-gray-200 dark:bg-gray-700 text-gray-400 hover:bg-gray-300 dark:hover:bg-gray-600'}`
-                                }, React.createElement(Icon, { name: "check", size: 20, strokeWidth: 3 }))
+                                    className: `w-9 h-9 rounded-full flex items-center justify-center transition-all duration-300 ${habit.completedToday
+                                        ? 'bg-green-500 text-white'
+                                        : 'bg-gray-700 text-gray-500 hover:bg-gray-600'}`
+                                }, React.createElement(Icon, { name: "check", size: 24 })) // Increased size
                             )
                         );
                     })
