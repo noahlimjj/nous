@@ -139,6 +139,20 @@
 <body>
     <!-- PWA Service Worker Registration - v19 -->
     <script>
+        // --- NUCLEAR CACHE CLEARING ---
+        // Force unregister old service workers to ensure immediate update
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.getRegistrations().then(function (registrations) {
+                for (let registration of registrations) {
+                    if (registration.active && registration.active.scriptURL.includes('v23')) {
+                        console.log('Force unregistering old v23 SW');
+                        registration.unregister();
+                    }
+                }
+            });
+        }
+    </script>
+    <script>
         // Smart service worker registration with improved error handling
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', async () => {
@@ -234,7 +248,7 @@
 
     <script src="HabitsTab.js"></script>
     <script src="components/CalendarChecklist.js"></script>
-    <script src="index.js?v=17&t=1766590818"></script>
+    <script src="index.js?v=25&t=1766600000"></script>
 
 </body>
 
