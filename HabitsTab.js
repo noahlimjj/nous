@@ -71,7 +71,7 @@
         return streak;
     };
 
-    const HabitsPage = ({ user, db, isWidget = false }) => {
+    const HabitsPage = ({ user, db, isWidget = false, onToggleView }) => {
         const [habits, setHabits] = useState([]);
         const [wallet, setWallet] = useState({ coins: 0 });
         const [showAddHabit, setShowAddHabit] = useState(false);
@@ -172,7 +172,14 @@
             // Header - only show when NOT embedded as widget (dashboard has its own header)
             !isWidget && React.createElement("div", { className: "flex justify-between items-center mb-4" },
                 React.createElement("h2", { className: "text-2xl font-light text-gray-800 dark:text-white lowercase" }, "daily habits"),
-                React.createElement(CoinDisplay, { amount: wallet.coins })
+                React.createElement("div", { className: "flex items-center gap-3" },
+                    React.createElement(CoinDisplay, { amount: wallet.coins }),
+                    onToggleView && React.createElement("button", {
+                        onClick: onToggleView,
+                        className: "px-4 py-2 bg-blue-100 hover:bg-blue-200 text-blue-700 rounded-lg transition lowercase text-sm",
+                        title: "View Rewards"
+                    }, "rewards")
+                )
             ),
 
             // Week Nav
@@ -337,7 +344,7 @@
         );
     };
 
-    const RewardsPage = ({ user, db }) => {
+    const RewardsPage = ({ user, db, onToggleView }) => {
         const [rewards, setRewards] = useState([]);
         const [wallet, setWallet] = useState({ coins: 0 });
         const [showAddReward, setShowAddReward] = useState(false);
@@ -387,7 +394,14 @@
 
             React.createElement("div", { className: "flex justify-between items-center mb-6" },
                 React.createElement("h2", { className: "text-2xl font-light text-gray-800 dark:text-white lowercase" }, "rewards"),
-                React.createElement(CoinDisplay, { amount: wallet.coins })
+                React.createElement("div", { className: "flex items-center gap-3" },
+                    React.createElement(CoinDisplay, { amount: wallet.coins }),
+                    onToggleView && React.createElement("button", {
+                        onClick: onToggleView,
+                        className: "px-4 py-2 bg-green-100 hover:bg-green-200 text-green-700 rounded-lg transition lowercase text-sm",
+                        title: "View Habits"
+                    }, "habits")
+                )
             ),
 
             React.createElement("div", { className: "grid grid-cols-2 gap-4" },

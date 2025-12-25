@@ -889,7 +889,7 @@ const AuthComponent = ({ auth, setNotification }) => {
 
 // --- Main App Components ---
 
-const Header = ({ setCurrentPage, currentPage }) => {
+const Header = ({ setCurrentPage, currentPage, onNavigateToHabits, onNavigateToRewards }) => {
     return React.createElement('header', { className: "bg-white sticky top-0 z-10 soft-shadow" },
         React.createElement('div', { className: "max-w-7xl mx-auto px-4 sm:px-6 lg:px-8" },
             React.createElement('div', { className: "flex justify-between items-center h-16" },
@@ -919,9 +919,9 @@ const Header = ({ setCurrentPage, currentPage }) => {
                     },
                         React.createElement(UsersIcon)
                     ),
-                    // Rewards Button
+                    // Rewards/Habits Toggle Button
                     React.createElement('button', {
-                        onClick: () => setCurrentPage('habits'),
+                        onClick: onNavigateToRewards,
                         title: "Rewards",
                         className: `p-2 rounded-full transition ${currentPage === 'habits' ? 'bg-calm-100 text-accent-blue' : 'text-calm-600 hover:bg-calm-50'}`,
                         style: { color: currentPage === 'habits' ? '#6B8DD6' : '#7d8ca8' }
@@ -7525,6 +7525,7 @@ function App() {
     const [userId, setUserId] = useState(null);
     const [isAuthReady, setIsAuthReady] = useState(false);
     const [currentPage, setCurrentPage] = useState('dashboard');
+    const [showRewardsPage, setShowRewardsPage] = useState(false); // Track if showing rewards vs habits
     const [notification, setNotification] = useState(null);
     const [userProfile, setUserProfile] = useState(null);
     const [configError, setConfigError] = useState(null);
@@ -7985,10 +7986,27 @@ function App() {
         !user ?
             React.createElement(AuthComponent, { auth, setNotification }) :
             React.createElement(React.Fragment, null,
-                React.createElement(Header, { setCurrentPage, currentPage }),
+                React.createElement(Header, { 
+                    setCurrentPage, 
+                    currentPage,
+                    onNavigateToHabits: () => {
+                        setCurrentPage('habits');
+                        setShowRewardsPage(false); // Show habits by default when navigating
+                    },
+                    onNavigateToRewards: () => {
+                        setCurrentPage('habits');
+                        setShowRewardsPage(true); // Show rewards when clicking shopping cart
+                    }
+                }),
                 React.createElement('main', null,
                     currentPage === 'dashboard' && React.createElement(Dashboard, { db, userId, setNotification, activeTimers, setActiveTimers, timerIntervals }),
-                    currentPage === 'habits' && React.createElement(window.HabitsTab, { user: userProfile, db, activeTimers, isRewardsPage: true }),
+                    currentPage === 'habits' && React.createElement(window.HabitsTab, { 
+                        user: userProfile, 
+                        db, 
+                        activeTimers, 
+                        isRewardsPage: showRewardsPage,
+                        onToggleView: () => setShowRewardsPage(!showRewardsPage) // Allow toggling from within component
+                    }),
 
                     currentPage === 'goals' && React.createElement(Goals, { db, userId, setNotification }),
                     currentPage === 'friends' && React.createElement(Friends, { db, userId, setNotification, userProfile }),
