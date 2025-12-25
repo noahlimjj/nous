@@ -165,7 +165,8 @@
         const dayStyle = { flex: '1', textAlign: 'center', minWidth: '40px' };
         const habitColStyle = { width: '160px', flexShrink: 0 };
 
-        // Always show header with title and date\n        const showHeader = true;
+        // Always show header with title and date
+        const showHeader = true;
 
         return React.createElement("div", { className: "container mx-auto px-4 py-6 max-w-4xl", style: { paddingBottom: '100px' } },
             notification && React.createElement("div", {
