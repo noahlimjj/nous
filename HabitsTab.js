@@ -258,86 +258,102 @@
             }, React.createElement(SysIcon, { name: "plus", size: 24 })),
 
             // Add Habit Modal
-            showAddHabit && React.createElement("div", { className: "fixed inset-0 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4", style: { zIndex: 10000 } },
-                React.createElement("form", { onSubmit: addHabit, className: "bg-white dark:bg-gray-900 p-5 rounded-2xl w-full max-w-sm shadow-2xl max-h-[85vh] overflow-y-auto" },
+            showAddHabit && React.createElement("div", {
+                className: "fixed inset-0 flex items-center justify-center bg-black/40 backdrop-blur-sm p-6",
+                style: { zIndex: 10000 },
+                onClick: () => setShowAddHabit(false)
+            },
+                React.createElement("form", {
+                    onSubmit: addHabit,
+                    onClick: e => e.stopPropagation(),
+                    className: "bg-white dark:bg-gray-900 p-4 rounded-xl w-full max-w-xs shadow-lg max-h-[80vh] overflow-y-auto border border-gray-100 dark:border-gray-800"
+                },
                     React.createElement("div", { className: "flex justify-between items-center mb-3" },
-                        React.createElement("h3", { className: "text-xl font-light text-gray-800 dark:text-white lowercase" }, "new habit"),
-                        React.createElement("button", { type: "button", onClick: () => setShowAddHabit(false), className: "p-2 text-gray-400" },
-                            React.createElement(SysIcon, { name: "x", size: 20 })
+                        React.createElement("h3", { className: "text-lg font-light text-gray-800 dark:text-white lowercase" }, "new habit"),
+                        React.createElement("button", { type: "button", onClick: () => setShowAddHabit(false), className: "p-1 text-gray-400 hover:text-gray-600" },
+                            React.createElement(SysIcon, { name: "x", size: 18 })
                         )
                     ),
-                    React.createElement("input", { type: "text", value: newHabit.title, onChange: e => setNewHabit({ ...newHabit, title: e.target.value }), placeholder: "habit name...", className: "w-full px-4 py-3 rounded-xl mb-3 border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white lowercase", autoFocus: true }),
-                    React.createElement("label", { className: "block text-sm text-gray-500 mb-2 lowercase" }, "color"),
-                    React.createElement("div", { className: "flex gap-2 mb-3 flex-wrap" },
+                    React.createElement("input", { type: "text", value: newHabit.title, onChange: e => setNewHabit({ ...newHabit, title: e.target.value }), placeholder: "habit name...", className: "w-full px-3 py-2 rounded-lg mb-3 border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white lowercase text-sm", autoFocus: true }),
+                    React.createElement("label", { className: "block text-xs text-gray-500 mb-1 lowercase" }, "color"),
+                    React.createElement("div", { className: "flex gap-1.5 mb-3 flex-wrap" },
                         COLORS.map(c => React.createElement("button", {
                             key: c, type: "button",
                             onClick: () => setNewHabit({ ...newHabit, color: c }),
-                            style: { backgroundColor: c, width: '36px', height: '36px', borderRadius: '50%', border: newHabit.color === c ? '3px solid #1f2937' : '2px solid transparent', boxShadow: newHabit.color === c ? '0 0 0 2px white' : 'none' }
+                            style: { backgroundColor: c, width: '28px', height: '28px', borderRadius: '50%', border: newHabit.color === c ? '2px solid #1f2937' : '2px solid transparent' }
                         }))
                     ),
-                    React.createElement("label", { className: "block text-sm text-gray-500 mb-2 lowercase" }, "icon"),
-                    React.createElement("div", { className: "flex gap-2 flex-wrap mb-3" },
+                    React.createElement("label", { className: "block text-xs text-gray-500 mb-1 lowercase" }, "icon"),
+                    React.createElement("div", { className: "flex gap-1 flex-wrap mb-3" },
                         Object.keys(ICONS).map(k => React.createElement("button", {
                             key: k, type: "button",
                             onClick: () => setNewHabit({ ...newHabit, icon: k }),
-                            className: `p-2 rounded-lg transition border-2 ${newHabit.icon === k ? 'bg-gray-800 text-white border-gray-900' : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 border-gray-200 dark:border-gray-600 hover:bg-gray-200'}`
-                        }, React.createElement(Icon, { name: k, size: 20 })))
+                            className: `p-1.5 rounded-md transition ${newHabit.icon === k ? 'bg-gray-800 text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200'}`
+                        }, React.createElement(Icon, { name: k, size: 16 })))
                     ),
-                    React.createElement("label", { className: "block text-sm text-gray-500 mb-2 lowercase" }, "difficulty"),
-                    React.createElement("div", { className: "flex gap-2 mb-4" },
+                    React.createElement("label", { className: "block text-xs text-gray-500 mb-1 lowercase" }, "difficulty"),
+                    React.createElement("div", { className: "flex gap-1.5 mb-3" },
                         ['easy', 'medium', 'hard'].map(d => {
                             const coins = d === 'hard' ? 20 : d === 'medium' ? 10 : 5;
                             return React.createElement("button", {
                                 key: d, type: "button",
                                 onClick: () => setNewHabit({ ...newHabit, difficulty: d }),
-                                className: `flex-1 py-2 rounded-xl lowercase transition ${newHabit.difficulty === d ? (d === 'easy' ? 'bg-green-500 text-white' : d === 'hard' ? 'bg-red-500 text-white' : 'bg-orange-500 text-white') : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200'}`
+                                className: `flex-1 py-1.5 rounded-lg lowercase transition text-xs ${newHabit.difficulty === d ? (d === 'easy' ? 'bg-green-500 text-white' : d === 'hard' ? 'bg-red-500 text-white' : 'bg-orange-500 text-white') : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200'}`
                             }, `${d} · ${coins}c`);
                         })
                     ),
-                    React.createElement("button", { type: "submit", className: "w-full py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl lowercase" }, "add habit")
+                    React.createElement("button", { type: "submit", className: "w-full py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg lowercase text-sm" }, "add habit")
                 )
             ),
 
             // Edit Habit Modal
-            editingHabit && React.createElement("div", { className: "fixed inset-0 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4", style: { zIndex: 10000 } },
-                React.createElement("form", { onSubmit: saveHabit, className: "bg-white dark:bg-gray-900 p-5 rounded-2xl w-full max-w-sm shadow-2xl max-h-[85vh] overflow-y-auto" },
+            editingHabit && React.createElement("div", {
+                className: "fixed inset-0 flex items-center justify-center bg-black/40 backdrop-blur-sm p-6",
+                style: { zIndex: 10000 },
+                onClick: () => setEditingHabit(null)
+            },
+                React.createElement("form", {
+                    onSubmit: saveHabit,
+                    onClick: e => e.stopPropagation(),
+                    className: "bg-white dark:bg-gray-900 p-4 rounded-xl w-full max-w-xs shadow-lg max-h-[80vh] overflow-y-auto border border-gray-100 dark:border-gray-800"
+                },
                     React.createElement("div", { className: "flex justify-between items-center mb-3" },
-                        React.createElement("h3", { className: "text-xl font-light text-gray-800 dark:text-white lowercase" }, "edit habit"),
-                        React.createElement("button", { type: "button", onClick: () => setEditingHabit(null), className: "p-2 text-gray-400" },
-                            React.createElement(SysIcon, { name: "x", size: 20 })
+                        React.createElement("h3", { className: "text-lg font-light text-gray-800 dark:text-white lowercase" }, "edit habit"),
+                        React.createElement("button", { type: "button", onClick: () => setEditingHabit(null), className: "p-1 text-gray-400 hover:text-gray-600" },
+                            React.createElement(SysIcon, { name: "x", size: 18 })
                         )
                     ),
-                    React.createElement("input", { type: "text", value: editingHabit.title, onChange: e => setEditingHabit({ ...editingHabit, title: e.target.value }), className: "w-full px-4 py-3 rounded-xl mb-3 border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white lowercase", autoFocus: true }),
-                    React.createElement("label", { className: "block text-sm text-gray-500 mb-2 lowercase" }, "color"),
-                    React.createElement("div", { className: "flex gap-2 mb-3 flex-wrap" },
+                    React.createElement("input", { type: "text", value: editingHabit.title, onChange: e => setEditingHabit({ ...editingHabit, title: e.target.value }), className: "w-full px-3 py-2 rounded-lg mb-3 border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white lowercase text-sm", autoFocus: true }),
+                    React.createElement("label", { className: "block text-xs text-gray-500 mb-1 lowercase" }, "color"),
+                    React.createElement("div", { className: "flex gap-1.5 mb-3 flex-wrap" },
                         COLORS.map(c => React.createElement("button", {
                             key: c, type: "button",
                             onClick: () => setEditingHabit({ ...editingHabit, color: c }),
-                            style: { backgroundColor: c, width: '36px', height: '36px', borderRadius: '50%', border: editingHabit.color === c ? '3px solid #1f2937' : '2px solid transparent', boxShadow: editingHabit.color === c ? '0 0 0 2px white' : 'none' }
+                            style: { backgroundColor: c, width: '28px', height: '28px', borderRadius: '50%', border: editingHabit.color === c ? '2px solid #1f2937' : '2px solid transparent' }
                         }))
                     ),
-                    React.createElement("label", { className: "block text-sm text-gray-500 mb-2 lowercase" }, "icon"),
-                    React.createElement("div", { className: "flex gap-2 flex-wrap mb-3" },
+                    React.createElement("label", { className: "block text-xs text-gray-500 mb-1 lowercase" }, "icon"),
+                    React.createElement("div", { className: "flex gap-1 flex-wrap mb-3" },
                         Object.keys(ICONS).map(k => React.createElement("button", {
                             key: k, type: "button",
                             onClick: () => setEditingHabit({ ...editingHabit, icon: k }),
-                            className: `p-2 rounded-lg transition border-2 ${editingHabit.icon === k ? 'bg-gray-800 text-white border-gray-900' : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 border-gray-200 dark:border-gray-600 hover:bg-gray-200'}`
-                        }, React.createElement(Icon, { name: k, size: 20 })))
+                            className: `p-1.5 rounded-md transition ${editingHabit.icon === k ? 'bg-gray-800 text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200'}`
+                        }, React.createElement(Icon, { name: k, size: 16 })))
                     ),
-                    React.createElement("label", { className: "block text-sm text-gray-500 mb-2 lowercase" }, "difficulty"),
-                    React.createElement("div", { className: "flex gap-2 mb-4" },
+                    React.createElement("label", { className: "block text-xs text-gray-500 mb-1 lowercase" }, "difficulty"),
+                    React.createElement("div", { className: "flex gap-1.5 mb-3" },
                         ['easy', 'medium', 'hard'].map(d => {
                             const coins = d === 'hard' ? 20 : d === 'medium' ? 10 : 5;
                             return React.createElement("button", {
                                 key: d, type: "button",
                                 onClick: () => setEditingHabit({ ...editingHabit, difficulty: d }),
-                                className: `flex-1 py-2 rounded-xl lowercase transition ${editingHabit.difficulty === d ? (d === 'easy' ? 'bg-green-500 text-white' : d === 'hard' ? 'bg-red-500 text-white' : 'bg-orange-500 text-white') : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200'}`
+                                className: `flex-1 py-1.5 rounded-lg lowercase transition text-xs ${editingHabit.difficulty === d ? (d === 'easy' ? 'bg-green-500 text-white' : d === 'hard' ? 'bg-red-500 text-white' : 'bg-orange-500 text-white') : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200'}`
                             }, `${d} · ${coins}c`);
                         })
                     ),
-                    React.createElement("div", { className: "flex gap-2" },
-                        React.createElement("button", { type: "button", onClick: () => { deleteHabit(editingHabit.id); setEditingHabit(null); }, className: "flex-1 py-3 bg-red-100 dark:bg-red-900/30 text-red-600 rounded-xl lowercase" }, "delete"),
-                        React.createElement("button", { type: "submit", className: "flex-1 py-3 bg-green-600 hover:bg-green-700 text-white rounded-xl lowercase" }, "save")
+                    React.createElement("div", { className: "flex gap-2 pt-2 border-t border-gray-100 dark:border-gray-800" },
+                        React.createElement("button", { type: "button", onClick: () => { deleteHabit(editingHabit.id); setEditingHabit(null); }, className: "flex-1 py-2 text-red-500 hover:bg-red-50 rounded-lg lowercase text-sm" }, "delete"),
+                        React.createElement("button", { type: "submit", className: "flex-1 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg lowercase text-sm" }, "save")
                     )
                 )
             )
@@ -445,5 +461,5 @@
 
     window.HabitsTab = GamificationTab;
     window.RewardsPage = RewardsPage;
-    console.log("HabitsTab v40 loaded - mobile-first layout");
+    console.log("HabitsTab v41 loaded - compact elegant modals");
 })();
