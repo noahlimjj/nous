@@ -50,6 +50,7 @@
 
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
 
     <!-- Firebase SDK -->
     <script type="module">
@@ -138,11 +139,25 @@
 <body>
     <!-- PWA Service Worker Registration - v19 -->
     <script>
+        // --- NUCLEAR CACHE CLEARING ---
+        // Force unregister old service workers to ensure immediate update
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.getRegistrations().then(function (registrations) {
+                for (let registration of registrations) {
+                    if (registration.active && registration.active.scriptURL.includes('v23')) {
+                        console.log('Force unregistering old v23 SW');
+                        registration.unregister();
+                    }
+                }
+            });
+        }
+    </script>
+    <script>
         // Smart service worker registration with improved error handling
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', async () => {
-                const CURRENT_SW = '/service-worker-v22.js';
-                const CURRENT_CACHE_PREFIX = 'nous-v22';
+                const CURRENT_SW = '/service-worker-v25.js';
+                const CURRENT_CACHE_PREFIX = 'nous-v25';
 
                 try {
                     console.log('[PWA] Initializing service worker...');
@@ -153,9 +168,9 @@
 
                     for (const reg of registrations) {
                         const scriptURL = reg.active?.scriptURL || '';
-                        if (scriptURL.includes('service-worker-v22.js')) {
+                        if (scriptURL.includes('service-worker-v23.js')) {
                             hasCurrentVersion = true;
-                            console.log('[PWA] ✓ Service worker v22 already registered');
+                            console.log('[PWA] ✓ Service worker v23 already registered');
                         } else {
                             // Unregister old versions
                             console.log('[PWA] Unregistering old SW:', scriptURL);
@@ -174,7 +189,7 @@
 
                     // Register current version if not already registered
                     if (!hasCurrentVersion) {
-                        console.log('[PWA] Registering service worker v22...');
+                        console.log('[PWA] Registering service worker v23...');
                         const registration = await navigator.serviceWorker.register(CURRENT_SW, {
                             scope: '/'
                         });
@@ -191,7 +206,7 @@
                             });
                         }
 
-                        console.log('[PWA] ✓ Service worker v22 registered successfully');
+                        console.log('[PWA] ✓ Service worker v23 registered successfully');
 
                         // Check for updates every 5 minutes
                         setInterval(() => {
@@ -232,7 +247,8 @@
     <div class="shooting-star"></div>
 
     <script src="HabitsTab.js"></script>
-    <script src="index.js?v=16&t=1730700000"></script>
+    <script src="components/CalendarChecklist.js"></script>
+    <script src="index.js?v=25&t=1766600000"></script>
 
 </body>
 

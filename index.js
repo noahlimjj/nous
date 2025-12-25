@@ -258,6 +258,31 @@ const UsersIcon = () => React.createElement('svg', {
     strokeLinejoin: "round"
 }, React.createElement('path', { d: "M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" }), React.createElement('circle', { cx: "9", cy: "7", r: "4" }), React.createElement('path', { d: "M23 21v-2a4 4 0 0 0-3-3.87" }), React.createElement('path', { d: "M16 3.13a4 4 0 0 1 0 7.75" }));
 
+const ClockIcon = () => React.createElement('svg', {
+    xmlns: "http://www.w3.org/2000/svg",
+    width: "24",
+    height: "24",
+    viewBox: "0 0 24 24",
+    fill: "none",
+    stroke: "currentColor",
+    strokeWidth: "2",
+    strokeLinecap: "round",
+    strokeLinejoin: "round"
+}, React.createElement('circle', { cx: "12", cy: "12", r: "10" }), React.createElement('polyline', { points: "12 6 12 12 16 14" }));
+
+const ShoppingCartIcon = () => React.createElement('svg', {
+    xmlns: "http://www.w3.org/2000/svg",
+    width: "24",
+    height: "24",
+    viewBox: "0 0 24 24",
+    fill: "none",
+    stroke: "currentColor",
+    strokeWidth: "2",
+    strokeLinecap: "round",
+    strokeLinejoin: "round"
+}, React.createElement('circle', { cx: "9", cy: "21", r: "1" }), React.createElement('circle', { cx: "20", cy: "21", r: "1" }), React.createElement('path', { d: "M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6" }));
+
+
 const TrophyIcon = () => React.createElement('svg', {
     xmlns: "http://www.w3.org/2000/svg",
     width: "24",
@@ -407,6 +432,19 @@ const GripIcon = () => React.createElement('svg', {
     React.createElement('circle', { cx: "15", cy: "19", r: "1" })
 );
 
+const SwordIcon = () => React.createElement('svg', {
+    xmlns: "http://www.w3.org/2000/svg",
+    width: "24",
+    height: "24",
+    viewBox: "0 0 24 24",
+    fill: "none",
+    stroke: "currentColor",
+    strokeWidth: "2",
+    strokeLinecap: "round",
+    strokeLinejoin: "round"
+}, React.createElement('polyline', { points: "14.5 17.5 3 6 6 3 17.5 14.5" }), React.createElement('line', { x1: "13", y1: "19", x2: "19", y2: "13" }), React.createElement('line', { x1: "16", y1: "16", x2: "20", y2: "20" }), React.createElement('line', { x1: "19", y1: "21", x2: "21", y2: "19" }));
+
+
 // Logo component with circular flow around 'n'
 const NousLogo = ({ size = "medium" }) => {
     const sizes = {
@@ -483,10 +521,25 @@ const getMilliseconds = (totalMilliseconds) => {
     return Math.floor((totalMilliseconds % 1000) / 10);
 };
 
+// Function to safe-convert any date-like object to a JS Date
+const toDate = (timestamp) => {
+    if (!timestamp) return null;
+    if (timestamp.toDate && typeof timestamp.toDate === 'function') {
+        return timestamp.toDate();
+    }
+    if (timestamp instanceof Date) {
+        return timestamp;
+    }
+    // Handle string or number (milliseconds)
+    return new Date(timestamp);
+};
+
 // Function to format Firestore Timestamp to a readable date
 const formatDate = (timestamp) => {
-    if (!timestamp) return 'N/A';
-    return timestamp.toDate().toLocaleDateString('en-US', {
+    const date = toDate(timestamp);
+    if (!date) return 'N/A';
+
+    return date.toLocaleDateString('en-US', {
         month: 'short',
         day: 'numeric',
         year: 'numeric'
@@ -866,6 +919,15 @@ const Header = ({ setCurrentPage, currentPage }) => {
                     },
                         React.createElement(UsersIcon)
                     ),
+                    // Moved Shop Button to end
+                    React.createElement('button', {
+                        onClick: () => setCurrentPage('habits'),
+                        title: "Shop",
+                        className: `p-2 rounded-full transition ${currentPage === 'habits' ? 'bg-calm-100 text-accent-blue' : 'text-calm-600 hover:bg-calm-50'}`,
+                        style: { color: currentPage === 'habits' ? '#6B8DD6' : '#7d8ca8' }
+                    },
+                        React.createElement(ShoppingCartIcon)
+                    ),
                     React.createElement('button', {
                         onClick: () => setCurrentPage('leaderboard'),
                         title: "Leaderboard",
@@ -999,7 +1061,7 @@ const updateUserStats = async (db, userId, sessions) => {
         let checkDate = new Date(today);
 
         const sortedSessions = [...sessions].sort((a, b) =>
-            b.startTime.toMillis() - a.startTime.toMillis()
+            toDate(b.startTime).getTime() - toDate(a.startTime).getTime()
         );
 
         for (let i = 0; i < 365; i++) {
@@ -1008,7 +1070,7 @@ const updateUserStats = async (db, userId, sessions) => {
             dayEnd.setHours(23, 59, 59, 999);
 
             const hasSessionOnDay = sortedSessions.some(s => {
-                const sessionDate = s.startTime.toDate();
+                const sessionDate = toDate(s.startTime);
                 return sessionDate >= dayStart && sessionDate <= dayEnd;
             });
 
@@ -1042,7 +1104,7 @@ const updateUserStats = async (db, userId, sessions) => {
         todayEnd.setMinutes(todayEnd.getMinutes() - offsetDiff); // Adjust to Singapore end of day
 
         const todaySessions = sessions.filter(s => {
-            const sessionDate = s.startTime.toDate();
+            const sessionDate = toDate(s.startTime);
             return sessionDate >= todayStart && sessionDate <= todayEnd;
         });
 
@@ -1132,7 +1194,7 @@ const Dashboard = ({ db, userId, setNotification, activeTimers, setActiveTimers,
 
             // Filter sessions to only those from today (Singapore time)
             const dailySessions = sessionsList.filter(session => {
-                const sessionDate = session.startTime.toDate();
+                const sessionDate = toDate(session.startTime);
                 return sessionDate >= startOfDay && sessionDate <= endOfDay;
             });
 
@@ -2775,6 +2837,21 @@ const Dashboard = ({ db, userId, setNotification, activeTimers, setActiveTimers,
     }
 
     return React.createElement('div', { className: "max-w-7xl mx-auto p-4 sm:p-6 lg:p-8 grid grid-cols-1 lg:grid-cols-3 gap-8" },
+        // Calendar Checklist
+        React.createElement("div", { className: "lg:col-span-3 mb-4" },
+            React.createElement(window.CalendarChecklist)
+        ),
+        // Habits Widget
+        React.createElement("div", { className: "lg:col-span-3 mb-4 bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-gray-100 dark:border-slate-800 overflow-hidden" },
+            React.createElement("div", { className: "px-6 py-4 border-b border-gray-100 dark:border-slate-800 flex justify-between items-center" },
+                React.createElement("div", null,
+                    React.createElement("h2", { className: "text-xl font-light text-gray-900 dark:text-white lowercase inline-block mr-3" }, "daily habits"),
+                    React.createElement("span", { className: "text-sm text-gray-400 font-light" }, new Date().toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' }))
+                )
+            ),
+            React.createElement(window.HabitsTab, { user: { id: userId }, db, activeTimers, isWidget: true })
+        ),
+
         modalHabit && React.createElement(ManualEntryModal, { db, userId, habit: modalHabit, onClose: () => setModalHabit(null), setNotification }),
 
         // Session Invites Notification (full width across columns)
@@ -5795,6 +5872,7 @@ const Goals = ({ db, userId, setNotification }) => {
                                 className: "text-xs text-calm-400",
                                 style: { fontWeight: 300 }
                             }, goal.completedAt ? formatDate(goal.completedAt) : ''),
+
                             React.createElement('button', {
                                 onClick: () => handleDeleteGoal(goal.id),
                                 className: "opacity-0 group-hover:opacity-100 text-calm-400 hover:text-red-500 transition",
@@ -5852,7 +5930,7 @@ const Friends = ({ db, userId, setNotification, userProfile }) => {
 
             // Filter sessions to only those from today (Singapore time)
             const dailySessions = sessions.filter(session => {
-                const sessionDate = session.startTime.toDate();
+                const sessionDate = toDate(session.startTime);
                 return sessionDate >= startOfDay && sessionDate <= endOfDay;
             });
 
@@ -5863,7 +5941,7 @@ const Friends = ({ db, userId, setNotification, userProfile }) => {
                     return sum + s.duration;
                 } else if (s.startTime && !s.endTime) {
                     // ACTIVE session - calculate elapsed time from startTime to now
-                    const elapsed = now.getTime() - s.startTime.toDate().getTime();
+                    const elapsed = now.getTime() - toDate(s.startTime).getTime();
                     return sum + elapsed;
                 }
                 return sum;
@@ -6725,7 +6803,7 @@ const Friends = ({ db, userId, setNotification, userProfile }) => {
                                             (() => {
                                                 if (!friend.currentTopic || !friend.lastActive) return null;
 
-                                                const lastActiveDate = friend.lastActive.toDate ? friend.lastActive.toDate() : new Date(friend.lastActive);
+                                                const lastActiveDate = toDate(friend.lastActive);
                                                 const now = new Date();
                                                 const threeMinutesAgo = new Date(now.getTime() - 3 * 60 * 1000);
 
@@ -7047,7 +7125,7 @@ const Leaderboard = ({ db, userId, setNotification, userProfile }) => {
 
             // Filter sessions to only those from today (Singapore time)
             const dailySessions = sessions.filter(session => {
-                const sessionDate = session.startTime.toDate();
+                const sessionDate = toDate(session.startTime);
                 return sessionDate >= startOfDay && sessionDate <= endOfDay;
             });
 
@@ -7058,7 +7136,7 @@ const Leaderboard = ({ db, userId, setNotification, userProfile }) => {
                     return sum + s.duration;
                 } else if (s.startTime && !s.endTime) {
                     // ACTIVE session - calculate elapsed time from startTime to now
-                    const elapsed = now.getTime() - s.startTime.toDate().getTime();
+                    const elapsed = now.getTime() - toDate(s.startTime).getTime();
                     return sum + elapsed;
                 }
                 return sum;
@@ -7103,7 +7181,7 @@ const Leaderboard = ({ db, userId, setNotification, userProfile }) => {
 
             // Filter sessions to only those in the current week (Singapore time)
             const weeklySessions = sessions.filter(session => {
-                const sessionDate = session.startTime.toDate();
+                const sessionDate = toDate(session.startTime);
                 return sessionDate >= startOfCurrentWeek && sessionDate <= endOfCurrentWeek;
             });
 
@@ -7148,7 +7226,7 @@ const Leaderboard = ({ db, userId, setNotification, userProfile }) => {
 
             // Filter sessions to only those in the current month (Singapore time)
             const monthlySessions = sessions.filter(session => {
-                const sessionDate = session.startTime.toDate();
+                const sessionDate = toDate(session.startTime);
                 return sessionDate >= startOfMonth && sessionDate <= endOfMonth;
             });
 
@@ -7914,6 +7992,8 @@ function App() {
                 React.createElement(Header, { setCurrentPage, currentPage }),
                 React.createElement('main', null,
                     currentPage === 'dashboard' && React.createElement(Dashboard, { db, userId, setNotification, activeTimers, setActiveTimers, timerIntervals }),
+                    currentPage === 'habits' && React.createElement(window.HabitsTab, { user: userProfile, db, activeTimers }),
+
                     currentPage === 'goals' && React.createElement(Goals, { db, userId, setNotification }),
                     currentPage === 'friends' && React.createElement(Friends, { db, userId, setNotification, userProfile }),
                     currentPage === 'leaderboard' && React.createElement(Leaderboard, { db, userId, setNotification, userProfile }),
