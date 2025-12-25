@@ -97,6 +97,21 @@
         return streak;
     };
 
+    // Timer utility functions
+    const formatTimerDisplay = (totalMs) => {
+        const totalSeconds = Math.floor(totalMs / 1000);
+        const hours = Math.floor(totalSeconds / 3600);
+        const minutes = Math.floor((totalSeconds % 3600) / 60);
+        const seconds = totalSeconds % 60;
+        const ms = Math.floor((totalMs % 1000) / 10);
+        if (hours > 0) {
+            return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+        }
+        return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+    };
+
+    const getTimerMs = (totalMs) => Math.floor((totalMs % 1000) / 10);
+
     const HabitsPage = ({ user, db, isWidget = false, onToggleView }) => {
         const [habits, setHabits] = useState([]);
         const [wallet, setWallet] = useState({ coins: 0 });
@@ -105,6 +120,10 @@
         const [weekOffset, setWeekOffset] = useState(0);
         const [notification, setNotification] = useState(null);
         const [newHabit, setNewHabit] = useState({ title: "", difficulty: "medium", icon: "leaf", color: "#26DE81" });
+        // Timer state
+        const [timers, setTimers] = useState({});
+        const [currentTime, setCurrentTime] = useState(Date.now());
+        const [expandedHabit, setExpandedHabit] = useState(null);
 
         const userId = user?.uid || user?.id || null;
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'study-tracker-app';
@@ -121,7 +140,59 @@
             return () => { unsub1(); unsub2(); };
         }, [db, userId, appId]);
 
+        // Timer tick effect
+        useEffect(() => {
+            const hasRunning = Object.values(timers).some(t => t && t.isRunning);
+            if (!hasRunning) return;
+            const interval = setInterval(() => setCurrentTime(Date.now()), 50);
+            return () => clearInterval(interval);
+        }, [timers]);
+
         const showNotif = (msg) => { setNotification(msg); setTimeout(() => setNotification(null), 3000); };
+
+        // Timer functions
+        const startTimer = (habitId) => {
+            setTimers(prev => ({
+                ...prev,
+                [habitId]: {
+                    isRunning: true,
+                    startTime: Date.now(),
+                    elapsedTime: prev[habitId]?.elapsedTime || 0
+                }
+            }));
+        };
+
+        const pauseTimer = (habitId) => {
+            setTimers(prev => {
+                const timer = prev[habitId];
+                if (!timer) return prev;
+                const elapsed = timer.isRunning ? (Date.now() - timer.startTime) + timer.elapsedTime : timer.elapsedTime;
+                return { ...prev, [habitId]: { ...timer, isRunning: false, elapsedTime: elapsed } };
+            });
+        };
+
+        const stopTimer = (habitId) => {
+            const timer = timers[habitId];
+            if (!timer) return;
+            const elapsed = timer.isRunning ? (Date.now() - timer.startTime) + timer.elapsedTime : timer.elapsedTime;
+            if (elapsed > 0) {
+                showNotif(`session saved: ${formatTimerDisplay(elapsed)}`);
+            }
+            setTimers(prev => ({ ...prev, [habitId]: null }));
+        };
+
+        const resetTimer = (habitId) => {
+            setTimers(prev => ({ ...prev, [habitId]: { isRunning: false, startTime: null, elapsedTime: 0 } }));
+        };
+
+        const getElapsedTime = (habitId) => {
+            const timer = timers[habitId];
+            if (!timer) return 0;
+            if (timer.isRunning) {
+                return (currentTime - timer.startTime) + timer.elapsedTime;
+            }
+            return timer.elapsedTime;
+        };
 
         const getWeekDays = () => {
             const days = [];
@@ -183,11 +254,11 @@
         };
 
         const monthYear = weekDays[3]?.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
-        const rowStyle = { display: 'flex', alignItems: 'center', gap: '2px' };
+        const rowStyle = { display: 'flex', alignItems: 'flex-start', gap: '2px' };
         const dayStyle = { flex: '1', textAlign: 'center', minWidth: '28px' };
-        const habitColStyle = { width: '120px', flexShrink: 0, overflow: 'hidden' };
+        const habitColStyle = { width: '140px', flexShrink: 0, overflow: 'visible', wordBreak: 'break-word' };
 
-        return React.createElement("div", { className: "px-4 py-2 max-w-4xl mx-auto", style: { paddingBottom: '80px' } },
+        return React.createElement("div", { className: "px-4 py-2 max-w-4xl mx-auto", style: { paddingBottom: '80px', position: 'relative' } },
             notification && React.createElement("div", {
                 className: "fixed top-20 left-1/2 transform -translate-x-1/2 bg-gray-900 text-white px-6 py-3 rounded-xl shadow-2xl lowercase",
                 style: { zIndex: 9999 }
@@ -223,8 +294,8 @@
             ),
 
             // Days Header
-            React.createElement("div", { style: rowStyle, className: "mb-2 px-2" },
-                React.createElement("div", { style: habitColStyle, className: "text-sm text-gray-500 lowercase" }, "habit"),
+            React.createElement("div", { style: { ...rowStyle, alignItems: 'center' }, className: "mb-2 px-2" },
+                React.createElement("div", { style: habitColStyle, className: "text-sm font-medium text-gray-500 lowercase" }, "habit"),
                 weekDays.map(d => {
                     const iso = d.toISOString().split('T')[0];
                     const isToday = iso === todayStr;
@@ -242,40 +313,128 @@
             ) : habits.map(h => {
                 const coinVal = h.difficulty === 'hard' ? 20 : h.difficulty === 'medium' ? 10 : 5;
                 const streak = calcStreak(h.completionDates);
-                return React.createElement("div", { key: h.id, style: rowStyle, className: "p-2 mb-2 rounded-xl bg-white dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700" },
-                    React.createElement("div", { style: habitColStyle, className: "flex items-center gap-2" },
-                        React.createElement("div", {
-                            className: "w-8 h-8 rounded-full flex items-center justify-center text-white flex-shrink-0",
-                            style: { backgroundColor: h.color || '#26DE81' }
-                        }, React.createElement(Icon, { name: h.icon || 'leaf', size: 16 })),
-                        React.createElement("div", { className: "flex-1 min-w-0" },
-                            React.createElement("div", { className: "text-sm font-medium text-gray-800 dark:text-white lowercase truncate" }, h.title || 'untitled'),
-                            React.createElement("div", { className: "flex items-center gap-1 text-xs text-gray-400" },
-                                React.createElement("span", null, `${coinVal}c`),
-                                streak > 0 && React.createElement("span", { className: "text-orange-500" }, `🔥${streak}`),
-                                React.createElement("button", { onClick: () => setEditingHabit({ ...h, difficulty: h.difficulty || 'medium', icon: h.icon || 'leaf', color: h.color || '#26DE81' }), className: "ml-1 p-1 text-gray-400 hover:text-blue-500" },
-                                    React.createElement(SysIcon, { name: "edit", size: 14 })
+                const timer = timers[h.id];
+                const isRunning = timer && timer.isRunning;
+                const elapsed = getElapsedTime(h.id);
+                const isExpanded = expandedHabit === h.id;
+
+                return React.createElement("div", { key: h.id, className: "mb-3 rounded-xl bg-white dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700 overflow-hidden" },
+                    // Main habit row
+                    React.createElement("div", { style: rowStyle, className: "p-2" },
+                        // Drag handle / Timer toggle
+                        React.createElement("button", {
+                            onClick: () => setExpandedHabit(isExpanded ? null : h.id),
+                            className: `p-1.5 rounded-lg transition ${isExpanded ? 'bg-blue-100 text-blue-600' : 'text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'}`,
+                            title: "Toggle timer"
+                        }, React.createElement(SysIcon, { name: "fire", size: 16 })),
+                        React.createElement("div", { style: habitColStyle, className: "flex items-center gap-2" },
+                            React.createElement("div", {
+                                className: "w-8 h-8 rounded-full flex items-center justify-center text-white flex-shrink-0",
+                                style: { backgroundColor: h.color || '#26DE81' }
+                            }, React.createElement(Icon, { name: h.icon || 'leaf', size: 16 })),
+                            React.createElement("div", { className: "flex-1 min-w-0" },
+                                React.createElement("div", { className: "text-sm font-medium text-gray-800 dark:text-white lowercase leading-tight", style: { wordBreak: 'break-word', whiteSpace: 'normal' } }, h.title || 'untitled'),
+                                React.createElement("div", { className: "flex items-center gap-1 text-xs text-gray-400 mt-0.5" },
+                                    React.createElement("span", null, `${coinVal}c`),
+                                    streak > 0 && React.createElement("span", { className: "text-orange-500" }, `🔥${streak}`),
+                                    React.createElement("button", { onClick: () => setEditingHabit({ ...h, difficulty: h.difficulty || 'medium', icon: h.icon || 'leaf', color: h.color || '#26DE81' }), className: "ml-1 p-1 text-gray-400 hover:text-blue-500" },
+                                        React.createElement(SysIcon, { name: "edit", size: 14 })
+                                    )
                                 )
                             )
-                        )
+                        ),
+                        weekDays.map(d => {
+                            const iso = d.toISOString().split('T')[0];
+                            const done = (h.completionDates || []).includes(iso);
+                            const isToday = iso === todayStr;
+                            return React.createElement("div", { key: iso, style: dayStyle, className: "flex items-center justify-center" },
+                                React.createElement("button", {
+                                    onClick: () => toggleDate(h.id, iso),
+                                    style: done ? { backgroundColor: '#22c55e', width: '28px', height: '28px' } : { width: '28px', height: '28px' },
+                                    className: `rounded-full flex items-center justify-center transition-all ${done ? 'text-white shadow-md' : isToday ? 'border-2 border-blue-400 bg-blue-50 dark:bg-blue-900/30' : 'border-2 border-gray-300 dark:border-gray-600 hover:border-gray-400'}`
+                                }, done && React.createElement(SysIcon, { name: "check", size: 14 }))
+                            );
+                        })
                     ),
-                    weekDays.map(d => {
-                        const iso = d.toISOString().split('T')[0];
-                        const done = (h.completionDates || []).includes(iso);
-                        const isToday = iso === todayStr;
-                        return React.createElement("div", { key: iso, style: dayStyle, className: "flex items-center justify-center" },
-                            React.createElement("button", {
-                                onClick: () => toggleDate(h.id, iso),
-                                style: done ? { backgroundColor: '#22c55e', width: '28px', height: '28px' } : { width: '28px', height: '28px' },
-                                className: `rounded-full flex items-center justify-center transition-all ${done ? 'text-white shadow-md' : isToday ? 'border-2 border-blue-400 bg-blue-50 dark:bg-blue-900/30' : 'border-2 border-gray-300 dark:border-gray-600 hover:border-gray-400'}`
-                            }, done && React.createElement(SysIcon, { name: "check", size: 14 }))
-                        );
-                    })
+                    // Timer section (expandable)
+                    isExpanded && React.createElement("div", {
+                        className: "px-4 py-3 border-t border-gray-100 dark:border-gray-700 bg-gradient-to-r from-amber-50 to-yellow-50 dark:from-amber-900/20 dark:to-yellow-900/20"
+                    },
+                        React.createElement("div", { className: "flex items-center justify-between flex-wrap gap-3" },
+                            // Timer display
+                            React.createElement("div", {
+                                className: `timer-display flex-1 min-w-[200px] ${isRunning ? 'running' : (timer ? 'paused' : '')}`,
+                                style: { margin: 0, padding: '12px 16px', fontSize: '2rem' }
+                            },
+                                React.createElement("span", null, formatTimerDisplay(elapsed)),
+                                React.createElement("span", { className: "milliseconds", style: { fontSize: '1rem' } },
+                                    `.${String(getTimerMs(elapsed)).padStart(2, '0')}`
+                                )
+                            ),
+                            // Timer controls
+                            React.createElement("div", { className: "flex items-center gap-2" },
+                                // Play/Pause
+                                isRunning ?
+                                    React.createElement("button", {
+                                        onClick: () => pauseTimer(h.id),
+                                        className: "p-3 bg-yellow-100 text-yellow-600 rounded-full hover:bg-yellow-200 transition",
+                                        title: "Pause"
+                                    }, React.createElement("svg", { width: 20, height: 20, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: 2 },
+                                        React.createElement("rect", { x: 6, y: 4, width: 4, height: 16 }),
+                                        React.createElement("rect", { x: 14, y: 4, width: 4, height: 16 })
+                                    )) :
+                                    React.createElement("button", {
+                                        onClick: () => startTimer(h.id),
+                                        className: "p-3 bg-green-100 text-green-600 rounded-full hover:bg-green-200 transition",
+                                        title: "Play"
+                                    }, React.createElement("svg", { width: 20, height: 20, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: 2 },
+                                        React.createElement("polygon", { points: "5 3 19 12 5 21 5 3" })
+                                    )),
+                                // Stop
+                                React.createElement("button", {
+                                    onClick: () => stopTimer(h.id),
+                                    disabled: !timer,
+                                    className: "p-3 bg-red-100 text-red-600 rounded-full hover:bg-red-200 transition disabled:opacity-50",
+                                    title: "Stop & Save"
+                                }, React.createElement("svg", { width: 20, height: 20, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: 2 },
+                                    React.createElement("rect", { x: 3, y: 3, width: 18, height: 18, rx: 2 })
+                                )),
+                                // Add time (placeholder)
+                                React.createElement("button", {
+                                    onClick: () => showNotif("manual entry coming soon!"),
+                                    className: "p-3 bg-blue-100 text-blue-600 rounded-full hover:bg-blue-200 transition",
+                                    title: "Add Time"
+                                }, React.createElement("svg", { width: 20, height: 20, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: 2 },
+                                    React.createElement("circle", { cx: 12, cy: 12, r: 10 }),
+                                    React.createElement("line", { x1: 12, y1: 8, x2: 12, y2: 16 }),
+                                    React.createElement("line", { x1: 8, y1: 12, x2: 16, y2: 12 })
+                                )),
+                                // Reset
+                                React.createElement("button", {
+                                    onClick: () => resetTimer(h.id),
+                                    disabled: !timer,
+                                    className: "p-3 bg-orange-100 text-orange-600 rounded-full hover:bg-orange-200 transition disabled:opacity-50",
+                                    title: "Reset"
+                                }, React.createElement("svg", { width: 20, height: 20, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: 2 },
+                                    React.createElement("path", { d: "M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" }),
+                                    React.createElement("path", { d: "M21 3v5h-5" }),
+                                    React.createElement("path", { d: "M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" }),
+                                    React.createElement("path", { d: "M3 21v-5h5" })
+                                )),
+                                // Delete timer
+                                React.createElement("button", {
+                                    onClick: () => { setTimers(prev => ({ ...prev, [h.id]: null })); setExpandedHabit(null); },
+                                    className: "p-3 bg-gray-100 text-gray-500 rounded-full hover:bg-gray-200 transition",
+                                    title: "Close Timer"
+                                }, React.createElement(SysIcon, { name: "trash", size: 18 }))
+                            )
+                        )
+                    )
                 );
             }),
 
-            // FAB - Add Habit Button
-            React.createElement("button", {
+            // FAB - Add Habit Button (positioned relative to container)
+            !isWidget && React.createElement("button", {
                 onClick: () => setShowAddHabit(true),
                 className: "fab-add-habit",
                 style: {
@@ -283,31 +442,32 @@
                     bottom: '100px',
                     right: '24px',
                     zIndex: 9999,
-                    width: '60px',
-                    height: '60px',
-                    background: 'linear-gradient(135deg, #3b82f6, #2563eb)',
-                    border: 'none',
+                    width: '56px',
+                    height: '56px',
+                    background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
+                    border: '2px solid rgba(255,255,255,0.3)',
                     borderRadius: '50%',
-                    boxShadow: '0 4px 20px rgba(59, 130, 246, 0.5), 0 2px 8px rgba(0,0,0,0.15)',
+                    boxShadow: '0 4px 20px rgba(59, 130, 246, 0.6), 0 2px 8px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.2)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                     color: 'white',
-                    cursor: 'pointer'
+                    cursor: 'pointer',
+                    transition: 'transform 0.2s, box-shadow 0.2s'
                 }
-            }, React.createElement(SysIcon, { name: "plus", size: 28 })),
+            }, React.createElement(SysIcon, { name: "plus", size: 26 })),
 
-            // Add Habit Modal
+            // Add Habit Modal (positioned within container)
             showAddHabit && React.createElement("div", {
-                className: "fixed inset-0 flex items-center justify-center bg-black/50 backdrop-blur-sm",
-                style: { zIndex: 10000, padding: '20px' },
+                className: "absolute inset-0 flex items-start justify-center bg-black/30 backdrop-blur-sm rounded-2xl",
+                style: { zIndex: 100, padding: '20px', paddingTop: '60px' },
                 onClick: () => setShowAddHabit(false)
             },
                 React.createElement("form", {
                     onSubmit: addHabit,
                     onClick: e => e.stopPropagation(),
                     className: "bg-white dark:bg-gray-900 p-5 rounded-2xl w-full max-w-sm shadow-2xl overflow-y-auto border border-gray-200 dark:border-gray-700",
-                    style: { maxHeight: 'calc(100vh - 40px)' }
+                    style: { maxHeight: 'calc(100% - 80px)' }
                 },
                     React.createElement("div", { className: "flex justify-between items-center mb-3" },
                         React.createElement("h3", { className: "text-lg font-light text-gray-800 dark:text-white lowercase" }, "new habit"),
@@ -360,15 +520,15 @@
 
             // Edit Habit Modal
             editingHabit && React.createElement("div", {
-                className: "fixed inset-0 flex items-center justify-center bg-black/50 backdrop-blur-sm",
-                style: { zIndex: 10000, padding: '20px' },
+                className: "absolute inset-0 flex items-start justify-center bg-black/30 backdrop-blur-sm rounded-2xl",
+                style: { zIndex: 100, padding: '20px', paddingTop: '60px' },
                 onClick: () => setEditingHabit(null)
             },
                 React.createElement("form", {
                     onSubmit: saveHabit,
                     onClick: e => e.stopPropagation(),
                     className: "bg-white dark:bg-gray-900 p-5 rounded-2xl w-full max-w-sm shadow-2xl overflow-y-auto border border-gray-200 dark:border-gray-700",
-                    style: { maxHeight: 'calc(100vh - 40px)' }
+                    style: { maxHeight: 'calc(100% - 80px)' }
                 },
                     React.createElement("div", { className: "flex justify-between items-center mb-3" },
                         React.createElement("h3", { className: "text-lg font-light text-gray-800 dark:text-white lowercase" }, "edit habit"),
