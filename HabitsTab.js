@@ -159,9 +159,9 @@
         };
 
         const monthYear = weekDays[3]?.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
-        const rowStyle = { display: 'flex', alignItems: 'center', gap: '4px' };
-        const dayStyle = { flex: '1', textAlign: 'center', minWidth: '28px' };
-        const habitColStyle = { width: '90px', flexShrink: 0 };
+        const rowStyle = { display: 'flex', alignItems: 'center', gap: '8px' };
+        const dayStyle = { flex: '1', textAlign: 'center', minWidth: '40px' };
+        const habitColStyle = { width: '160px', flexShrink: 0 };
 
         return React.createElement("div", { className: "px-4 py-2 max-w-4xl mx-auto", style: { paddingBottom: '80px' } },
             notification && React.createElement("div", {
@@ -219,13 +219,13 @@
                 const coinVal = h.difficulty === 'hard' ? 20 : h.difficulty === 'medium' ? 10 : 5;
                 const streak = calcStreak(h.completionDates);
                 return React.createElement("div", { key: h.id, style: rowStyle, className: "p-2 mb-2 rounded-xl bg-white dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700" },
-                    React.createElement("div", { style: habitColStyle, className: "flex items-center gap-2" },
+                    React.createElement("div", { style: habitColStyle, className: "flex items-center gap-3" },
                         React.createElement("div", {
-                            className: "w-9 h-9 rounded-full flex items-center justify-center text-white flex-shrink-0",
+                            className: "w-11 h-11 rounded-full flex items-center justify-center text-white flex-shrink-0",
                             style: { backgroundColor: h.color || '#26DE81' }
-                        }, React.createElement(Icon, { name: h.icon || 'leaf', size: 18 })),
+                        }, React.createElement(Icon, { name: h.icon || 'leaf', size: 22 })),
                         React.createElement("div", { className: "flex-1 min-w-0" },
-                            React.createElement("div", { className: "text-sm font-medium text-gray-800 dark:text-white lowercase truncate" }, h.title || 'untitled'),
+                            React.createElement("div", { className: "text-lg font-medium text-gray-800 dark:text-white lowercase truncate" }, h.title || 'untitled'),
                             React.createElement("div", { className: "flex items-center gap-1 text-xs text-gray-400" },
                                 React.createElement("span", null, `${coinVal}c`),
                                 streak > 0 && React.createElement("span", { className: "text-orange-500" }, `🔥${streak}`),
@@ -239,12 +239,12 @@
                         const iso = d.toISOString().split('T')[0];
                         const done = (h.completionDates || []).includes(iso);
                         const isToday = iso === todayStr;
-                        return React.createElement("div", { key: iso, style: dayStyle },
+                        return React.createElement("div", { key: iso, style: dayStyle, className: "flex items-center justify-center" },
                             React.createElement("button", {
                                 onClick: () => toggleDate(h.id, iso),
-                                style: done ? { backgroundColor: '#22c55e' } : {},
-                                className: `w- 9 h - 9 mx - auto rounded - full flex items - center justify - center transition - all ${done ? 'text-white shadow-md' : isToday ? 'border-2 border-blue-400 bg-blue-50 dark:bg-blue-900/30' : 'border-2 border-gray-300 dark:border-gray-600'}`
-                            }, done && React.createElement(SysIcon, { name: "check", size: 16 }))
+                                style: done ? { backgroundColor: '#22c55e', width: '36px', height: '36px' } : { width: '36px', height: '36px' },
+                                className: `rounded-full flex items-center justify-center transition-all ${done ? 'text-white shadow-md' : isToday ? 'border-2 border-blue-400 bg-blue-50 dark:bg-blue-900/30' : 'border-2 border-gray-300 dark:border-gray-600 hover:border-gray-400'}`
+                            }, done && React.createElement(SysIcon, { name: "check", size: 18 }))
                         );
                     })
                 );
@@ -356,10 +356,10 @@
 
         useEffect(() => {
             if (!db || !userId) return;
-            const unsub1 = window.onSnapshot(window.collection(db, `/ artifacts / ${appId} / users / ${userId} / rewards`), snap => {
+            const unsub1 = window.onSnapshot(window.collection(db, `/artifacts/${appId}/users/${userId}/rewards`), snap => {
                 setRewards(snap.docs.map(d => ({ id: d.id, ...d.data() })));
             });
-            const unsub2 = window.onSnapshot(window.doc(db, `/ artifacts / ${appId} / users / ${userId} / gamification / wallet`), doc => {
+            const unsub2 = window.onSnapshot(window.doc(db, `/artifacts/${appId}/users/${userId}/gamification/wallet`), doc => {
                 if (doc.exists()) setWallet(doc.data());
             });
             return () => { unsub1(); unsub2(); };
@@ -371,7 +371,7 @@
             e.preventDefault();
             if (!newReward.title.trim()) return;
             const id = Date.now().toString();
-            await window.setDoc(window.doc(db, `/ artifacts / ${appId} / users / ${userId} / rewards / ${id}`), { id, title: newReward.title.trim(), cost: parseInt(newReward.cost) || 50 });
+            await window.setDoc(window.doc(db, `/artifacts/${appId}/users/${userId}/rewards/${id}`), { id, title: newReward.title.trim(), cost: parseInt(newReward.cost) || 50 });
             setNewReward({ title: "", cost: 50 });
             setShowAddReward(false);
             showNotif("reward added!");
@@ -380,13 +380,13 @@
         const buyReward = async (id) => {
             const r = rewards.find(x => x.id === id);
             if (!r || wallet.coins < r.cost) return showNotif("not enough coins!");
-            await window.updateDoc(window.doc(db, `/ artifacts / ${appId} / users / ${userId} / gamification / wallet`), { coins: wallet.coins - r.cost });
+            await window.updateDoc(window.doc(db, `/artifacts/${appId}/users/${userId}/gamification/wallet`), { coins: wallet.coins - r.cost });
             if (typeof window.confetti === 'function') window.confetti({ particleCount: 150, spread: 80, origin: { y: 0.6 } });
             showNotif("🎉 congratulations! reward claimed!");
         };
 
         const deleteReward = async (id) => {
-            if (confirm('Delete reward?')) await window.deleteDoc(window.doc(db, `/ artifacts / ${appId} / users / ${userId} / rewards / ${id}`));
+            if (confirm('Delete reward?')) await window.deleteDoc(window.doc(db, `/artifacts/${appId}/users/${userId}/rewards/${id}`));
         };
 
         return React.createElement("div", { className: "container mx-auto px-4 py-6 max-w-4xl" },
@@ -404,16 +404,18 @@
                 )
             ),
 
-            React.createElement("div", { className: "grid grid-cols-2 gap-4" },
+            React.createElement("div", { className: "grid grid-cols-1 sm:grid-cols-2 gap-4" },
                 rewards.map(r => React.createElement("button", {
                     key: r.id, onClick: () => buyReward(r.id), disabled: wallet.coins < r.cost,
-                    className: `relative flex flex - col items - center p - 5 rounded - 2xl border transition ${wallet.coins >= r.cost ? 'bg-white dark:bg-gray-800 hover:border-blue-400 hover:shadow-lg cursor-pointer' : 'bg-gray-50 dark:bg-gray-800 opacity-60 cursor-not-allowed'}`
+                    className: `relative flex items-center gap-4 p-4 rounded-2xl border transition ${wallet.coins >= r.cost ? 'bg-white dark:bg-gray-800 hover:border-blue-400 hover:shadow-lg cursor-pointer' : 'bg-gray-50 dark:bg-gray-800 opacity-60 cursor-not-allowed'}`
                 },
-                    React.createElement("div", { className: "text-3xl mb-2" }, "🎁"),
-                    React.createElement("h3", { className: "text-base dark:text-white mb-1 lowercase" }, r.title),
-                    React.createElement("div", { style: { color: '#92400e', fontWeight: '500' } }, `${r.cost} coins`),
-                    React.createElement("button", { onClick: e => { e.stopPropagation(); deleteReward(r.id); }, className: "absolute top-2 right-2 p-1 text-gray-300 hover:text-red-400" },
-                        React.createElement(SysIcon, { name: "x", size: 14 })
+                    React.createElement("div", { className: "text-4xl" }, "🎁"),
+                    React.createElement("div", { className: "flex-1 text-left" },
+                        React.createElement("h3", { className: "text-lg dark:text-white lowercase font-medium" }, r.title),
+                        React.createElement("div", { className: "text-sm", style: { color: '#92400e', fontWeight: '500' } }, `${r.cost} coins`)
+                    ),
+                    React.createElement("button", { onClick: e => { e.stopPropagation(); deleteReward(r.id); }, className: "p-2 text-gray-300 hover:text-red-400" },
+                        React.createElement(SysIcon, { name: "x", size: 16 })
                     )
                 )),
                 React.createElement("button", { onClick: () => setShowAddReward(true), className: "flex flex-col items-center justify-center p-5 rounded-2xl border-2 border-dashed border-gray-300 dark:border-gray-600 text-gray-400 hover:text-blue-500 hover:border-blue-400 min-h-[140px]" },
@@ -443,5 +445,5 @@
 
     window.HabitsTab = GamificationTab;
     window.RewardsPage = RewardsPage;
-    console.log("HabitsTab v34 loaded - fixed icons, colors, mobile layout");
+    console.log("HabitsTab v39 loaded - improved UI layout and sizing");
 })();

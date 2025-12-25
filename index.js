@@ -7986,8 +7986,8 @@ function App() {
         !user ?
             React.createElement(AuthComponent, { auth, setNotification }) :
             React.createElement(React.Fragment, null,
-                React.createElement(Header, { 
-                    setCurrentPage, 
+                React.createElement(Header, {
+                    setCurrentPage,
                     currentPage,
                     onNavigateToHabits: () => {
                         setCurrentPage('habits');
@@ -8000,10 +8000,10 @@ function App() {
                 }),
                 React.createElement('main', null,
                     currentPage === 'dashboard' && React.createElement(Dashboard, { db, userId, setNotification, activeTimers, setActiveTimers, timerIntervals }),
-                    currentPage === 'habits' && React.createElement(window.HabitsTab, { 
-                        user: userProfile, 
-                        db, 
-                        activeTimers, 
+                    currentPage === 'habits' && React.createElement(window.HabitsTab, {
+                        user: { id: userId, ...userProfile },
+                        db,
+                        activeTimers,
                         isRewardsPage: showRewardsPage,
                         onToggleView: () => setShowRewardsPage(!showRewardsPage) // Allow toggling from within component
                     }),
