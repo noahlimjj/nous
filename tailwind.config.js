@@ -1,9 +1,11 @@
 /** @type {import('tailwindcss').Config} */
 module.exports = {
+  darkMode: 'class',
   content: [
     "./index.html",
     "./index.js",
-    "./script.js"
+    "./script.js",
+    "./HabitsTab.js"
   ],
   theme: {
     extend: {

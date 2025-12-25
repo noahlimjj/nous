@@ -1989,8 +1989,9 @@ const Dashboard = ({ db, userId, setNotification, activeTimers, setActiveTimers,
         const elapsedBeforePause = timer.elapsedBeforePause || 0;
         // Handle both Firestore Timestamp (online) and regular timestamp (offline)
         const startTimeMs = timer.startTime?.toMillis ? timer.startTime.toMillis() : timer.startTime;
-        const sessionElapsed = startTimeMs ? Date.now() - startTimeMs : 0;
-        const totalElapsed = elapsedBeforePause + sessionElapsed;
+        // Guard against negative values (e.g., if startTimeMs is in the future or invalid)
+        const sessionElapsed = startTimeMs ? Math.max(0, Date.now() - startTimeMs) : 0;
+        const totalElapsed = Math.max(0, elapsedBeforePause + sessionElapsed);
 
         // For countdown timer, show remaining time
         if (timerMode === 'timer') {
@@ -7545,10 +7546,12 @@ function App() {
 
         if (isNightMode) {
             document.body.classList.add('night-mode');
-            console.log('✓ Added night-mode class');
+            document.body.classList.add('dark'); // Tailwind dark mode class
+            console.log('✓ Added night-mode and dark classes');
         } else {
             document.body.classList.remove('night-mode');
-            console.log('✓ Removed night-mode class');
+            document.body.classList.remove('dark'); // Tailwind dark mode class
+            console.log('✓ Removed night-mode and dark classes');
         }
 
         localStorage.setItem('nightMode', isNightMode);
