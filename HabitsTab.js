@@ -298,7 +298,7 @@
 
             // Days Header
             React.createElement("div", { style: { ...rowStyle, alignItems: 'center' }, className: "mb-2 px-2" },
-                React.createElement("div", { style: habitColStyle, className: "text-sm font-medium text-gray-500 lowercase" }, "habit"),
+                React.createElement("div", { style: { ...habitColStyle, paddingLeft: '28px' }, className: "text-sm font-medium text-gray-600 dark:text-gray-300" }, "habit"),
                 weekDays.map(d => {
                     const iso = d.toISOString().split('T')[0];
                     const isToday = iso === todayStr;
@@ -436,8 +436,8 @@
                 );
             }),
 
-            // FAB - Add Habit Button (positioned relative to container)
-            !isWidget && React.createElement("button", {
+            // FAB - Add Habit Button (always visible, positioned at bottom-right)
+            React.createElement("button", {
                 onClick: () => setShowAddHabit(true),
                 className: "fab-add-habit",
                 style: {
@@ -778,7 +778,7 @@
 
     window.HabitsTab = GamificationTab;
     window.RewardsPage = RewardsPage;
-    console.log(\"HabitsTab v47 loaded - added timer to habits, fixed FAB visibility, habit text wrapping, modal positioning\");
+    console.log("HabitsTab v48 loaded - timer per habit, FAB visibility, text wrapping, modal positioning");
 })();
 
 
