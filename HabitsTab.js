@@ -224,7 +224,7 @@
 
             // Days Header
             React.createElement("div", { style: rowStyle, className: "mb-2 px-2" },
-                React.createElement("div", { style: habitColStyle, className: "text-xs text-gray-500 lowercase" }, "habit"),
+                React.createElement("div", { style: habitColStyle, className: "text-sm text-gray-500 lowercase" }, "habit"),
                 weekDays.map(d => {
                     const iso = d.toISOString().split('T')[0];
                     const isToday = iso === todayStr;
@@ -277,6 +277,7 @@
             // FAB - Add Habit Button
             React.createElement("button", {
                 onClick: () => setShowAddHabit(true),
+                className: "fab-add-habit",
                 style: {
                     position: 'fixed',
                     bottom: '100px',
@@ -286,9 +287,14 @@
                     height: '60px',
                     background: 'linear-gradient(135deg, #3b82f6, #2563eb)',
                     border: 'none',
-                    boxShadow: '0 4px 20px rgba(59, 130, 246, 0.5), 0 2px 8px rgba(0,0,0,0.15)'
-                },
-                className: "text-white rounded-full flex items-center justify-center hover:scale-110 transition-all"
+                    borderRadius: '50%',
+                    boxShadow: '0 4px 20px rgba(59, 130, 246, 0.5), 0 2px 8px rgba(0,0,0,0.15)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: 'white',
+                    cursor: 'pointer'
+                }
             }, React.createElement(SysIcon, { name: "plus", size: 28 })),
 
             // Add Habit Modal

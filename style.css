@@ -370,11 +370,21 @@ body.night-mode button[class*="bg-green"]:hover {
         0 0 0 1px rgba(255, 255, 255, 0.2);
 }
 
-/* FAB Button - prevent dark mode override */
+/* FAB Button - ensure visibility in all modes */
+.fab-add-habit,
 .fab-button,
 button[style*="linear-gradient(135deg, #3b82f6"] {
     background: linear-gradient(135deg, #3b82f6, #2563eb) !important;
     border: none !important;
+    color: white !important;
+}
+
+body.night-mode .fab-add-habit,
+body.night-mode .fab-button {
+    background: linear-gradient(135deg, #3b82f6, #2563eb) !important;
+    border: none !important;
+    color: white !important;
+    box-shadow: 0 4px 20px rgba(59, 130, 246, 0.5), 0 2px 8px rgba(0, 0, 0, 0.3) !important;
 }
 
 /* Color picker buttons - preserve their colors */
