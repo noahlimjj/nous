@@ -296,9 +296,11 @@
                 )
             ),
 
-            // Days Header
+            // Days Header - includes spacer for flame icon alignment
             React.createElement("div", { style: { ...rowStyle, alignItems: 'center' }, className: "mb-2 px-2" },
-                React.createElement("div", { style: { ...habitColStyle, paddingLeft: '28px' }, className: "text-sm font-medium text-gray-600 dark:text-gray-300" }, "habit"),
+                // Spacer for flame icon (28px to match button width)
+                React.createElement("div", { style: { width: '28px', flexShrink: 0 } }),
+                React.createElement("div", { style: habitColStyle, className: "text-sm font-medium text-gray-600 dark:text-gray-300" }, "habit"),
                 weekDays.map(d => {
                     const iso = d.toISOString().split('T')[0];
                     const isToday = iso === todayStr;
@@ -778,7 +780,7 @@
 
     window.HabitsTab = GamificationTab;
     window.RewardsPage = RewardsPage;
-    console.log("HabitsTab v48 loaded - timer per habit, FAB visibility, text wrapping, modal positioning");
+    console.log("HabitsTab v49 loaded - fixed tick alignment with day headers");
 })();
 
 
