@@ -2837,10 +2837,6 @@ const Dashboard = ({ db, userId, setNotification, activeTimers, setActiveTimers,
     }
 
     return React.createElement('div', { className: "max-w-7xl mx-auto p-4 sm:p-6 lg:p-8 grid grid-cols-1 lg:grid-cols-3 gap-8" },
-        // Calendar Checklist
-        React.createElement("div", { className: "lg:col-span-3 mb-4" },
-            React.createElement(window.CalendarChecklist)
-        ),
         // Habits Widget
         React.createElement("div", { className: "lg:col-span-3 mb-4 bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-gray-100 dark:border-slate-800 overflow-hidden" },
             React.createElement("div", { className: "px-6 py-4 border-b border-gray-100 dark:border-slate-800 flex justify-between items-center" },

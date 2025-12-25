@@ -42,6 +42,16 @@
         }, React.createElement("path", { d: paths[name] || "" }));
     };
 
+    // Minimalist coin icon
+    const CoinIcon = ({ size = 16 }) => React.createElement("svg", {
+        width: size, height: size, viewBox: "0 0 24 24", fill: "none",
+        stroke: "currentColor", strokeWidth: "1.5", strokeLinecap: "round", strokeLinejoin: "round",
+        className: "inline-block"
+    },
+        React.createElement("circle", { cx: "12", cy: "12", r: "10" }),
+        React.createElement("path", { d: "M12 6v12M9 9c0-1 1-2 3-2s3 1 3 2-1 2-3 2-3 1-3 2 1 2 3 2 3-1 3-2" })
+    );
+
     const GamificationTab = ({ user, db }) => {
         const [habits, setHabits] = useState([]);
         const [rewards, setRewards] = useState([]);
@@ -229,7 +239,7 @@
                                 React.createElement("div", { className: "flex items-center gap-2 text-xs text-gray-400" },
                                     React.createElement("span", {
                                         className: `px-1.5 py-0.5 rounded text-[10px] ${h.difficulty === 'hard' ? 'bg-red-100 text-red-600' :
-                                                h.difficulty === 'easy' ? 'bg-green-100 text-green-600' : 'bg-orange-100 text-orange-600'
+                                            h.difficulty === 'easy' ? 'bg-green-100 text-green-600' : 'bg-orange-100 text-orange-600'
                                             }`
                                     }, `${coinVal}🪙`),
                                     h.streak > 0 && React.createElement("span", { className: "flex items-center gap-0.5" },
