@@ -3850,6 +3850,7 @@ const Settings = ({ auth, userId, db, userProfile, setNotification, isNightMode,
     const [usernameToDelete, setUsernameToDelete] = useState('');
     const [isDeleting, setIsDeleting] = useState(false);
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+    const [showAbout, setShowAbout] = useState(false);
 
     useEffect(() => {
         if (userProfile?.username) {
@@ -4280,6 +4281,67 @@ const Settings = ({ auth, userId, db, userProfile, setNotification, isNightMode,
                         isDeleting && React.createElement(LoaderIcon),
                         isDeleting ? "deleting..." : "yes, delete user"
                     )
+                )
+            )
+        ),
+
+        // About Nous Section - Collapsible
+        React.createElement('div', { className: "bg-white rounded-lg shadow-sm p-6 mt-6" },
+            React.createElement('button', {
+                onClick: () => setShowAbout(!showAbout),
+                className: "w-full flex justify-between items-center text-left",
+                style: { background: 'none', border: 'none', cursor: 'pointer' }
+            },
+                React.createElement('h3', { className: "text-xl text-gray-700", style: { fontWeight: 400 } }, "about nous"),
+                React.createElement('svg', {
+                    xmlns: "http://www.w3.org/2000/svg",
+                    width: "20",
+                    height: "20",
+                    viewBox: "0 0 24 24",
+                    fill: "none",
+                    stroke: "currentColor",
+                    strokeWidth: "2",
+                    strokeLinecap: "round",
+                    strokeLinejoin: "round",
+                    style: { transform: showAbout ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.3s ease' }
+                },
+                    React.createElement('polyline', { points: "6 9 12 15 18 9" })
+                )
+            ),
+            showAbout && React.createElement('div', { className: "mt-6 space-y-6" },
+                // Philosophy
+                React.createElement('div', null,
+                    React.createElement('h4', { className: "text-lg text-blue-600 mb-2", style: { fontWeight: 400 } }, "what is nous?"),
+                    React.createElement('p', { className: "text-gray-600 leading-relaxed", style: { fontWeight: 300 } },
+                        "In ancient Greek philosophy, ",
+                        React.createElement('span', { className: "italic text-blue-500" }, "nous"),
+                        " (νοῦς) represents the highest form of intellect—the faculty of intuitive understanding. It is the part of us that grasps fundamental truths and sees patterns."
+                    )
+                ),
+                // Cultivating
+                React.createElement('div', null,
+                    React.createElement('h4', { className: "text-lg text-blue-600 mb-2", style: { fontWeight: 400 } }, "cultivating your nous"),
+                    React.createElement('div', { className: "space-y-3" },
+                        React.createElement('p', { className: "text-gray-600", style: { fontWeight: 300 } },
+                            React.createElement('strong', { className: "text-gray-700" }, "Mindful habit building: "),
+                            "Track your time and progress to understand how you spend your days."
+                        ),
+                        React.createElement('p', { className: "text-gray-600", style: { fontWeight: 300 } },
+                            React.createElement('strong', { className: "text-gray-700" }, "Growth through reflection: "),
+                            "Like a tree growing, your skills develop through steady, deliberate practice."
+                        ),
+                        React.createElement('p', { className: "text-gray-600", style: { fontWeight: 300 } },
+                            React.createElement('strong', { className: "text-gray-700" }, "Purposeful living: "),
+                            "Align your daily actions with your deeper aspirations."
+                        )
+                    )
+                ),
+                // Quote
+                React.createElement('div', { className: "bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl p-4 border-l-4", style: { borderColor: '#6B8DD6' } },
+                    React.createElement('p', { className: "text-gray-700 italic", style: { fontWeight: 300 } },
+                        '"We are what we repeatedly do. Excellence, then, is not an act, but a habit."'
+                    ),
+                    React.createElement('p', { className: "text-gray-500 text-sm mt-1", style: { fontWeight: 300 } }, "— Aristotle")
                 )
             )
         )
