@@ -161,9 +161,9 @@
         };
 
         const monthYear = weekDays[3]?.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
-        const rowStyle = { display: 'flex', alignItems: 'center', gap: '8px' };
-        const dayStyle = { flex: '1', textAlign: 'center', minWidth: '40px' };
-        const habitColStyle = { width: '160px', flexShrink: 0 };
+        const rowStyle = { display: 'flex', alignItems: 'center', gap: '4px' };
+        const dayStyle = { flex: '1', textAlign: 'center', minWidth: '32px' };
+        const habitColStyle = { width: '100px', flexShrink: 0 };
 
         // Always show header with title and date
         const showHeader = true;
@@ -254,23 +254,23 @@
                         return React.createElement("div", { key: iso, style: dayStyle },
                             React.createElement("button", {
                                 onClick: () => toggleDate(h.id, iso),
-                                className: `w-10 h-10 mx-auto rounded-full flex items-center justify-center transition-all ${done
+                                className: `w-8 h-8 mx-auto rounded-full flex items-center justify-center transition-all ${done
                                     ? 'bg-green-500 text-white shadow-md scale-105'
                                     : isToday
                                         ? 'border-2 border-blue-400 bg-blue-50 hover:bg-blue-100'
-                                        : 'border-2 border-gray-200 dark:border-gray-700 hover:border-gray-300 hover:bg-gray-50'
+                                        : 'border-2 border-gray-300 dark:border-gray-600 hover:border-gray-400 hover:bg-gray-100'
                                     }`
-                            }, done && React.createElement(SysIcon, { name: "check", size: 18 }))
+                            }, done && React.createElement(SysIcon, { name: "check", size: 14 }))
                         );
                     })
                 );
             }),
 
-            // FAB
+            // FAB - visible in both light and dark mode
             React.createElement("button", {
                 onClick: () => setShowAddHabit(true),
                 style: { position: 'fixed', bottom: '24px', right: '24px', zIndex: 9999, width: '56px', height: '56px' },
-                className: "bg-gradient-to-br from-blue-500 to-indigo-600 text-white rounded-full shadow-xl flex items-center justify-center hover:scale-105 transition"
+                className: "bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-xl flex items-center justify-center hover:scale-105 transition border-2 border-blue-700"
             }, React.createElement(SysIcon, { name: "plus", size: 28 })),
 
             // Add Habit Modal
