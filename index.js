@@ -945,14 +945,6 @@ const Header = ({ setCurrentPage, currentPage, onNavigateToHabits, onNavigateToR
                         React.createElement(ChartIcon)
                     ),
                     React.createElement('button', {
-                        onClick: () => setCurrentPage('about'),
-                        title: "About Nous",
-                        className: `p-2 rounded-full transition ${currentPage === 'about' ? 'bg-calm-100 text-accent-blue' : 'text-calm-600 hover:bg-calm-50'}`,
-                        style: { color: currentPage === 'about' ? '#6B8DD6' : '#7d8ca8' }
-                    },
-                        React.createElement(InfoIcon)
-                    ),
-                    React.createElement('button', {
                         onClick: () => setCurrentPage('settings'),
                         title: "Settings",
                         className: `p-2 rounded-full transition ${currentPage === 'settings' ? 'bg-calm-100 text-accent-blue' : 'text-calm-600 hover:bg-calm-50'}`,
@@ -2929,7 +2921,7 @@ const Dashboard = ({ db, userId, setNotification, activeTimers, setActiveTimers,
                     placeholder: "e.g., Morning Run",
                     className: "flex-grow px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
                 }),
-                React.createElement('button', { type: "submit", className: "bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition", style: { fontWeight: 400 } }, "add habit")
+                React.createElement('button', { type: "submit", className: "bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition", style: { fontWeight: 400 } }, "add timer")
             ),
 
             // Habits List (including shared timers)
@@ -4348,70 +4340,7 @@ const Settings = ({ auth, userId, db, userProfile, setNotification, isNightMode,
     );
 };
 
-// About Component - Information about Nous philosophy and the app
-const About = () => {
-    return React.createElement('div', { className: "max-w-4xl mx-auto p-4 sm:p-6 lg:p-8" },
-        React.createElement('div', { className: "text-center mb-8" },
-            React.createElement('h1', { className: "text-4xl text-calm-800", style: { fontWeight: 300, letterSpacing: '0.05em' } }, "about")
-        ),
-
-        // Philosophy Section
-        React.createElement('div', { className: "bg-white rounded-xl soft-shadow p-8 mb-6" },
-            React.createElement('h2', { className: "text-2xl text-calm-800 mb-4", style: { fontWeight: 400 } }, "what is nous?"),
-            React.createElement('div', { className: "space-y-4 text-calm-700", style: { lineHeight: '1.8' } },
-                React.createElement('p', { style: { fontWeight: 300 } },
-                    "In ancient Greek philosophy, ",
-                    React.createElement('span', { className: "italic text-accent-blue", style: { fontWeight: 400 } }, "nous"),
-                    " (νοῦς) represents the highest form of intellect—the faculty of intuitive understanding and contemplative reason. It is the part of us that grasps fundamental truths, sees patterns, and comprehends the essence of things."
-                ),
-                React.createElement('p', { style: { fontWeight: 300 } },
-                    "Aristotle described nous as the aspect of mind that allows us to understand first principles. Plato saw it as the eye of the soul, the capacity for deep insight and clear thinking."
-                )
-            )
-        ),
-
-        // How Nous Helps Section
-        React.createElement('div', { className: "bg-white rounded-xl soft-shadow p-8 mb-6" },
-            React.createElement('h2', { className: "text-2xl text-calm-800 mb-4", style: { fontWeight: 400 } }, "cultivating your nous"),
-            React.createElement('div', { className: "space-y-6" },
-                React.createElement('div', null,
-                    React.createElement('h3', { className: "text-lg text-accent-blue mb-2", style: { fontWeight: 400 } }, "mindful habit building"),
-                    React.createElement('p', { className: "text-calm-700", style: { fontWeight: 300, lineHeight: '1.8' } },
-                        "Nous helps you build habits with intention and awareness. By tracking your time and progress, you develop a clearer understanding of how you spend your days—the foundation of a well-lived life."
-                    )
-                ),
-                React.createElement('div', null,
-                    React.createElement('h3', { className: "text-lg text-accent-blue mb-2", style: { fontWeight: 400 } }, "growth through reflection"),
-                    React.createElement('p', { className: "text-calm-700", style: { fontWeight: 300, lineHeight: '1.8' } },
-                        "Like a tree growing from consistent nourishment, your skills and character develop through steady, deliberate practice. Nous visualizes this growth, helping you see the cumulative power of small, daily actions."
-                    )
-                ),
-                React.createElement('div', null,
-                    React.createElement('h3', { className: "text-lg text-accent-blue mb-2", style: { fontWeight: 400 } }, "purposeful living"),
-                    React.createElement('p', { className: "text-calm-700", style: { fontWeight: 300, lineHeight: '1.8' } },
-                        "By setting goals and tracking progress, you align your daily actions with your deeper aspirations."
-                    )
-                ),
-                React.createElement('div', null,
-                    React.createElement('h3', { className: "text-lg text-accent-blue mb-2", style: { fontWeight: 400 } }, "community and connection"),
-                    React.createElement('p', { className: "text-calm-700", style: { fontWeight: 300, lineHeight: '1.8' } },
-                        "Connect with friends, share your journey, and inspire each other toward excellence. Together, we cultivate wisdom and support each other's flourishing."
-                    )
-                )
-            )
-        ),
-
-        // Quote Section
-        React.createElement('div', { className: "bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl p-8 mb-6 border-l-4", style: { borderColor: '#6B8DD6' } },
-            React.createElement('blockquote', { className: "text-center" },
-                React.createElement('p', { className: "text-xl text-calm-800 italic mb-3", style: { fontWeight: 300, lineHeight: '1.8' } },
-                    '"We are what we repeatedly do. Excellence, then, is not an act, but a habit."'
-                ),
-                React.createElement('cite', { className: "text-calm-600", style: { fontWeight: 300 } }, "— Aristotle")
-            )
-        )
-    );
-};
+// About Component removed - content moved to Settings page as collapsible section
 
 // Growth Tree Component - Aesthetic visualization of study progress
 const GrowthTree = ({ sessions, db, userId, setNotification }) => {
@@ -8072,7 +8001,7 @@ function App() {
                     currentPage === 'friends' && React.createElement(Friends, { db, userId, setNotification, userProfile }),
                     currentPage === 'leaderboard' && React.createElement(Leaderboard, { db, userId, setNotification, userProfile }),
                     currentPage === 'reports' && React.createElement(Reports, { db, userId, setNotification }),
-                    currentPage === 'about' && React.createElement(About),
+                    // About page removed - content is in Settings
                     currentPage === 'settings' && React.createElement(Settings, { auth, userId, db, userProfile, setNotification, isNightMode, setIsNightMode })
                 )
             )
