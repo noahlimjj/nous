@@ -160,7 +160,7 @@
         const monthYear = weekDays[3]?.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
         const rowStyle = { display: 'flex', alignItems: 'center', gap: '2px' };
         const dayStyle = { flex: '1', textAlign: 'center', minWidth: '28px' };
-        const habitColStyle = { width: '80px', flexShrink: 0 };
+        const habitColStyle = { width: '120px', flexShrink: 0, overflow: 'hidden' };
 
         return React.createElement("div", { className: "px-4 py-2 max-w-4xl mx-auto", style: { paddingBottom: '80px' } },
             notification && React.createElement("div", {
@@ -287,7 +287,7 @@
                         Object.keys(ICONS).map(k => React.createElement("button", {
                             key: k, type: "button",
                             onClick: () => setNewHabit({ ...newHabit, icon: k }),
-                            className: `p-1.5 rounded-md transition ${newHabit.icon === k ? 'bg-gray-800 text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200'}`
+                            className: `p-1.5 rounded-md transition ${newHabit.icon === k ? 'bg-blue-500 text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200'}`
                         }, React.createElement(Icon, { name: k, size: 16 })))
                     ),
                     React.createElement("label", { className: "block text-xs text-gray-500 mb-1 lowercase" }, "difficulty"),
@@ -340,7 +340,7 @@
                         Object.keys(ICONS).map(k => React.createElement("button", {
                             key: k, type: "button",
                             onClick: () => setEditingHabit({ ...editingHabit, icon: k }),
-                            className: `p-1.5 rounded-md transition ${editingHabit.icon === k ? 'bg-gray-800 text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200'}`
+                            className: `p-1.5 rounded-md transition ${editingHabit.icon === k ? 'bg-blue-500 text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200'}`
                         }, React.createElement(Icon, { name: k, size: 16 })))
                     ),
                     React.createElement("label", { className: "block text-xs text-gray-500 mb-1 lowercase" }, "difficulty"),
@@ -450,7 +450,7 @@
             return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
         };
 
-        return React.createElement("div", { className: "container mx-auto px-4 py-6 max-w-4xl", style: { paddingBottom: '100px' } },
+        return React.createElement("div", { className: "container mx-auto px-4 py-6 max-w-4xl", style: { paddingBottom: '100px', marginTop: '16px' } },
             notification && React.createElement("div", { className: "fixed top-20 left-1/2 transform -translate-x-1/2 bg-gray-900 text-white px-6 py-3 rounded-xl shadow-2xl lowercase", style: { zIndex: 9999 } }, notification),
 
             React.createElement("div", { className: "flex justify-between items-center mb-6" },
