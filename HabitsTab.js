@@ -1,4 +1,3 @@
-
 (function () {
     const { useState, useEffect } = React;
 
@@ -10,7 +9,7 @@
         heart: "M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z",
         lotus: "M12 22c-4 0-8-2-8-6 2 1 4 2 8 2s6-1 8-2c0 4-4 6-8 6z M12 2c-2 4-6 6-8 8 2 0 5 1 8 3 3-2 6-3 8-3-2-2-6-4-8-8z",
         leaf: "M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.77 10-10 10Z",
-        flame: "M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z",
+        flame: "M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.07-2.14-.22-4.05 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.15.43-2.29 1-3a2.5 2.5 0 0 0 2.5 2.5z",
         star: "M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z",
         coffee: "M18 8h1a4 4 0 0 1 0 8h-1 M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z",
         zap: "M13 2L3 14h9l-1 8 10-12h-9l1-8z",
@@ -34,7 +33,8 @@
             fire: "M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.07-2.14-.22-4.05 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.15.43-2.29 1-3a2.5 2.5 0 0 0 2.5 2.5z",
             left: "M15 18l-6-6 6-6",
             right: "M9 18l6-6-6-6",
-            bag: "M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"
+            bag: "M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z",
+            coin: "M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"
         };
         return React.createElement("svg", {
             width: size, height: size, viewBox: "0 0 24 24", fill: "none",
@@ -42,17 +42,17 @@
         }, React.createElement("path", { d: paths[name] || "" }));
     };
 
-    // Minimalist coin icon
-    const CoinIcon = ({ size = 16 }) => React.createElement("svg", {
-        width: size, height: size, viewBox: "0 0 24 24", fill: "none",
-        stroke: "currentColor", strokeWidth: "1.5", strokeLinecap: "round", strokeLinejoin: "round",
-        className: "inline-block"
+    // Minimalist coin display
+    const CoinDisplay = ({ amount }) => React.createElement("div", {
+        className: "flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800"
     },
-        React.createElement("circle", { cx: "12", cy: "12", r: "10" }),
-        React.createElement("path", { d: "M12 6v12M9 9c0-1 1-2 3-2s3 1 3 2-1 2-3 2-3 1-3 2 1 2 3 2 3-1 3-2" })
+        React.createElement("div", { className: "w-5 h-5 rounded-full bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center" },
+            React.createElement("span", { className: "text-white text-xs font-bold" }, "₵")
+        ),
+        React.createElement("span", { className: "text-lg font-medium text-amber-700 dark:text-amber-300" }, amount || 0)
     );
 
-    const GamificationTab = ({ user, db }) => {
+    const GamificationTab = ({ user, db, isWidget = false }) => {
         const [habits, setHabits] = useState([]);
         const [rewards, setRewards] = useState([]);
         const [wallet, setWallet] = useState({ coins: 0 });
@@ -60,6 +60,7 @@
         const [showShop, setShowShop] = useState(false);
         const [showAddReward, setShowAddReward] = useState(false);
         const [weekOffset, setWeekOffset] = useState(0);
+        const [notification, setNotification] = useState(null);
         const [newHabit, setNewHabit] = useState({ title: "", difficulty: "medium", icon: "leaf", color: "#FF6B6B" });
         const [newReward, setNewReward] = useState({ title: "", cost: 50 });
 
@@ -80,6 +81,11 @@
             });
             return () => { unsub1(); unsub2(); unsub3(); };
         }, [db, userId, appId]);
+
+        const showNotif = (msg) => {
+            setNotification(msg);
+            setTimeout(() => setNotification(null), 3000);
+        };
 
         const getWeekDays = () => {
             const days = [];
@@ -106,6 +112,7 @@
             });
             setNewHabit({ title: "", difficulty: "medium", icon: "leaf", color: "#FF6B6B" });
             setShowAddHabit(false);
+            showNotif("habit created!");
         };
 
         const deleteHabit = async (id) => {
@@ -141,28 +148,34 @@
             });
             setNewReward({ title: "", cost: 50 });
             setShowAddReward(false);
+            showNotif("reward added!");
         };
 
         const buyReward = async (id) => {
             const r = rewards.find(x => x.id === id);
-            if (!r || wallet.coins < r.cost) return alert("Not enough coins!");
-            if (confirm(`Buy ${r.title} for ${r.cost} coins?`)) {
-                await window.updateDoc(window.doc(db, `/artifacts/${appId}/users/${userId}/gamification/wallet`), {
-                    coins: wallet.coins - r.cost
-                });
-                if (typeof window.confetti === 'function') {
-                    window.confetti({ particleCount: 80, spread: 60, origin: { y: 0.6 } });
-                }
+            if (!r || wallet.coins < r.cost) return showNotif("not enough coins!");
+            await window.updateDoc(window.doc(db, `/artifacts/${appId}/users/${userId}/gamification/wallet`), {
+                coins: wallet.coins - r.cost
+            });
+            if (typeof window.confetti === 'function') {
+                window.confetti({ particleCount: 150, spread: 80, origin: { y: 0.6 } });
             }
+            showNotif("🎉 congratulations! reward claimed!");
         };
 
         const deleteReward = async (id) => {
-            if (confirm('Delete?')) await window.deleteDoc(window.doc(db, `/artifacts/${appId}/users/${userId}/rewards/${id}`));
+            if (confirm('Delete reward?')) await window.deleteDoc(window.doc(db, `/artifacts/${appId}/users/${userId}/rewards/${id}`));
         };
 
         const monthYear = weekDays[3]?.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
 
+        // Render
         return React.createElement("div", { className: "container mx-auto px-4 py-6 max-w-4xl" },
+            // Notification
+            notification && React.createElement("div", {
+                className: "fixed top-20 left-1/2 transform -translate-x-1/2 bg-gray-900 text-white px-6 py-3 rounded-xl shadow-2xl z-50 animate-pulse lowercase"
+            }, notification),
+
             // Header
             React.createElement("div", { className: "flex justify-between items-center mb-6" },
                 React.createElement("div", null,
@@ -174,13 +187,10 @@
                     )
                 ),
                 React.createElement("div", { className: "flex items-center gap-3" },
-                    React.createElement("div", { className: "flex items-center gap-2 px-4 py-2 rounded-full bg-amber-100 dark:bg-amber-900/30" },
-                        React.createElement("span", null, "🪙"),
-                        React.createElement("span", { className: "text-xl font-medium text-amber-700 dark:text-amber-300" }, wallet.coins || 0)
-                    ),
+                    React.createElement(CoinDisplay, { amount: wallet.coins }),
                     React.createElement("button", {
                         onClick: () => setShowShop(!showShop),
-                        className: `p-3 rounded-xl ${showShop ? 'bg-blue-500 text-white' : 'bg-gray-100 dark:bg-gray-800 text-gray-600'}`
+                        className: `p-3 rounded-xl transition-all ${showShop ? 'bg-blue-500 text-white shadow-lg' : 'bg-gray-100 dark:bg-gray-800 text-gray-600 hover:bg-gray-200'}`
                     }, React.createElement(SysIcon, { name: "bag", size: 22 }))
                 )
             ),
@@ -202,15 +212,18 @@
                     )
                 ),
 
-                // Days Header Row
-                React.createElement("div", { className: "grid grid-cols-8 gap-2 mb-3" },
-                    React.createElement("div", { className: "text-sm text-gray-500 lowercase font-medium" }, "habit"),
+                // Days Header Row - HORIZONTAL
+                React.createElement("div", {
+                    className: "grid gap-2 mb-3",
+                    style: { gridTemplateColumns: "minmax(120px, 1fr) repeat(7, 1fr)" }
+                },
+                    React.createElement("div", { className: "text-sm text-gray-500 lowercase font-medium py-2" }, "habit"),
                     ...weekDays.map(d => {
                         const iso = d.toISOString().split('T')[0];
                         const isToday = iso === todayStr;
                         return React.createElement("div", {
                             key: iso,
-                            className: `text-center ${isToday ? 'text-blue-600 font-bold' : 'text-gray-500'}`
+                            className: `text-center py-2 ${isToday ? 'text-blue-600 font-bold' : 'text-gray-500'}`
                         },
                             React.createElement("div", { className: "text-xs lowercase" }, d.toLocaleDateString('en-US', { weekday: 'short' })),
                             React.createElement("div", { className: "text-lg" }, d.getDate())
@@ -218,7 +231,7 @@
                     })
                 ),
 
-                // Habits Rows
+                // Habits Rows - HORIZONTAL
                 habits.length === 0 ? React.createElement("div", { className: "text-center py-12 text-gray-400" },
                     React.createElement("p", { className: "text-xl lowercase mb-2" }, "no habits yet"),
                     React.createElement("p", { className: "lowercase" }, "tap + to create one")
@@ -226,12 +239,13 @@
                     const coinVal = h.difficulty === 'hard' ? 20 : h.difficulty === 'medium' ? 10 : 5;
                     return React.createElement("div", {
                         key: h.id,
-                        className: "grid grid-cols-8 gap-2 items-center p-3 mb-2 rounded-xl bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800"
+                        className: "grid gap-2 items-center p-3 mb-2 rounded-xl bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800",
+                        style: { gridTemplateColumns: "minmax(120px, 1fr) repeat(7, 1fr)" }
                     },
                         // Habit info
                         React.createElement("div", { className: "flex items-center gap-2" },
                             React.createElement("div", {
-                                className: "w-8 h-8 rounded-lg flex items-center justify-center text-white",
+                                className: "w-8 h-8 rounded-lg flex items-center justify-center text-white flex-shrink-0",
                                 style: { backgroundColor: h.color || '#FF6B6B' }
                             }, React.createElement(Icon, { name: h.icon || 'leaf', size: 16 })),
                             React.createElement("div", { className: "flex-1 min-w-0" },
@@ -239,9 +253,9 @@
                                 React.createElement("div", { className: "flex items-center gap-2 text-xs text-gray-400" },
                                     React.createElement("span", {
                                         className: `px-1.5 py-0.5 rounded text-[10px] ${h.difficulty === 'hard' ? 'bg-red-100 text-red-600' :
-                                            h.difficulty === 'easy' ? 'bg-green-100 text-green-600' : 'bg-orange-100 text-orange-600'
+                                                h.difficulty === 'easy' ? 'bg-green-100 text-green-600' : 'bg-orange-100 text-orange-600'
                                             }`
-                                    }, `${coinVal}🪙`),
+                                    }, `${coinVal}c`),
                                     h.streak > 0 && React.createElement("span", { className: "flex items-center gap-0.5" },
                                         React.createElement(SysIcon, { name: "fire", size: 10 }), h.streak
                                     ),
@@ -252,7 +266,7 @@
                                 )
                             )
                         ),
-                        // Day checkboxes
+                        // Day checkboxes - HORIZONTAL across the row
                         ...weekDays.map(d => {
                             const iso = d.toISOString().split('T')[0];
                             const done = (h.completionDates || []).includes(iso);
@@ -260,7 +274,7 @@
                             return React.createElement("button", {
                                 key: iso,
                                 onClick: () => toggleDate(h.id, iso),
-                                className: `w-full aspect-square rounded-lg flex items-center justify-center transition ${done ? 'text-white shadow-sm' : isToday ? 'border-2 border-blue-400 text-blue-400' : 'border border-gray-200 dark:border-gray-700'
+                                className: `w-full aspect-square max-w-[40px] mx-auto rounded-lg flex items-center justify-center transition ${done ? 'text-white shadow-sm' : isToday ? 'border-2 border-blue-400 text-blue-400' : 'border border-gray-200 dark:border-gray-700'
                                     }`,
                                 style: done ? { backgroundColor: h.color || '#FF6B6B' } : {}
                             }, done && React.createElement(SysIcon, { name: "check", size: 16 }));
@@ -276,7 +290,7 @@
 
                 // Add Habit Modal
                 showAddHabit && React.createElement("div", { className: "fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4" },
-                    React.createElement("form", { onSubmit: addHabit, className: "bg-white dark:bg-gray-900 p-6 rounded-2xl w-full max-w-md shadow-2xl" },
+                    React.createElement("form", { onSubmit: addHabit, className: "bg-white dark:bg-gray-900 p-6 rounded-2xl w-full max-w-md shadow-2xl max-h-[90vh] overflow-y-auto" },
                         React.createElement("div", { className: "flex justify-between items-center mb-4" },
                             React.createElement("h3", { className: "text-2xl font-light text-gray-800 dark:text-white lowercase" }, "new habit"),
                             React.createElement("button", { type: "button", onClick: () => setShowAddHabit(false), className: "p-2 text-gray-400" },
@@ -319,7 +333,7 @@
                                     key: d, type: "button",
                                     onClick: () => setNewHabit({ ...newHabit, difficulty: d }),
                                     className: `flex-1 py-3 rounded-xl lowercase transition ${newHabit.difficulty === d ? colors[d] + ' text-white shadow-lg' : 'bg-gray-100 dark:bg-gray-800 text-gray-600'}`
-                                }, `${d} · ${coins}🪙`);
+                                }, `${d} · ${coins}c`);
                             })
                         ),
                         React.createElement("button", { type: "submit", className: "w-full py-4 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-xl text-lg lowercase" }, "add habit")
@@ -327,27 +341,33 @@
                 )
             ) : (
                 // Shop
-                React.createElement("div", { className: "grid grid-cols-2 gap-4" },
-                    rewards.map(r => React.createElement("button", {
-                        key: r.id,
-                        onClick: () => buyReward(r.id),
-                        disabled: wallet.coins < r.cost,
-                        className: `relative flex flex-col items-center p-6 rounded-2xl border ${wallet.coins >= r.cost ? 'bg-white dark:bg-gray-900 hover:border-blue-400 hover:shadow-lg' : 'bg-gray-50 dark:bg-gray-900 opacity-60'}`
-                    },
-                        React.createElement("div", { className: "text-4xl mb-3" }, "🎁"),
-                        React.createElement("h3", { className: "text-lg dark:text-white mb-1 lowercase" }, r.title),
-                        React.createElement("div", { className: "text-blue-500 font-medium" }, `${r.cost}🪙`),
+                React.createElement("div", { className: "space-y-4" },
+                    React.createElement("p", { className: "text-gray-500 lowercase text-center mb-4" }, "spend your coins on rewards you set for yourself"),
+                    React.createElement("div", { className: "grid grid-cols-2 gap-4" },
+                        rewards.map(r => React.createElement("button", {
+                            key: r.id,
+                            onClick: () => buyReward(r.id),
+                            disabled: wallet.coins < r.cost,
+                            className: `relative flex flex-col items-center p-6 rounded-2xl border transition ${wallet.coins >= r.cost ? 'bg-white dark:bg-gray-900 hover:border-blue-400 hover:shadow-lg cursor-pointer' : 'bg-gray-50 dark:bg-gray-900 opacity-60 cursor-not-allowed'}`
+                        },
+                            React.createElement("div", { className: "text-4xl mb-3" }, "🎁"),
+                            React.createElement("h3", { className: "text-lg dark:text-white mb-1 lowercase" }, r.title),
+                            React.createElement("div", { className: "flex items-center gap-1 text-amber-600 font-medium" },
+                                React.createElement("span", null, r.cost),
+                                React.createElement("span", { className: "text-sm" }, "coins")
+                            ),
+                            React.createElement("button", {
+                                onClick: e => { e.stopPropagation(); deleteReward(r.id); },
+                                className: "absolute top-2 right-2 p-1 text-gray-300 hover:text-red-400"
+                            }, React.createElement(SysIcon, { name: "x", size: 16 }))
+                        )),
                         React.createElement("button", {
-                            onClick: e => { e.stopPropagation(); deleteReward(r.id); },
-                            className: "absolute top-2 right-2 p-1 text-gray-300 hover:text-red-400"
-                        }, React.createElement(SysIcon, { name: "x", size: 16 }))
-                    )),
-                    React.createElement("button", {
-                        onClick: () => setShowAddReward(true),
-                        className: "flex flex-col items-center justify-center p-6 rounded-2xl border-2 border-dashed border-gray-200 text-gray-400 hover:text-blue-500 hover:border-blue-400 min-h-[160px]"
-                    },
-                        React.createElement(SysIcon, { name: "plus", size: 32 }),
-                        React.createElement("span", { className: "mt-2 lowercase" }, "add reward")
+                            onClick: () => setShowAddReward(true),
+                            className: "flex flex-col items-center justify-center p-6 rounded-2xl border-2 border-dashed border-gray-200 text-gray-400 hover:text-blue-500 hover:border-blue-400 min-h-[160px]"
+                        },
+                            React.createElement(SysIcon, { name: "plus", size: 32 }),
+                            React.createElement("span", { className: "mt-2 lowercase" }, "add reward")
+                        )
                     )
                 )
             ),
@@ -371,7 +391,7 @@
                     React.createElement("input", {
                         type: "number", value: newReward.cost,
                         onChange: e => setNewReward({ ...newReward, cost: e.target.value }),
-                        placeholder: "cost",
+                        placeholder: "cost in coins",
                         className: "w-full px-4 py-3 rounded-xl mb-5 border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white"
                     }),
                     React.createElement("button", { type: "submit", className: "w-full py-3 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-xl lowercase" }, "add reward")
@@ -381,4 +401,5 @@
     };
 
     window.HabitsTab = GamificationTab;
+    console.log("HabitsTab v26 loaded - horizontal layout");
 })();
