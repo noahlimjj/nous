@@ -169,8 +169,8 @@
                 style: { zIndex: 9999 }
             }, notification),
 
-            // Header - consistent with other tabs
-            React.createElement("div", { className: "flex justify-between items-center mb-4" },
+            // Header - only show when NOT embedded as widget (dashboard has its own header)
+            !isWidget && React.createElement("div", { className: "flex justify-between items-center mb-4" },
                 React.createElement("h2", { className: "text-2xl font-light text-gray-800 dark:text-white lowercase" }, "daily habits"),
                 React.createElement(CoinDisplay, { amount: wallet.coins })
             ),
