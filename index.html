@@ -144,7 +144,7 @@
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.getRegistrations().then(function (registrations) {
                 for (let registration of registrations) {
-                    if (registration.active && registration.active.scriptURL.includes('v23')) {
+                    if (registration.active && registration.active.scriptURL.includes('v24')) {
                         console.log('Force unregistering old v23 SW');
                         registration.unregister();
                     }
@@ -168,9 +168,9 @@
 
                     for (const reg of registrations) {
                         const scriptURL = reg.active?.scriptURL || '';
-                        if (scriptURL.includes('service-worker-v23.js')) {
+                        if (scriptURL.includes('service-worker-v25.js')) {
                             hasCurrentVersion = true;
-                            console.log('[PWA] ✓ Service worker v23 already registered');
+                            console.log('[PWA] ✓ Service worker v25 already registered');
                         } else {
                             // Unregister old versions
                             console.log('[PWA] Unregistering old SW:', scriptURL);
@@ -189,7 +189,7 @@
 
                     // Register current version if not already registered
                     if (!hasCurrentVersion) {
-                        console.log('[PWA] Registering service worker v23...');
+                        console.log('[PWA] Registering service worker v25...');
                         const registration = await navigator.serviceWorker.register(CURRENT_SW, {
                             scope: '/'
                         });
@@ -206,7 +206,7 @@
                             });
                         }
 
-                        console.log('[PWA] ✓ Service worker v23 registered successfully');
+                        console.log('[PWA] ✓ Service worker v25 registered successfully');
 
                         // Check for updates every 5 minutes
                         setInterval(() => {
