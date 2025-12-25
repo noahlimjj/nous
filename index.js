@@ -919,10 +919,10 @@ const Header = ({ setCurrentPage, currentPage }) => {
                     },
                         React.createElement(UsersIcon)
                     ),
-                    // Moved Shop Button to end
+                    // Rewards Button
                     React.createElement('button', {
                         onClick: () => setCurrentPage('habits'),
-                        title: "Shop",
+                        title: "Rewards",
                         className: `p-2 rounded-full transition ${currentPage === 'habits' ? 'bg-calm-100 text-accent-blue' : 'text-calm-600 hover:bg-calm-50'}`,
                         style: { color: currentPage === 'habits' ? '#6B8DD6' : '#7d8ca8' }
                     },
@@ -7988,7 +7988,7 @@ function App() {
                 React.createElement(Header, { setCurrentPage, currentPage }),
                 React.createElement('main', null,
                     currentPage === 'dashboard' && React.createElement(Dashboard, { db, userId, setNotification, activeTimers, setActiveTimers, timerIntervals }),
-                    currentPage === 'habits' && React.createElement(window.HabitsTab, { user: userProfile, db, activeTimers }),
+                    currentPage === 'habits' && React.createElement(window.HabitsTab, { user: userProfile, db, activeTimers, isRewardsPage: true }),
 
                     currentPage === 'goals' && React.createElement(Goals, { db, userId, setNotification }),
                     currentPage === 'friends' && React.createElement(Friends, { db, userId, setNotification, userProfile }),
