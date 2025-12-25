@@ -165,8 +165,7 @@
         const dayStyle = { flex: '1', textAlign: 'center', minWidth: '40px' };
         const habitColStyle = { width: '160px', flexShrink: 0 };
 
-        // Only show header if not a widget (widget shows in dashboard which has its own header)
-        const showHeader = !isWidget;
+        // Always show header with title and date\n        const showHeader = true;
 
         return React.createElement("div", { className: "container mx-auto px-4 py-6 max-w-4xl", style: { paddingBottom: '100px' } },
             notification && React.createElement("div", {
@@ -255,10 +254,10 @@
                             React.createElement("button", {
                                 onClick: () => toggleDate(h.id, iso),
                                 className: `w-10 h-10 mx-auto rounded-full flex items-center justify-center transition-all ${done
-                                        ? 'bg-green-500 text-white shadow-md scale-105'
-                                        : isToday
-                                            ? 'border-2 border-blue-400 bg-blue-50 hover:bg-blue-100'
-                                            : 'border-2 border-gray-200 dark:border-gray-700 hover:border-gray-300 hover:bg-gray-50'
+                                    ? 'bg-green-500 text-white shadow-md scale-105'
+                                    : isToday
+                                        ? 'border-2 border-blue-400 bg-blue-50 hover:bg-blue-100'
+                                        : 'border-2 border-gray-200 dark:border-gray-700 hover:border-gray-300 hover:bg-gray-50'
                                     }`
                             }, done && React.createElement(SysIcon, { name: "check", size: 18 }))
                         );
@@ -289,7 +288,7 @@
                     ),
                     React.createElement("label", { className: "block text-sm text-gray-500 mb-2 lowercase" }, "icon"),
                     React.createElement("div", { className: "flex gap-2 flex-wrap mb-4" },
-                        Object.keys(ICONS).map(k => React.createElement("button", { key: k, type: "button", onClick: () => setNewHabit({ ...newHabit, icon: k }), className: `p-2 rounded-lg transition ${newHabit.icon === k ? 'bg-blue-500 text-white' : 'bg-gray-100 dark:bg-gray-800 text-gray-600'}` }, React.createElement(Icon, { name: k, size: 18 })))
+                        Object.keys(ICONS).map(k => React.createElement("button", { key: k, type: "button", onClick: () => setNewHabit({ ...newHabit, icon: k }), className: `p-3 rounded-xl transition border-2 ${newHabit.icon === k ? 'bg-blue-500 text-white border-blue-600 shadow-md' : 'bg-gray-50 dark:bg-gray-800 text-gray-800 dark:text-gray-200 border-gray-300 dark:border-gray-600 hover:border-blue-400'}` }, React.createElement(Icon, { name: k, size: 22 })))
                     ),
                     React.createElement("label", { className: "block text-sm text-gray-500 mb-2 lowercase" }, "difficulty"),
                     React.createElement("div", { className: "flex gap-2 mb-5" },
@@ -318,7 +317,7 @@
                     ),
                     React.createElement("label", { className: "block text-sm text-gray-500 mb-2 lowercase" }, "icon"),
                     React.createElement("div", { className: "flex gap-2 flex-wrap mb-4" },
-                        Object.keys(ICONS).map(k => React.createElement("button", { key: k, type: "button", onClick: () => setEditingHabit({ ...editingHabit, icon: k }), className: `p-2 rounded-lg transition ${editingHabit.icon === k ? 'bg-blue-500 text-white' : 'bg-gray-100 dark:bg-gray-800 text-gray-600'}` }, React.createElement(Icon, { name: k, size: 18 })))
+                        Object.keys(ICONS).map(k => React.createElement("button", { key: k, type: "button", onClick: () => setEditingHabit({ ...editingHabit, icon: k }), className: `p-3 rounded-xl transition border-2 ${editingHabit.icon === k ? 'bg-blue-500 text-white border-blue-600 shadow-md' : 'bg-gray-50 dark:bg-gray-800 text-gray-800 dark:text-gray-200 border-gray-300 dark:border-gray-600 hover:border-blue-400'}` }, React.createElement(Icon, { name: k, size: 22 })))
                     ),
                     React.createElement("label", { className: "block text-sm text-gray-500 mb-2 lowercase" }, "difficulty"),
                     React.createElement("div", { className: "flex gap-2 mb-5" },
