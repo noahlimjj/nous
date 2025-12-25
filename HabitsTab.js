@@ -33,7 +33,8 @@
             fire: "M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.07-2.14-.22-4.05 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.15.43-2.29 1-3a2.5 2.5 0 0 0 2.5 2.5z",
             left: "M15 18l-6-6 6-6",
             right: "M9 18l6-6-6-6",
-            edit: "M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7 M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"
+            edit: "M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7 M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z",
+            star: "M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"
         };
         return React.createElement("svg", {
             width: size, height: size, viewBox: "0 0 24 24", fill: "none",
@@ -129,7 +130,7 @@
             e.preventDefault();
             if (!editingHabit || !editingHabit.title.trim()) return;
             await window.updateDoc(window.doc(db, `/artifacts/${appId}/users/${userId}/habits/${editingHabit.id}`), {
-                title: editingHabit.title.trim(), icon: editingHabit.icon, color: editingHabit.color, difficulty: editingHabit.difficulty
+                title: editingHabit.title.trim(), icon: editingHabit.icon || 'leaf', color: editingHabit.color || '#26DE81', difficulty: editingHabit.difficulty || 'medium'
             });
             setEditingHabit(null);
             showNotif("habit updated!");
@@ -153,9 +154,7 @@
             await window.updateDoc(window.doc(db, `/artifacts/${appId}/users/${userId}/gamification/wallet`), {
                 coins: Math.max(0, (wallet.coins || 0) + (done ? -coins : coins))
             });
-            if (!done && typeof window.confetti === 'function') {
-                window.confetti({ particleCount: 60, spread: 50, origin: { y: 0.7 } });
-            }
+            // No confetti on habit completion - only on reward claims
         };
 
         const monthYear = weekDays[3]?.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
@@ -171,7 +170,7 @@
 
             // Header - only show when NOT embedded as widget (dashboard has its own header)
             !isWidget && React.createElement("div", { className: "flex justify-between items-center mb-4" },
-                React.createElement("h2", { className: "text-2xl font-light text-gray-800 dark:text-white lowercase" }, "habit tracker"),
+                React.createElement("h2", { className: "text-3xl text-calm-800 mb-2", style: { fontWeight: 300 } }, "habit tracker"),
                 React.createElement("div", { className: "flex items-center gap-3" },
                     React.createElement(CoinDisplay, { amount: wallet.coins }),
                     onToggleView && React.createElement("button", {
@@ -229,7 +228,7 @@
                             React.createElement("div", { className: "flex items-center gap-1 text-xs text-gray-400" },
                                 React.createElement("span", null, `${coinVal}c`),
                                 streak > 0 && React.createElement("span", { className: "text-orange-500" }, `🔥${streak}`),
-                                React.createElement("button", { onClick: () => setEditingHabit({ ...h }), className: "ml-1 p-1 text-gray-400 hover:text-blue-500" },
+                                React.createElement("button", { onClick: () => setEditingHabit({ ...h, difficulty: h.difficulty || 'medium', icon: h.icon || 'leaf', color: h.color || '#26DE81' }), className: "ml-1 p-1 text-gray-400 hover:text-blue-500" },
                                     React.createElement(SysIcon, { name: "edit", size: 14 })
                                 )
                             )
@@ -253,7 +252,7 @@
             // FAB
             React.createElement("button", {
                 onClick: () => setShowAddHabit(true),
-                style: { position: 'fixed', bottom: '20px', right: '20px', zIndex: 9999, width: '50px', height: '50px', backgroundColor: '#3b82f6', border: '2px solid #2563eb' },
+                style: { position: 'fixed', bottom: '90px', right: '20px', zIndex: 9999, width: '56px', height: '56px', backgroundColor: '#3b82f6', border: '2px solid #2563eb' },
                 className: "text-white rounded-full shadow-xl flex items-center justify-center hover:scale-105 transition"
             }, React.createElement(SysIcon, { name: "plus", size: 24 })),
 
@@ -266,7 +265,7 @@
                 React.createElement("form", {
                     onSubmit: addHabit,
                     onClick: e => e.stopPropagation(),
-                    className: "bg-white dark:bg-gray-900 p-4 rounded-xl w-full max-w-xs shadow-lg max-h-[80vh] overflow-y-auto border border-gray-100 dark:border-gray-800"
+                    className: "bg-white dark:bg-gray-900 p-4 sm:p-6 rounded-xl w-full max-w-xs sm:max-w-sm md:max-w-md shadow-lg max-h-[80vh] overflow-y-auto border border-gray-100 dark:border-gray-800"
                 },
                     React.createElement("div", { className: "flex justify-between items-center mb-3" },
                         React.createElement("h3", { className: "text-lg font-light text-gray-800 dark:text-white lowercase" }, "new habit"),
@@ -292,13 +291,17 @@
                         }, React.createElement(Icon, { name: k, size: 16 })))
                     ),
                     React.createElement("label", { className: "block text-xs text-gray-500 mb-1 lowercase" }, "difficulty"),
-                    React.createElement("div", { className: "flex gap-1.5 mb-3" },
+                    React.createElement("div", { className: "grid grid-cols-3 gap-2 mb-3" },
                         ['easy', 'medium', 'hard'].map(d => {
                             const coins = d === 'hard' ? 20 : d === 'medium' ? 10 : 5;
+                            const isSelected = newHabit.difficulty === d;
+                            const bgColor = isSelected
+                                ? (d === 'easy' ? 'bg-green-500 text-white' : d === 'hard' ? 'bg-red-500 text-white' : 'bg-yellow-500 text-gray-900')
+                                : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200';
                             return React.createElement("button", {
                                 key: d, type: "button",
                                 onClick: () => setNewHabit({ ...newHabit, difficulty: d }),
-                                className: `flex-1 py-1.5 rounded-lg lowercase transition text-xs ${newHabit.difficulty === d ? (d === 'easy' ? 'bg-green-500 text-white' : d === 'hard' ? 'bg-red-500 text-white' : 'bg-orange-500 text-white') : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200'}`
+                                className: `py-2 rounded-lg lowercase transition text-xs font-medium ${bgColor}`
                             }, `${d} · ${coins}c`);
                         })
                     ),
@@ -315,7 +318,7 @@
                 React.createElement("form", {
                     onSubmit: saveHabit,
                     onClick: e => e.stopPropagation(),
-                    className: "bg-white dark:bg-gray-900 p-4 rounded-xl w-full max-w-xs shadow-lg max-h-[80vh] overflow-y-auto border border-gray-100 dark:border-gray-800"
+                    className: "bg-white dark:bg-gray-900 p-4 sm:p-6 rounded-xl w-full max-w-xs sm:max-w-sm md:max-w-md shadow-lg max-h-[80vh] overflow-y-auto border border-gray-100 dark:border-gray-800"
                 },
                     React.createElement("div", { className: "flex justify-between items-center mb-3" },
                         React.createElement("h3", { className: "text-lg font-light text-gray-800 dark:text-white lowercase" }, "edit habit"),
@@ -341,13 +344,17 @@
                         }, React.createElement(Icon, { name: k, size: 16 })))
                     ),
                     React.createElement("label", { className: "block text-xs text-gray-500 mb-1 lowercase" }, "difficulty"),
-                    React.createElement("div", { className: "flex gap-1.5 mb-3" },
+                    React.createElement("div", { className: "grid grid-cols-3 gap-2 mb-3" },
                         ['easy', 'medium', 'hard'].map(d => {
                             const coins = d === 'hard' ? 20 : d === 'medium' ? 10 : 5;
+                            const isSelected = editingHabit.difficulty === d;
+                            const bgColor = isSelected
+                                ? (d === 'easy' ? 'bg-green-500 text-white' : d === 'hard' ? 'bg-red-500 text-white' : 'bg-yellow-500 text-gray-900')
+                                : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200';
                             return React.createElement("button", {
                                 key: d, type: "button",
                                 onClick: () => setEditingHabit({ ...editingHabit, difficulty: d }),
-                                className: `flex-1 py-1.5 rounded-lg lowercase transition text-xs ${editingHabit.difficulty === d ? (d === 'easy' ? 'bg-green-500 text-white' : d === 'hard' ? 'bg-red-500 text-white' : 'bg-orange-500 text-white') : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200'}`
+                                className: `py-2 rounded-lg lowercase transition text-xs font-medium ${bgColor}`
                             }, `${d} · ${coins}c`);
                         })
                     ),
@@ -362,10 +369,12 @@
 
     const RewardsPage = ({ user, db, onToggleView }) => {
         const [rewards, setRewards] = useState([]);
+        const [claimedRewards, setClaimedRewards] = useState([]);
         const [wallet, setWallet] = useState({ coins: 0 });
         const [showAddReward, setShowAddReward] = useState(false);
+        const [editingReward, setEditingReward] = useState(null);
         const [notification, setNotification] = useState(null);
-        const [newReward, setNewReward] = useState({ title: "", cost: 50 });
+        const [newReward, setNewReward] = useState({ title: "", cost: 50, description: "" });
 
         const userId = user?.uid || user?.id || null;
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'study-tracker-app';
@@ -378,7 +387,12 @@
             const unsub2 = window.onSnapshot(window.doc(db, `/artifacts/${appId}/users/${userId}/gamification/wallet`), doc => {
                 if (doc.exists()) setWallet(doc.data());
             });
-            return () => { unsub1(); unsub2(); };
+            const unsub3 = window.onSnapshot(window.collection(db, `/artifacts/${appId}/users/${userId}/claimedRewards`), snap => {
+                const claims = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+                claims.sort((a, b) => (b.claimedAt || 0) - (a.claimedAt || 0));
+                setClaimedRewards(claims);
+            });
+            return () => { unsub1(); unsub2(); unsub3(); };
         }, [db, userId, appId]);
 
         const showNotif = (msg) => { setNotification(msg); setTimeout(() => setNotification(null), 3000); };
@@ -387,29 +401,60 @@
             e.preventDefault();
             if (!newReward.title.trim()) return;
             const id = Date.now().toString();
-            await window.setDoc(window.doc(db, `/artifacts/${appId}/users/${userId}/rewards/${id}`), { id, title: newReward.title.trim(), cost: parseInt(newReward.cost) || 50 });
-            setNewReward({ title: "", cost: 50 });
+            await window.setDoc(window.doc(db, `/artifacts/${appId}/users/${userId}/rewards/${id}`), {
+                id,
+                title: newReward.title.trim(),
+                cost: parseInt(newReward.cost) || 50,
+                description: newReward.description.trim() || ""
+            });
+            setNewReward({ title: "", cost: 50, description: "" });
             setShowAddReward(false);
             showNotif("reward added!");
+        };
+
+        const saveReward = async (e) => {
+            e.preventDefault();
+            if (!editingReward || !editingReward.title.trim()) return;
+            await window.updateDoc(window.doc(db, `/artifacts/${appId}/users/${userId}/rewards/${editingReward.id}`), {
+                title: editingReward.title.trim(),
+                cost: parseInt(editingReward.cost) || 50,
+                description: editingReward.description?.trim() || ""
+            });
+            setEditingReward(null);
+            showNotif("reward updated!");
         };
 
         const buyReward = async (id) => {
             const r = rewards.find(x => x.id === id);
             if (!r || wallet.coins < r.cost) return showNotif("not enough coins!");
             await window.updateDoc(window.doc(db, `/artifacts/${appId}/users/${userId}/gamification/wallet`), { coins: wallet.coins - r.cost });
+            const claimId = Date.now().toString();
+            await window.setDoc(window.doc(db, `/artifacts/${appId}/users/${userId}/claimedRewards/${claimId}`), {
+                id: claimId,
+                rewardId: r.id,
+                title: r.title,
+                cost: r.cost,
+                claimedAt: Date.now()
+            });
             if (typeof window.confetti === 'function') window.confetti({ particleCount: 150, spread: 80, origin: { y: 0.6 } });
-            showNotif("🎉 congratulations! reward claimed!");
+            showNotif("congratulations! reward claimed!");
         };
 
         const deleteReward = async (id) => {
             if (confirm('Delete reward?')) await window.deleteDoc(window.doc(db, `/artifacts/${appId}/users/${userId}/rewards/${id}`));
         };
 
-        return React.createElement("div", { className: "container mx-auto px-4 py-6 max-w-4xl" },
+        const formatDate = (timestamp) => {
+            if (!timestamp) return '';
+            const date = new Date(timestamp);
+            return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+        };
+
+        return React.createElement("div", { className: "container mx-auto px-4 py-6 max-w-4xl", style: { paddingBottom: '100px' } },
             notification && React.createElement("div", { className: "fixed top-20 left-1/2 transform -translate-x-1/2 bg-gray-900 text-white px-6 py-3 rounded-xl shadow-2xl lowercase", style: { zIndex: 9999 } }, notification),
 
             React.createElement("div", { className: "flex justify-between items-center mb-6" },
-                React.createElement("h2", { className: "text-2xl font-light text-gray-800 dark:text-white lowercase" }, "rewards"),
+                React.createElement("h2", { className: "text-3xl text-calm-800 mb-2", style: { fontWeight: 300 } }, "rewards"),
                 React.createElement("div", { className: "flex items-center gap-3" },
                     React.createElement(CoinDisplay, { amount: wallet.coins }),
                     onToggleView && React.createElement("button", {
@@ -420,35 +465,87 @@
                 )
             ),
 
-            React.createElement("div", { className: "grid grid-cols-1 sm:grid-cols-2 gap-4" },
-                rewards.map(r => React.createElement("button", {
-                    key: r.id, onClick: () => buyReward(r.id), disabled: wallet.coins < r.cost,
-                    className: `relative flex items-center gap-4 p-4 rounded-2xl border transition ${wallet.coins >= r.cost ? 'bg-white dark:bg-gray-800 hover:border-blue-400 hover:shadow-lg cursor-pointer' : 'bg-gray-50 dark:bg-gray-800 opacity-60 cursor-not-allowed'}`
+            // Available Rewards
+            React.createElement("div", { className: "grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 mb-8" },
+                rewards.map(r => React.createElement("div", {
+                    key: r.id,
+                    className: `relative p-4 rounded-2xl border transition ${wallet.coins >= r.cost ? 'bg-white dark:bg-gray-800 hover:border-blue-400 hover:shadow-lg' : 'bg-gray-50 dark:bg-gray-800 opacity-60'}`
                 },
-                    React.createElement("div", { className: "text-4xl" }, "🎁"),
-                    React.createElement("div", { className: "flex-1 text-left" },
-                        React.createElement("h3", { className: "text-lg dark:text-white lowercase font-medium" }, r.title),
+                    // Reward content
+                    React.createElement("div", { className: "text-left mb-3" },
+                        React.createElement("h3", { className: "text-lg dark:text-white lowercase font-medium mb-1" }, r.title),
+                        r.description && React.createElement("p", { className: "text-sm text-gray-500 dark:text-gray-400 mb-1" }, r.description),
                         React.createElement("div", { className: "text-sm", style: { color: '#92400e', fontWeight: '500' } }, `${r.cost} coins`)
                     ),
-                    React.createElement("button", { onClick: e => { e.stopPropagation(); deleteReward(r.id); }, className: "p-2 text-gray-300 hover:text-red-400" },
-                        React.createElement(SysIcon, { name: "x", size: 16 })
+                    // Action buttons
+                    React.createElement("div", { className: "flex gap-2" },
+                        React.createElement("button", {
+                            onClick: () => buyReward(r.id),
+                            disabled: wallet.coins < r.cost,
+                            className: `flex-1 py-2 rounded-lg lowercase text-sm transition ${wallet.coins >= r.cost ? 'bg-blue-600 hover:bg-blue-700 text-white' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`
+                        }, "claim"),
+                        React.createElement("button", {
+                            onClick: () => setEditingReward({ ...r }),
+                            className: "px-3 py-2 text-gray-400 hover:text-blue-500 transition"
+                        }, React.createElement(SysIcon, { name: "edit", size: 16 })),
+                        React.createElement("button", {
+                            onClick: () => deleteReward(r.id),
+                            className: "px-3 py-2 text-gray-400 hover:text-red-500 transition"
+                        }, React.createElement(SysIcon, { name: "x", size: 16 }))
                     )
                 )),
-                React.createElement("button", { onClick: () => setShowAddReward(true), className: "flex flex-col items-center justify-center p-5 rounded-2xl border-2 border-dashed border-gray-300 dark:border-gray-600 text-gray-400 hover:text-blue-500 hover:border-blue-400 min-h-[140px]" },
+                React.createElement("button", { onClick: () => setShowAddReward(true), className: "flex flex-col items-center justify-center p-5 rounded-2xl border-2 border-dashed border-gray-300 dark:border-gray-600 text-gray-400 hover:text-blue-500 hover:border-blue-400 min-h-[120px]" },
                     React.createElement(SysIcon, { name: "plus", size: 28 }),
                     React.createElement("span", { className: "mt-2 lowercase text-sm" }, "add reward")
                 )
             ),
 
-            showAddReward && React.createElement("div", { className: "fixed inset-0 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4", style: { zIndex: 10000 } },
-                React.createElement("form", { onSubmit: addReward, className: "bg-white dark:bg-gray-900 p-5 rounded-2xl w-full max-w-sm shadow-2xl" },
-                    React.createElement("div", { className: "flex justify-between items-center mb-3" },
+            // Claimed Rewards History
+            claimedRewards.length > 0 && React.createElement("div", { className: "mt-8" },
+                React.createElement("h3", { className: "text-lg font-light text-gray-600 dark:text-gray-300 lowercase mb-4" }, "claimed rewards"),
+                React.createElement("div", { className: "space-y-2" },
+                    claimedRewards.slice(0, 10).map(claim => React.createElement("div", {
+                        key: claim.id,
+                        className: "flex items-center gap-3 p-3 rounded-xl bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 border border-green-100 dark:border-green-800/30"
+                    },
+                        React.createElement("div", { className: "flex-1" },
+                            React.createElement("span", { className: "text-gray-800 dark:text-white lowercase font-medium" }, claim.title),
+                            React.createElement("span", { className: "text-gray-400 text-sm ml-2" }, `${claim.cost}c`)
+                        ),
+                        React.createElement("span", { className: "text-xs text-gray-400" }, formatDate(claim.claimedAt))
+                    ))
+                ),
+                claimedRewards.length > 10 && React.createElement("p", { className: "text-sm text-gray-400 mt-2 text-center lowercase" }, `+ ${claimedRewards.length - 10} more`)
+            ),
+
+            // Add Reward Modal
+            showAddReward && React.createElement("div", { className: "fixed inset-0 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4", style: { zIndex: 10000 }, onClick: () => setShowAddReward(false) },
+                React.createElement("form", { onSubmit: addReward, onClick: e => e.stopPropagation(), className: "bg-white dark:bg-gray-900 p-5 sm:p-6 rounded-2xl w-full max-w-xs sm:max-w-sm md:max-w-md shadow-2xl" },
+                    React.createElement("div", { className: "flex justify-between items-center mb-4" },
                         React.createElement("h3", { className: "text-xl font-light dark:text-white lowercase" }, "new reward"),
-                        React.createElement("button", { type: "button", onClick: () => setShowAddReward(false), className: "p-2 text-gray-400" }, React.createElement(SysIcon, { name: "x", size: 18 }))
+                        React.createElement("button", { type: "button", onClick: () => setShowAddReward(false), className: "p-2 text-gray-400 hover:text-gray-600" }, React.createElement(SysIcon, { name: "x", size: 18 }))
                     ),
                     React.createElement("input", { type: "text", value: newReward.title, onChange: e => setNewReward({ ...newReward, title: e.target.value }), placeholder: "reward name...", className: "w-full px-4 py-3 rounded-xl mb-3 border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white lowercase", autoFocus: true }),
+                    React.createElement("textarea", { value: newReward.description, onChange: e => setNewReward({ ...newReward, description: e.target.value }), placeholder: "description (optional)...", rows: 2, className: "w-full px-4 py-3 rounded-xl mb-3 border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white resize-none" }),
                     React.createElement("input", { type: "number", value: newReward.cost, onChange: e => setNewReward({ ...newReward, cost: e.target.value }), placeholder: "cost in coins", className: "w-full px-4 py-3 rounded-xl mb-4 border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white" }),
                     React.createElement("button", { type: "submit", className: "w-full py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl lowercase" }, "add reward")
+                )
+            ),
+
+            // Edit Reward Modal
+            editingReward && React.createElement("div", { className: "fixed inset-0 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4", style: { zIndex: 10000 }, onClick: () => setEditingReward(null) },
+                React.createElement("form", { onSubmit: saveReward, onClick: e => e.stopPropagation(), className: "bg-white dark:bg-gray-900 p-5 sm:p-6 rounded-2xl w-full max-w-xs sm:max-w-sm md:max-w-md shadow-2xl" },
+                    React.createElement("div", { className: "flex justify-between items-center mb-4" },
+                        React.createElement("h3", { className: "text-xl font-light dark:text-white lowercase" }, "edit reward"),
+                        React.createElement("button", { type: "button", onClick: () => setEditingReward(null), className: "p-2 text-gray-400 hover:text-gray-600" }, React.createElement(SysIcon, { name: "x", size: 18 }))
+                    ),
+                    React.createElement("input", { type: "text", value: editingReward.title, onChange: e => setEditingReward({ ...editingReward, title: e.target.value }), placeholder: "reward name...", className: "w-full px-4 py-3 rounded-xl mb-3 border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white lowercase", autoFocus: true }),
+                    React.createElement("textarea", { value: editingReward.description || "", onChange: e => setEditingReward({ ...editingReward, description: e.target.value }), placeholder: "description (optional)...", rows: 2, className: "w-full px-4 py-3 rounded-xl mb-3 border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white resize-none" }),
+                    React.createElement("input", { type: "number", value: editingReward.cost, onChange: e => setEditingReward({ ...editingReward, cost: e.target.value }), placeholder: "cost in coins", className: "w-full px-4 py-3 rounded-xl mb-4 border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white" }),
+                    React.createElement("div", { className: "flex gap-2" },
+                        React.createElement("button", { type: "button", onClick: () => { deleteReward(editingReward.id); setEditingReward(null); }, className: "flex-1 py-3 text-red-500 hover:bg-red-50 rounded-xl lowercase border border-red-200" }, "delete"),
+                        React.createElement("button", { type: "submit", className: "flex-1 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl lowercase" }, "save")
+                    )
                 )
             )
         );
@@ -461,5 +558,7 @@
 
     window.HabitsTab = GamificationTab;
     window.RewardsPage = RewardsPage;
-    console.log("HabitsTab v41 loaded - compact elegant modals");
+    console.log("HabitsTab v46 loaded - fixed medium button visibility with yellow color");
 })();
+
+

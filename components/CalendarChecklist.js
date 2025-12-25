@@ -148,7 +148,7 @@
             // Header
             React.createElement('div', { className: "mb-8 text-center" },
                 React.createElement('h2', { className: "text-3xl font-bold text-gray-800 dark:text-gray-100 mb-2 lowercase" },
-                    "daily habits"
+                    "habit tracker"
                 ),
                 React.createElement('p', { className: "text-gray-600 dark:text-gray-400 lowercase" }, "track your daily tasks and habits")
             ),
