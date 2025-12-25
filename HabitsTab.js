@@ -258,9 +258,23 @@
         };
 
         const monthYear = weekDays[3]?.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
-        const rowStyle = { display: 'flex', alignItems: 'center', gap: '2px' };
-        const dayStyle = { flex: '1', textAlign: 'center', minWidth: '28px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' };
-        const habitColStyle = { width: '140px', flexShrink: 0, overflow: 'visible', wordBreak: 'break-word' };
+
+        // Responsive layout - detect mobile screens
+        const [isMobile, setIsMobile] = useState(window.innerWidth < 480);
+        useEffect(() => {
+            const handleResize = () => setIsMobile(window.innerWidth < 480);
+            window.addEventListener('resize', handleResize);
+            return () => window.removeEventListener('resize', handleResize);
+        }, []);
+
+        // Adjust sizes based on screen width
+        const checkboxSize = isMobile ? '24px' : '28px';
+        const habitColWidth = isMobile ? '80px' : '140px';
+        const flameColWidth = isMobile ? '24px' : '28px';
+
+        const rowStyle = { display: 'flex', alignItems: 'center', gap: isMobile ? '1px' : '2px' };
+        const dayStyle = { flex: '1', textAlign: 'center', minWidth: isMobile ? '24px' : '28px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' };
+        const habitColStyle = { width: habitColWidth, flexShrink: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' };
 
         return React.createElement("div", { className: "px-4 py-2 max-w-4xl mx-auto", style: { paddingBottom: '80px', position: 'relative' } },
             notification && React.createElement("div", {
@@ -299,8 +313,8 @@
 
             // Days Header - includes spacer for flame icon alignment
             React.createElement("div", { style: { ...rowStyle, alignItems: 'center' }, className: "mb-2 px-2" },
-                // Spacer for flame icon (28px to match button width)
-                React.createElement("div", { style: { width: '28px', flexShrink: 0 } }),
+                // Spacer for flame icon (responsive)
+                React.createElement("div", { style: { width: flameColWidth, flexShrink: 0 } }),
                 React.createElement("div", { style: habitColStyle, className: "text-sm font-medium text-gray-600 dark:text-gray-300" }, "habit"),
                 weekDays.map(d => {
                     const iso = d.toISOString().split('T')[0];
@@ -333,14 +347,19 @@
                             className: `p-1.5 rounded-lg transition ${isExpanded ? 'bg-blue-100 text-blue-600' : 'text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'}`,
                             title: "Toggle timer"
                         }, React.createElement(SysIcon, { name: "fire", size: 16 })),
-                        React.createElement("div", { style: habitColStyle, className: "flex items-center gap-2" },
-                            React.createElement("div", {
+                        React.createElement("div", { style: habitColStyle, className: "flex items-center gap-1" },
+                            // Hide color icon on mobile to save space
+                            !isMobile && React.createElement("div", {
                                 className: "w-8 h-8 rounded-full flex items-center justify-center text-white flex-shrink-0",
                                 style: { backgroundColor: h.color || '#26DE81' }
                             }, React.createElement(Icon, { name: h.icon || 'leaf', size: 16 })),
-                            React.createElement("div", { className: "flex-1 min-w-0" },
-                                React.createElement("div", { className: "text-sm font-medium text-gray-800 dark:text-white lowercase leading-tight", style: { wordBreak: 'break-word', whiteSpace: 'normal' } }, h.title || 'untitled'),
-                                React.createElement("div", { className: "flex items-center gap-1 text-xs text-gray-400 mt-0.5" },
+                            React.createElement("div", { className: "flex-1 min-w-0", style: { overflow: 'hidden' } },
+                                React.createElement("div", {
+                                    className: `${isMobile ? 'text-xs' : 'text-sm'} font-medium text-gray-800 dark:text-white lowercase leading-tight`,
+                                    style: { overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }
+                                }, h.title || 'untitled'),
+                                // Hide coins/streak/edit on mobile to save space
+                                !isMobile && React.createElement("div", { className: "flex items-center gap-1 text-xs text-gray-400 mt-0.5" },
                                     React.createElement("span", null, `${coinVal}c`),
                                     streak > 0 && React.createElement("span", { className: "text-orange-500" }, `🔥${streak}`),
                                     React.createElement("button", { onClick: () => setEditingHabit({ ...h, difficulty: h.difficulty || 'medium', icon: h.icon || 'leaf', color: h.color || '#26DE81' }), className: "ml-1 p-1 text-gray-400 hover:text-blue-500" },
@@ -356,9 +375,9 @@
                             return React.createElement("div", { key: iso, style: dayStyle, className: "flex items-center justify-center" },
                                 React.createElement("button", {
                                     onClick: () => toggleDate(h.id, iso),
-                                    style: done ? { backgroundColor: '#22c55e', width: '28px', height: '28px' } : { width: '28px', height: '28px' },
+                                    style: done ? { backgroundColor: '#22c55e', width: checkboxSize, height: checkboxSize } : { width: checkboxSize, height: checkboxSize },
                                     className: `rounded-full flex items-center justify-center transition-all ${done ? 'text-white shadow-md' : isToday ? 'border-2 border-blue-400 bg-blue-50 dark:bg-blue-900/30' : 'border-2 border-gray-300 dark:border-gray-600 hover:border-gray-400'}`
-                                }, done && React.createElement(SysIcon, { name: "check", size: 14 }))
+                                }, done && React.createElement(SysIcon, { name: "check", size: isMobile ? 10 : 14 }))
                             );
                         })
                     ),

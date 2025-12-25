@@ -1,6 +1,6 @@
-// Service Worker v26 - Force cache refresh for PWA bug fixes
-// Fixed: Timer pause touch support, dark theme leak in light mode
-const CACHE_VERSION = 'nous-v26-2025-12-25';
+// Service Worker v27 - Mobile responsive layout for habit tracker
+// Fixed: Sunday checkbox cutoff on mobile, responsive checkboxes
+const CACHE_VERSION = 'nous-v27-2025-12-25';
 const CACHE_NAME = CACHE_VERSION;
 
 // Critical files for offline functionality
