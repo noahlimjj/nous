@@ -2888,7 +2888,7 @@ const Dashboard = ({ db, userId, setNotification, activeTimers, setActiveTimers,
 
         // Left/Main Column: Habits
         React.createElement('div', { className: "lg:col-span-2" },
-            React.createElement('h2', { className: "text-2xl text-gray-800 mb-4", style: { fontWeight: 300 } }, "my habits"),
+            React.createElement('h2', { className: "text-2xl text-gray-800 mb-4", style: { fontWeight: 300 } }, "timer"),
 
             // Nous Requests
             nousRequests.length > 0 && React.createElement('div', { className: "bg-purple-50 border border-purple-200 rounded-lg p-4 mb-4" },

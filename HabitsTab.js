@@ -159,9 +159,9 @@
         };
 
         const monthYear = weekDays[3]?.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
-        const rowStyle = { display: 'flex', alignItems: 'center', gap: '8px' };
-        const dayStyle = { flex: '1', textAlign: 'center', minWidth: '40px' };
-        const habitColStyle = { width: '160px', flexShrink: 0 };
+        const rowStyle = { display: 'flex', alignItems: 'center', gap: '2px' };
+        const dayStyle = { flex: '1', textAlign: 'center', minWidth: '28px' };
+        const habitColStyle = { width: '80px', flexShrink: 0 };
 
         return React.createElement("div", { className: "px-4 py-2 max-w-4xl mx-auto", style: { paddingBottom: '80px' } },
             notification && React.createElement("div", {
@@ -171,7 +171,7 @@
 
             // Header - only show when NOT embedded as widget (dashboard has its own header)
             !isWidget && React.createElement("div", { className: "flex justify-between items-center mb-4" },
-                React.createElement("h2", { className: "text-2xl font-light text-gray-800 dark:text-white lowercase" }, "daily habits"),
+                React.createElement("h2", { className: "text-2xl font-light text-gray-800 dark:text-white lowercase" }, "habit tracker"),
                 React.createElement("div", { className: "flex items-center gap-3" },
                     React.createElement(CoinDisplay, { amount: wallet.coins }),
                     onToggleView && React.createElement("button", {
@@ -219,13 +219,13 @@
                 const coinVal = h.difficulty === 'hard' ? 20 : h.difficulty === 'medium' ? 10 : 5;
                 const streak = calcStreak(h.completionDates);
                 return React.createElement("div", { key: h.id, style: rowStyle, className: "p-2 mb-2 rounded-xl bg-white dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700" },
-                    React.createElement("div", { style: habitColStyle, className: "flex items-center gap-3" },
+                    React.createElement("div", { style: habitColStyle, className: "flex items-center gap-2" },
                         React.createElement("div", {
-                            className: "w-11 h-11 rounded-full flex items-center justify-center text-white flex-shrink-0",
+                            className: "w-8 h-8 rounded-full flex items-center justify-center text-white flex-shrink-0",
                             style: { backgroundColor: h.color || '#26DE81' }
-                        }, React.createElement(Icon, { name: h.icon || 'leaf', size: 22 })),
+                        }, React.createElement(Icon, { name: h.icon || 'leaf', size: 16 })),
                         React.createElement("div", { className: "flex-1 min-w-0" },
-                            React.createElement("div", { className: "text-lg font-medium text-gray-800 dark:text-white lowercase truncate" }, h.title || 'untitled'),
+                            React.createElement("div", { className: "text-sm font-medium text-gray-800 dark:text-white lowercase truncate" }, h.title || 'untitled'),
                             React.createElement("div", { className: "flex items-center gap-1 text-xs text-gray-400" },
                                 React.createElement("span", null, `${coinVal}c`),
                                 streak > 0 && React.createElement("span", { className: "text-orange-500" }, `🔥${streak}`),
@@ -242,9 +242,9 @@
                         return React.createElement("div", { key: iso, style: dayStyle, className: "flex items-center justify-center" },
                             React.createElement("button", {
                                 onClick: () => toggleDate(h.id, iso),
-                                style: done ? { backgroundColor: '#22c55e', width: '36px', height: '36px' } : { width: '36px', height: '36px' },
+                                style: done ? { backgroundColor: '#22c55e', width: '28px', height: '28px' } : { width: '28px', height: '28px' },
                                 className: `rounded-full flex items-center justify-center transition-all ${done ? 'text-white shadow-md' : isToday ? 'border-2 border-blue-400 bg-blue-50 dark:bg-blue-900/30' : 'border-2 border-gray-300 dark:border-gray-600 hover:border-gray-400'}`
-                            }, done && React.createElement(SysIcon, { name: "check", size: 18 }))
+                            }, done && React.createElement(SysIcon, { name: "check", size: 14 }))
                         );
                     })
                 );
@@ -280,7 +280,7 @@
                         Object.keys(ICONS).map(k => React.createElement("button", {
                             key: k, type: "button",
                             onClick: () => setNewHabit({ ...newHabit, icon: k }),
-                            className: `p - 2 rounded - lg transition border - 2 ${newHabit.icon === k ? 'bg-blue-500 text-white border-blue-600' : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 border-gray-300 dark:border-gray-600'}`
+                            className: `p-2 rounded-lg transition border-2 ${newHabit.icon === k ? 'bg-gray-800 text-white border-gray-900' : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 border-gray-200 dark:border-gray-600 hover:bg-gray-200'}`
                         }, React.createElement(Icon, { name: k, size: 20 })))
                     ),
                     React.createElement("label", { className: "block text-sm text-gray-500 mb-2 lowercase" }, "difficulty"),
@@ -290,7 +290,7 @@
                             return React.createElement("button", {
                                 key: d, type: "button",
                                 onClick: () => setNewHabit({ ...newHabit, difficulty: d }),
-                                className: `flex - 1 py - 2 rounded - xl lowercase transition ${newHabit.difficulty === d ? (d === 'easy' ? 'bg-green-500 text-white' : d === 'hard' ? 'bg-red-500 text-white' : 'bg-orange-500 text-white') : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300'}`
+                                className: `flex-1 py-2 rounded-xl lowercase transition ${newHabit.difficulty === d ? (d === 'easy' ? 'bg-green-500 text-white' : d === 'hard' ? 'bg-red-500 text-white' : 'bg-orange-500 text-white') : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200'}`
                             }, `${d} · ${coins}c`);
                         })
                     ),
@@ -321,7 +321,7 @@
                         Object.keys(ICONS).map(k => React.createElement("button", {
                             key: k, type: "button",
                             onClick: () => setEditingHabit({ ...editingHabit, icon: k }),
-                            className: `p - 2 rounded - lg transition border - 2 ${editingHabit.icon === k ? 'bg-blue-500 text-white border-blue-600' : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 border-gray-300 dark:border-gray-600'}`
+                            className: `p-2 rounded-lg transition border-2 ${editingHabit.icon === k ? 'bg-gray-800 text-white border-gray-900' : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 border-gray-200 dark:border-gray-600 hover:bg-gray-200'}`
                         }, React.createElement(Icon, { name: k, size: 20 })))
                     ),
                     React.createElement("label", { className: "block text-sm text-gray-500 mb-2 lowercase" }, "difficulty"),
@@ -331,7 +331,7 @@
                             return React.createElement("button", {
                                 key: d, type: "button",
                                 onClick: () => setEditingHabit({ ...editingHabit, difficulty: d }),
-                                className: `flex - 1 py - 2 rounded - xl lowercase transition ${editingHabit.difficulty === d ? (d === 'easy' ? 'bg-green-500 text-white' : d === 'hard' ? 'bg-red-500 text-white' : 'bg-orange-500 text-white') : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300'}`
+                                className: `flex-1 py-2 rounded-xl lowercase transition ${editingHabit.difficulty === d ? (d === 'easy' ? 'bg-green-500 text-white' : d === 'hard' ? 'bg-red-500 text-white' : 'bg-orange-500 text-white') : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200'}`
                             }, `${d} · ${coins}c`);
                         })
                     ),
@@ -445,5 +445,5 @@
 
     window.HabitsTab = GamificationTab;
     window.RewardsPage = RewardsPage;
-    console.log("HabitsTab v39 loaded - improved UI layout and sizing");
+    console.log("HabitsTab v40 loaded - mobile-first layout");
 })();
