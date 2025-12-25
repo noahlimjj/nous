@@ -1,20 +1,34 @@
 (function () {
     const { useState, useEffect } = React;
 
-    // Icons - fixed dumbbell, replaced brain with gi (judo kimono), replaced footprints with martial
+    // Premium minimalist icons - wellness focused
     const ICONS = {
-        book: "M4 19.5A2.5 2.5 0 0 1 6.5 17H20 M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z",
-        gi: "M12 2L8 6v4l4 2 4-2V6L12 2z M8 10v8l4 4 4-4v-8",
-        dumbbell: "M6 12h12 M3 8v8 M21 8v8 M6 8v8 M18 8v8",
-        heart: "M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z",
-        lotus: "M12 22c-4 0-8-2-8-6 2 1 4 2 8 2s6-1 8-2c0 4-4 6-8 6z M12 2c-2 4-6 6-8 8 2 0 5 1 8 3 3-2 6-3 8-3-2-2-6-4-8-8z",
-        leaf: "M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.77 10-10 10Z M6.63 12.63a2.5 2.5 0 1 1 0-5",
-        flame: "M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.07-2.14-.22-4.05 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.15.43-2.29 1-3a2.5 2.5 0 0 0 2.5 2.5z",
-        star: "M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z",
+        // User's specific habits
+        reading: "M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z",
+        meditation: "M12 4a2 2 0 1 0 0-4 2 2 0 0 0 0 4z M8 8h8 M6 22c0-4 2.5-6 6-6s6 2 6 6 M9 12v4 M15 12v4",
+        jamming: "M9 18V5l12-2v13 M9 9l12-2 M6 21a3 3 0 1 0 0-6 3 3 0 0 0 0 6z M18 19a3 3 0 1 0 0-6 3 3 0 0 0 0 6z",
+        running: "M13 4a2 2 0 1 0 0-4 2 2 0 0 0 0 4z M4 17l4-4 3 3 5-7 4 4 M7 22l3-6 M14 22l-1-6",
+        swimming: "M2 12c1.5-1.5 3-2 5-2s3.5.5 5 2c1.5-1.5 3-2 5-2s3.5.5 5 2 M2 18c1.5-1.5 3-2 5-2s3.5.5 5 2c1.5-1.5 3-2 5-2s3.5.5 5 2 M9 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6z",
+        jiujitsu: "M12 4a2 2 0 1 0 0-4 2 2 0 0 0 0 4z M6 9l6 3 6-3 M12 12v4 M8 20l4-4 4 4 M4 12c0-2 3-4 8-4s8 2 8 4",
+        yoga: "M12 4a2 2 0 1 0 0-4 2 2 0 0 0 0 4z M12 6v6 M12 22v-6 M12 16l-6 6 M12 16l6 6 M4 12h16",
+        // Common healthy lifestyle habits
+        sleep: "M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z",
+        water: "M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z",
+        eating: "M18 8h1a4 4 0 0 1 0 8h-1 M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z M6 1v3 M10 1v3 M14 1v3",
+        walking: "M14 4a2 2 0 1 0 0-4 2 2 0 0 0 0 4z M6 21l3-9 4 1v-5l4 3 M11 12l-3 9",
+        journal: "M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z M14 2v6h6 M16 13H8 M16 17H8 M10 9H8",
+        gratitude: "M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z",
         coffee: "M18 8h1a4 4 0 0 1 0 8h-1 M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z",
-        zap: "M13 2L3 14h9l-1 8 10-12h-9l1-8z",
-        martial: "M12 2L8 6l4 4 4-4-4-4z M8 10l-4 4 4 4h8l4-4-4-4",
-        moon: "M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"
+        study: "M22 10v6M2 10l10-5 10 5-10 5z M6 12v5c0 2 3 3 6 3s6-1 6-3v-5",
+        stretch: "M12 4a2 2 0 1 0 0-4 2 2 0 0 0 0 4z M4 20l4-8 4 2 4-6 4 4 M12 22v-8",
+        nature: "M12 22v-7 M17 8a5 5 0 0 0-10 0c0 6 10 6 10 0z M10 13a3 3 0 0 0 4 0",
+        social: "M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2 M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z M23 21v-2a4 4 0 0 0-3-3.87 M16 3.13a4 4 0 0 1 0 7.75",
+        nophone: "M16 2H8a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2z M12 18h.01 M4 4l16 16",
+        // General purpose icons
+        heart: "M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z",
+        star: "M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z",
+        flame: "M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.07-2.14-.22-4.05 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.15.43-2.29 1-3a2.5 2.5 0 0 0 2.5 2.5z",
+        leaf: "M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.77 10-10 10Z M2 21l9-9"
     };
 
     const COLORS = ['#FF6B6B', '#FF9F43', '#FECA57', '#26DE81', '#17C0EB', '#4B7BEC', '#A55EEA', '#FD79A8'];
@@ -43,16 +57,27 @@
     };
 
     const CoinDisplay = ({ amount }) => React.createElement("div", {
-        className: "flex items-center gap-1.5 px-3 py-1.5 rounded-full",
-        style: { backgroundColor: '#fef3c7', border: '1px solid #fcd34d' }
+        className: "flex items-center gap-2 px-4 py-2 rounded-full",
+        style: {
+            background: 'linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%)',
+            border: '1px solid #fcd34d',
+            boxShadow: '0 2px 8px rgba(251, 191, 36, 0.15)'
+        }
     },
         React.createElement("div", {
-            className: "w-5 h-5 rounded-full flex items-center justify-center",
-            style: { background: 'linear-gradient(135deg, #fbbf24, #d97706)' }
+            className: "w-6 h-6 rounded-full flex items-center justify-center",
+            style: {
+                background: 'linear-gradient(145deg, #fbbf24, #f59e0b)',
+                boxShadow: '0 2px 4px rgba(217, 119, 6, 0.3), inset 0 1px 0 rgba(255,255,255,0.3)'
+            }
         },
-            React.createElement("span", { style: { color: 'white', fontSize: '10px', fontWeight: 'bold' } }, "₵")
+            React.createElement("span", {
+                style: { color: '#fffbeb', fontSize: '12px', fontWeight: '600', textShadow: '0 1px 1px rgba(0,0,0,0.2)' }
+            }, "✦")
         ),
-        React.createElement("span", { style: { fontSize: '18px', fontWeight: '500', color: '#92400e' } }, amount || 0)
+        React.createElement("span", {
+            style: { fontSize: '17px', fontWeight: '500', color: '#92400e', letterSpacing: '-0.01em' }
+        }, amount || 0)
     );
 
     const calcStreak = (dates) => {
@@ -249,23 +274,34 @@
                 );
             }),
 
-            // FAB
+            // FAB - Add Habit Button
             React.createElement("button", {
                 onClick: () => setShowAddHabit(true),
-                style: { position: 'fixed', bottom: '90px', right: '20px', zIndex: 9999, width: '56px', height: '56px', backgroundColor: '#3b82f6', border: '2px solid #2563eb' },
-                className: "text-white rounded-full shadow-xl flex items-center justify-center hover:scale-105 transition"
-            }, React.createElement(SysIcon, { name: "plus", size: 24 })),
+                style: {
+                    position: 'fixed',
+                    bottom: '100px',
+                    right: '24px',
+                    zIndex: 9999,
+                    width: '60px',
+                    height: '60px',
+                    background: 'linear-gradient(135deg, #3b82f6, #2563eb)',
+                    border: 'none',
+                    boxShadow: '0 4px 20px rgba(59, 130, 246, 0.5), 0 2px 8px rgba(0,0,0,0.15)'
+                },
+                className: "text-white rounded-full flex items-center justify-center hover:scale-110 transition-all"
+            }, React.createElement(SysIcon, { name: "plus", size: 28 })),
 
             // Add Habit Modal
             showAddHabit && React.createElement("div", {
-                className: "fixed inset-0 flex items-center justify-center bg-black/40 backdrop-blur-sm p-6",
-                style: { zIndex: 10000 },
+                className: "fixed inset-0 flex items-center justify-center bg-black/50 backdrop-blur-sm",
+                style: { zIndex: 10000, padding: '20px' },
                 onClick: () => setShowAddHabit(false)
             },
                 React.createElement("form", {
                     onSubmit: addHabit,
                     onClick: e => e.stopPropagation(),
-                    className: "bg-white dark:bg-gray-900 p-4 sm:p-6 rounded-xl w-full max-w-xs sm:max-w-sm md:max-w-md shadow-lg max-h-[80vh] overflow-y-auto border border-gray-100 dark:border-gray-800"
+                    className: "bg-white dark:bg-gray-900 p-5 rounded-2xl w-full max-w-sm shadow-2xl overflow-y-auto border border-gray-200 dark:border-gray-700",
+                    style: { maxHeight: 'calc(100vh - 40px)' }
                 },
                     React.createElement("div", { className: "flex justify-between items-center mb-3" },
                         React.createElement("h3", { className: "text-lg font-light text-gray-800 dark:text-white lowercase" }, "new habit"),
@@ -279,7 +315,14 @@
                         COLORS.map(c => React.createElement("button", {
                             key: c, type: "button",
                             onClick: () => setNewHabit({ ...newHabit, color: c }),
-                            style: { backgroundColor: c, width: '28px', height: '28px', borderRadius: '50%', border: newHabit.color === c ? '2px solid #1f2937' : '2px solid transparent' }
+                            style: {
+                                backgroundColor: c,
+                                width: '32px',
+                                height: '32px',
+                                borderRadius: '50%',
+                                border: 'none',
+                                boxShadow: newHabit.color === c ? '0 0 0 3px #3b82f6, inset 0 0 0 2px white' : 'inset 0 0 0 1px rgba(0,0,0,0.1)'
+                            }
                         }))
                     ),
                     React.createElement("label", { className: "block text-xs text-gray-500 mb-1 lowercase" }, "icon"),
@@ -311,14 +354,15 @@
 
             // Edit Habit Modal
             editingHabit && React.createElement("div", {
-                className: "fixed inset-0 flex items-center justify-center bg-black/40 backdrop-blur-sm p-6",
-                style: { zIndex: 10000 },
+                className: "fixed inset-0 flex items-center justify-center bg-black/50 backdrop-blur-sm",
+                style: { zIndex: 10000, padding: '20px' },
                 onClick: () => setEditingHabit(null)
             },
                 React.createElement("form", {
                     onSubmit: saveHabit,
                     onClick: e => e.stopPropagation(),
-                    className: "bg-white dark:bg-gray-900 p-4 sm:p-6 rounded-xl w-full max-w-xs sm:max-w-sm md:max-w-md shadow-lg max-h-[80vh] overflow-y-auto border border-gray-100 dark:border-gray-800"
+                    className: "bg-white dark:bg-gray-900 p-5 rounded-2xl w-full max-w-sm shadow-2xl overflow-y-auto border border-gray-200 dark:border-gray-700",
+                    style: { maxHeight: 'calc(100vh - 40px)' }
                 },
                     React.createElement("div", { className: "flex justify-between items-center mb-3" },
                         React.createElement("h3", { className: "text-lg font-light text-gray-800 dark:text-white lowercase" }, "edit habit"),
@@ -332,7 +376,14 @@
                         COLORS.map(c => React.createElement("button", {
                             key: c, type: "button",
                             onClick: () => setEditingHabit({ ...editingHabit, color: c }),
-                            style: { backgroundColor: c, width: '28px', height: '28px', borderRadius: '50%', border: editingHabit.color === c ? '2px solid #1f2937' : '2px solid transparent' }
+                            style: {
+                                backgroundColor: c,
+                                width: '32px',
+                                height: '32px',
+                                borderRadius: '50%',
+                                border: 'none',
+                                boxShadow: editingHabit.color === c ? '0 0 0 3px #3b82f6, inset 0 0 0 2px white' : 'inset 0 0 0 1px rgba(0,0,0,0.1)'
+                            }
                         }))
                     ),
                     React.createElement("label", { className: "block text-xs text-gray-500 mb-1 lowercase" }, "icon"),

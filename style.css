@@ -370,6 +370,18 @@ body.night-mode button[class*="bg-green"]:hover {
         0 0 0 1px rgba(255, 255, 255, 0.2);
 }
 
+/* FAB Button - prevent dark mode override */
+.fab-button,
+button[style*="linear-gradient(135deg, #3b82f6"] {
+    background: linear-gradient(135deg, #3b82f6, #2563eb) !important;
+    border: none !important;
+}
+
+/* Color picker buttons - preserve their colors */
+button[style*="border-radius: 50%"][style*="backgroundColor"] {
+    border: none !important;
+}
+
 /* Premium timer display */
 body.night-mode .timer-display {
     background: rgba(15, 23, 42, 0.7) !important;
@@ -815,6 +827,7 @@ body.night-mode .stat-card {
     grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
     gap: 24px;
 }
+
 /* Confetti Animation */
 .confetto {
     position: fixed;
