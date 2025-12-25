@@ -426,7 +426,7 @@
 
         const buyReward = async (id) => {
             const r = rewards.find(x => x.id === id);
-            if (!r || wallet.coins < r.cost) return showNotif("not enough coins!");
+            if (!r || wallet.coins < r.cost) return showNotif("insufficient coins, complete habits to earn more!");
             await window.updateDoc(window.doc(db, `/artifacts/${appId}/users/${userId}/gamification/wallet`), { coins: wallet.coins - r.cost });
             const claimId = Date.now().toString();
             await window.setDoc(window.doc(db, `/artifacts/${appId}/users/${userId}/claimedRewards/${claimId}`), {
