@@ -1274,7 +1274,10 @@ const Dashboard = ({ db, userId, setNotification, activeTimers, setActiveTimers,
 
             // Sort habits by order field
             habitsData.sort((a, b) => (a.order || 0) - (b.order || 0));
-            setHabits(habitsData);
+            // Filter out habit tracker entries (those with 'title' but no 'name')
+            // Timer habits use 'name', habit tracker habits use 'title'
+            const timerHabits = habitsData.filter(h => h.name && h.name.trim() !== '');
+            setHabits(timerHabits);
             setIsLoading(false);
         }, (error) => {
             console.error("Error fetching habits:", error);

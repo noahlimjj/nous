@@ -1,6 +1,4 @@
-// Service Worker v27 - Mobile responsive layout for habit tracker
-// Fixed: Sunday checkbox cutoff on mobile, responsive checkboxes
-const CACHE_VERSION = 'nous-v27-2025-12-25';
+// Service Worker v33 - Fix duplicate session saves in timer mode
 const CACHE_NAME = CACHE_VERSION;
 
 // Critical files for offline functionality
