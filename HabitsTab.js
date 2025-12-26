@@ -198,8 +198,7 @@
         // Track heaters checks
         const stoppedTimersRef = React.useRef(new Set());
 
-        const userId = user?.uid || user?.id || null;
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'study-tracker-app';
+
 
         useEffect(() => {
             if (!db || !userId) return;

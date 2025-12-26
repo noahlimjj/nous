@@ -1,5 +1,5 @@
 // Service Worker v33 - Fix duplicate session saves in timer mode
-const CACHE_VERSION = 'nous-v33-2025-12-26';
+const CACHE_VERSION = 'nous-v56-2025-12-26';
 const CACHE_NAME = CACHE_VERSION;
 
 // Critical files for offline functionality
