@@ -1231,7 +1231,8 @@ const Dashboard = ({ db, userId, setNotification, activeTimers, setActiveTimers,
     }, [db, userId, setNotification]);
 
     useEffect(() => {
-        if (!db || !userId || !appId) return;
+        // Prevent permission-denied errors by ensuring auth is fully ready
+        if (!db || !userId || !appId || !auth?.currentUser || auth.currentUser.uid !== userId) return;
         setIsLoading(true);
 
         const habitsCol = window.collection(db, `/artifacts/${appId}/users/${userId}/habits`);
