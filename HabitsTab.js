@@ -72,7 +72,7 @@
         const isEmoji = typeof iconDef === 'string' && !iconDef.startsWith('M');
         
         if (isEmoji) {
-            return React.createElement("span", { style: { fontSize: `${ size } px`, lineHeight: 1 } }, iconDef);
+            return React.createElement("span", { style: { fontSize: size + 'px', lineHeight: 1 } }, iconDef);
         }
         
         return React.createElement("svg", {
