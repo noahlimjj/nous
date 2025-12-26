@@ -172,6 +172,8 @@
     const getTimerMs = (totalMs) => Math.floor((totalMs % 1000) / 10);
 
     const HabitsPage = ({ user, db, isWidget = false, onToggleView }) => {
+        const userId = user?.uid || user?.id || null;
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'study-tracker-app';
         const [habits, setHabits] = useState([]);
         const [wallet, setWallet] = useState({ coins: 0 });
         const [showAddHabit, setShowAddHabit] = useState(false);
@@ -404,17 +406,22 @@
         const addHabit = async (e) => {
             e.preventDefault();
             if (!newHabit.title.trim() || !db || !userId) return;
-            const id = Date.now().toString();
-            // Assign a high order number to put it at the end
-            const maxOrder = habits.length > 0 ? Math.max(...habits.map(h => h.order || 0)) : 0;
-            await window.setDoc(window.doc(db, `/artifacts/${appId}/users/${userId}/habits/${id}`), {
-                id, title: newHabit.title.trim(), difficulty: newHabit.difficulty,
-                icon: newHabit.icon, color: newHabit.color, streak: 0, completionDates: [],
-                order: maxOrder + 1
-            });
-            setNewHabit({ title: "", difficulty: "medium", icon: "leaf", color: "#26DE81" });
-            setShowAddHabit(false);
-            showNotif("habit created!");
+            try {
+                const id = Date.now().toString();
+                // Assign a high order number to put it at the end
+                const maxOrder = habits.length > 0 ? Math.max(...habits.map(h => h.order || 0)) : 0;
+                await window.setDoc(window.doc(db, `/artifacts/${appId}/users/${userId}/habits/${id}`), {
+                    id, title: newHabit.title.trim(), difficulty: newHabit.difficulty,
+                    icon: newHabit.icon, color: newHabit.color, streak: 0, completionDates: [],
+                    order: maxOrder + 1
+                });
+                setNewHabit({ title: "", difficulty: "medium", icon: "leaf", color: "#26DE81" });
+                setShowAddHabit(false);
+                showNotif("habit created!");
+            } catch (error) {
+                console.error("Error creating habit:", error);
+                showNotif("failed to create habit");
+            }
         };
 
         const saveHabit = async (e) => {
