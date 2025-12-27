@@ -905,294 +905,294 @@
                             title: "Close Timer"
                         }, React.createElement(SysIcon, { name: "trash", size: 18 }))
                     )
-                )
-                    )
+                ))
+        )
         );
-    }),
+}),
 
-        // Add Habit Button - static inline at end of habits list
-        React.createElement("button", {
-            onClick: () => setShowAddHabit(true),
-            className: "add-habit-btn w-full mt-4 mb-6 py-3.5 flex items-center justify-center gap-2 rounded-xl border-2 border-dashed border-gray-300 dark:border-gray-600 text-gray-500 dark:text-gray-400 hover:border-blue-400 hover:text-blue-500 dark:hover:border-blue-400 dark:hover:text-blue-400 transition-all bg-white/50 dark:bg-gray-800/30 hover:bg-blue-50/50 dark:hover:bg-blue-900/20"
+    // Add Habit Button - static inline at end of habits list
+    React.createElement("button", {
+        onClick: () => setShowAddHabit(true),
+        className: "add-habit-btn w-full mt-4 mb-6 py-3.5 flex items-center justify-center gap-2 rounded-xl border-2 border-dashed border-gray-300 dark:border-gray-600 text-gray-500 dark:text-gray-400 hover:border-blue-400 hover:text-blue-500 dark:hover:border-blue-400 dark:hover:text-blue-400 transition-all bg-white/50 dark:bg-gray-800/30 hover:bg-blue-50/50 dark:hover:bg-blue-900/20"
+    },
+        React.createElement(SysIcon, { name: "plus", size: 20 }),
+        React.createElement("span", { className: "lowercase text-sm font-medium" }, "add habit")
+    ),
+
+    // Add Habit Modal (positioned within container)
+    showAddHabit && React.createElement("div", {
+        className: "absolute inset-0 flex items-start justify-center bg-black/30 backdrop-blur-sm rounded-2xl",
+        style: { zIndex: 100, padding: '20px', paddingTop: '60px' },
+        onClick: () => setShowAddHabit(false)
+    },
+        React.createElement("form", {
+            onSubmit: addHabit,
+            onClick: e => e.stopPropagation(),
+            className: "bg-white dark:bg-gray-900 p-5 rounded-2xl w-full max-w-sm shadow-2xl overflow-y-auto border border-gray-200 dark:border-gray-700",
+            style: { maxHeight: 'calc(100% - 80px)' }
         },
-            React.createElement(SysIcon, { name: "plus", size: 20 }),
-            React.createElement("span", { className: "lowercase text-sm font-medium" }, "add habit")
-        ),
-
-            // Add Habit Modal (positioned within container)
-            showAddHabit && React.createElement("div", {
-                className: "absolute inset-0 flex items-start justify-center bg-black/30 backdrop-blur-sm rounded-2xl",
-                style: { zIndex: 100, padding: '20px', paddingTop: '60px' },
-                onClick: () => setShowAddHabit(false)
-            },
-                React.createElement("form", {
-                    onSubmit: addHabit,
-                    onClick: e => e.stopPropagation(),
-                    className: "bg-white dark:bg-gray-900 p-5 rounded-2xl w-full max-w-sm shadow-2xl overflow-y-auto border border-gray-200 dark:border-gray-700",
-                    style: { maxHeight: 'calc(100% - 80px)' }
-                },
-                    React.createElement("div", { className: "flex justify-between items-center mb-3" },
-                        React.createElement("h3", { className: "text-lg font-light text-gray-800 dark:text-white lowercase" }, "new habit"),
-                        React.createElement("button", { type: "button", onClick: () => setShowAddHabit(false), className: "p-1 text-gray-400 hover:text-gray-600" },
-                            React.createElement(SysIcon, { name: "x", size: 18 })
-                        )
-                    ),
-                    React.createElement("input", { type: "text", value: newHabit.title, onChange: e => setNewHabit({ ...newHabit, title: e.target.value }), placeholder: "habit name...", className: "w-full px-3 py-2 rounded-lg mb-3 border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white lowercase text-sm", autoFocus: true }),
-                    React.createElement("label", { className: "block text-xs text-gray-500 mb-1 lowercase" }, "color"),
-                    React.createElement("div", { className: "flex gap-1.5 mb-3 flex-wrap" },
-                        COLORS.map(c => React.createElement("button", {
-                            key: c, type: "button",
-                            onClick: () => setNewHabit({ ...newHabit, color: c }),
-                            style: {
-                                backgroundColor: c,
-                                width: '32px',
-                                height: '32px',
-                                borderRadius: '50%',
-                                border: 'none',
-                                boxShadow: newHabit.color === c ? '0 0 0 3px #3b82f6, inset 0 0 0 2px white' : 'inset 0 0 0 1px rgba(0,0,0,0.1)'
-                            }
-                        }))
-                    ),
-                    React.createElement("label", { className: "block text-xs text-gray-500 mb-1 lowercase" }, "icon"),
-                    React.createElement("div", { className: "flex gap-1 flex-wrap mb-3" },
-                        Object.keys(ICONS).map(k => React.createElement("button", {
-                            key: k, type: "button",
-                            onClick: () => setNewHabit({ ...newHabit, icon: k }),
-                            className: `p-1.5 rounded-md transition ${newHabit.icon === k ? 'bg-blue-500 text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200'}`
-                        }, React.createElement(Icon, { name: k, size: 16 })))
-                    ),
-                    React.createElement("label", { className: "block text-xs text-gray-500 mb-1 lowercase" }, "difficulty"),
-                    React.createElement("div", { className: "grid grid-cols-3 gap-2 mb-3" },
-                        ['easy', 'medium', 'hard'].map(d => {
-                            const coins = d === 'hard' ? 20 : d === 'medium' ? 10 : 5;
-                            const isSelected = newHabit.difficulty === d;
-                            const bgColor = isSelected
-                                ? (d === 'easy' ? 'bg-green-500 text-white' : d === 'hard' ? 'bg-red-500 text-white' : 'bg-yellow-500 text-gray-900')
-                                : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200';
-                            return React.createElement("button", {
-                                key: d, type: "button",
-                                onClick: () => setNewHabit({ ...newHabit, difficulty: d }),
-                                className: `py-2 rounded-lg lowercase transition text-xs font-medium ${bgColor}`
-                            }, `${d} · ${coins}c`);
-                        })
-                    ),
-                    React.createElement("button", { type: "submit", className: "w-full py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg lowercase text-sm" }, "add habit")
+            React.createElement("div", { className: "flex justify-between items-center mb-3" },
+                React.createElement("h3", { className: "text-lg font-light text-gray-800 dark:text-white lowercase" }, "new habit"),
+                React.createElement("button", { type: "button", onClick: () => setShowAddHabit(false), className: "p-1 text-gray-400 hover:text-gray-600" },
+                    React.createElement(SysIcon, { name: "x", size: 18 })
                 )
             ),
+            React.createElement("input", { type: "text", value: newHabit.title, onChange: e => setNewHabit({ ...newHabit, title: e.target.value }), placeholder: "habit name...", className: "w-full px-3 py-2 rounded-lg mb-3 border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white lowercase text-sm", autoFocus: true }),
+            React.createElement("label", { className: "block text-xs text-gray-500 mb-1 lowercase" }, "color"),
+            React.createElement("div", { className: "flex gap-1.5 mb-3 flex-wrap" },
+                COLORS.map(c => React.createElement("button", {
+                    key: c, type: "button",
+                    onClick: () => setNewHabit({ ...newHabit, color: c }),
+                    style: {
+                        backgroundColor: c,
+                        width: '32px',
+                        height: '32px',
+                        borderRadius: '50%',
+                        border: 'none',
+                        boxShadow: newHabit.color === c ? '0 0 0 3px #3b82f6, inset 0 0 0 2px white' : 'inset 0 0 0 1px rgba(0,0,0,0.1)'
+                    }
+                }))
+            ),
+            React.createElement("label", { className: "block text-xs text-gray-500 mb-1 lowercase" }, "icon"),
+            React.createElement("div", { className: "flex gap-1 flex-wrap mb-3" },
+                Object.keys(ICONS).map(k => React.createElement("button", {
+                    key: k, type: "button",
+                    onClick: () => setNewHabit({ ...newHabit, icon: k }),
+                    className: `p-1.5 rounded-md transition ${newHabit.icon === k ? 'bg-blue-500 text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200'}`
+                }, React.createElement(Icon, { name: k, size: 16 })))
+            ),
+            React.createElement("label", { className: "block text-xs text-gray-500 mb-1 lowercase" }, "difficulty"),
+            React.createElement("div", { className: "grid grid-cols-3 gap-2 mb-3" },
+                ['easy', 'medium', 'hard'].map(d => {
+                    const coins = d === 'hard' ? 20 : d === 'medium' ? 10 : 5;
+                    const isSelected = newHabit.difficulty === d;
+                    const bgColor = isSelected
+                        ? (d === 'easy' ? 'bg-green-500 text-white' : d === 'hard' ? 'bg-red-500 text-white' : 'bg-yellow-500 text-gray-900')
+                        : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200';
+                    return React.createElement("button", {
+                        key: d, type: "button",
+                        onClick: () => setNewHabit({ ...newHabit, difficulty: d }),
+                        className: `py-2 rounded-lg lowercase transition text-xs font-medium ${bgColor}`
+                    }, `${d} · ${coins}c`);
+                })
+            ),
+            React.createElement("button", { type: "submit", className: "w-full py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg lowercase text-sm" }, "add habit")
+        )
+    ),
 
-            // Edit Habit Modal - use fixed positioning for full viewport access
-            editingHabit && React.createElement("div", {
-                className: "fixed inset-0 flex items-center justify-center bg-black/50 backdrop-blur-sm",
-                style: { zIndex: 10000, padding: '16px' },
-                onClick: () => setEditingHabit(null)
-            },
-                React.createElement("form", {
-                    onSubmit: saveHabit,
-                    onClick: e => e.stopPropagation(),
-                    className: "bg-white dark:bg-gray-900 p-5 rounded-2xl w-full max-w-md shadow-2xl overflow-y-auto border border-gray-200 dark:border-gray-700",
-                    style: { maxHeight: 'calc(100vh - 32px)' }
-                },
-                    React.createElement("div", { className: "flex justify-between items-center mb-5" },
-                        React.createElement("h3", { className: "text-xl font-light text-gray-800 dark:text-white lowercase" }, "edit habit"),
-                        React.createElement("button", { type: "button", onClick: () => setEditingHabit(null), className: "p-2 text-gray-400 hover:text-gray-600" },
-                            React.createElement(SysIcon, { name: "x", size: 20 })
-                        )
-                    ),
-                    React.createElement("input", { type: "text", value: editingHabit.title, onChange: e => setEditingHabit({ ...editingHabit, title: e.target.value }), className: "w-full px-4 py-4 rounded-xl mb-5 border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white lowercase text-base", autoFocus: true }),
-                    React.createElement("label", { className: "block text-sm text-gray-500 mb-2 lowercase" }, "color"),
-                    React.createElement("div", { className: "flex gap-3 mb-5 flex-wrap" },
-                        COLORS.map(c => React.createElement("button", {
-                            key: c, type: "button",
-                            onClick: () => setEditingHabit({ ...editingHabit, color: c }),
-                            style: {
-                                backgroundColor: c,
-                                width: '36px',
-                                height: '36px',
-                                borderRadius: '50%',
-                                border: 'none',
-                                boxShadow: editingHabit.color === c ? '0 0 0 3px #3b82f6, inset 0 0 0 2px white' : 'inset 0 0 0 1px rgba(0,0,0,0.1)'
-                            }
-                        }))
-                    ),
-                    React.createElement("label", { className: "block text-sm text-gray-500 mb-2 lowercase" }, "icon"),
-                    React.createElement("div", { className: "flex gap-2 flex-wrap mb-5" },
-                        Object.keys(ICONS).map(k => React.createElement("button", {
-                            key: k, type: "button",
-                            onClick: () => setEditingHabit({ ...editingHabit, icon: k }),
-                            className: `p-2.5 rounded-lg transition ${editingHabit.icon === k ? 'bg-blue-500 text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200'}`
-                        }, React.createElement(Icon, { name: k, size: 20 })))
-                    ),
-                    React.createElement("label", { className: "block text-sm text-gray-500 mb-2 lowercase" }, "difficulty"),
-                    React.createElement("div", { className: "grid grid-cols-3 gap-3 mb-5" },
-                        ['easy', 'medium', 'hard'].map(d => {
-                            const coins = d === 'hard' ? 20 : d === 'medium' ? 10 : 5;
-                            const isSelected = editingHabit.difficulty === d;
-                            const bgColor = isSelected
-                                ? (d === 'easy' ? 'bg-green-500 text-white' : d === 'hard' ? 'bg-red-500 text-white' : 'bg-yellow-500 text-gray-900')
-                                : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200';
-                            return React.createElement("button", {
-                                key: d, type: "button",
-                                onClick: () => setEditingHabit({ ...editingHabit, difficulty: d }),
-                                className: `py-3 rounded-xl lowercase transition text-sm font-medium ${bgColor}`
-                            }, `${d} · ${coins}c`);
-                        })
-                    ),
-                    React.createElement("div", { className: "flex gap-3 pt-5 mt-2 border-t border-gray-100 dark:border-gray-800" },
-                        React.createElement("button", { type: "button", onClick: () => { deleteHabit(editingHabit.id); setEditingHabit(null); }, className: "flex-1 py-3.5 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-xl lowercase text-sm font-medium" }, "delete"),
-                        React.createElement("button", { type: "submit", className: "flex-1 py-3.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl lowercase text-sm font-medium" }, "save")
-                    )
+    // Edit Habit Modal - use fixed positioning for full viewport access
+    editingHabit && React.createElement("div", {
+        className: "fixed inset-0 flex items-center justify-center bg-black/50 backdrop-blur-sm",
+        style: { zIndex: 10000, padding: '16px' },
+        onClick: () => setEditingHabit(null)
+    },
+        React.createElement("form", {
+            onSubmit: saveHabit,
+            onClick: e => e.stopPropagation(),
+            className: "bg-white dark:bg-gray-900 p-5 rounded-2xl w-full max-w-md shadow-2xl overflow-y-auto border border-gray-200 dark:border-gray-700",
+            style: { maxHeight: 'calc(100vh - 32px)' }
+        },
+            React.createElement("div", { className: "flex justify-between items-center mb-5" },
+                React.createElement("h3", { className: "text-xl font-light text-gray-800 dark:text-white lowercase" }, "edit habit"),
+                React.createElement("button", { type: "button", onClick: () => setEditingHabit(null), className: "p-2 text-gray-400 hover:text-gray-600" },
+                    React.createElement(SysIcon, { name: "x", size: 20 })
                 )
             ),
-
-            // Manual Session Modal
-            showManualSession && React.createElement("div", {
-                className: "absolute inset-0 flex items-start justify-center bg-black/30 backdrop-blur-sm rounded-2xl",
-                style: { zIndex: 100, padding: '20px', paddingTop: '100px' },
-                onClick: () => setShowManualSession(null)
-            },
-                React.createElement("div", {
-                    onClick: e => e.stopPropagation(),
-                    className: "bg-white dark:bg-gray-900 p-5 rounded-2xl w-full max-w-xs shadow-2xl border border-gray-200 dark:border-gray-700"
-                },
-                    React.createElement("div", { className: "flex justify-between items-center mb-4" },
-                        React.createElement("h3", { className: "text-lg font-light text-gray-800 dark:text-white lowercase" }, "add manual session"),
-                        React.createElement("button", {
-                            type: "button",
-                            onClick: () => setShowManualSession(null),
-                            className: "p-1 text-gray-400 hover:text-gray-600"
-                        },
-                            React.createElement(SysIcon, { name: "x", size: 18 })
-                        )
-                    ),
-                    React.createElement("p", { className: "text-sm text-gray-500 mb-4 lowercase" },
-                        `for: ${habits.find(h => h.id === showManualSession)?.title || 'habit'}`
-                    ),
-                    React.createElement("div", { className: "flex items-center gap-3 mb-4" },
-                        React.createElement("div", { className: "flex-1" },
-                            React.createElement("label", { className: "block text-xs text-gray-500 mb-1 lowercase" }, "hours"),
-                            React.createElement("input", {
-                                type: "number",
-                                min: "0",
-                                max: "24",
-                                value: manualHours,
-                                onChange: e => setManualHours(e.target.value),
-                                className: "w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white text-center text-lg"
-                            })
-                        ),
-                        React.createElement("span", { className: "text-2xl text-gray-400 mt-5" }, ":"),
-                        React.createElement("div", { className: "flex-1" },
-                            React.createElement("label", { className: "block text-xs text-gray-500 mb-1 lowercase" }, "minutes"),
-                            React.createElement("input", {
-                                type: "number",
-                                min: "0",
-                                max: "59",
-                                value: manualMinutes,
-                                onChange: e => setManualMinutes(e.target.value),
-                                className: "w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white text-center text-lg"
-                            })
-                        )
-                    ),
-                    React.createElement("div", { className: "flex gap-2" },
-                        React.createElement("button", {
-                            type: "button",
-                            onClick: () => setShowManualSession(null),
-                            className: "flex-1 py-2 bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 rounded-lg lowercase text-sm"
-                        }, "cancel"),
-                        React.createElement("button", {
-                            type: "button",
-                            onClick: () => saveManualSession(showManualSession),
-                            className: "flex-1 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg lowercase text-sm"
-                        }, "save session")
-                    )
-                )
+            React.createElement("input", { type: "text", value: editingHabit.title, onChange: e => setEditingHabit({ ...editingHabit, title: e.target.value }), className: "w-full px-4 py-4 rounded-xl mb-5 border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white lowercase text-base", autoFocus: true }),
+            React.createElement("label", { className: "block text-sm text-gray-500 mb-2 lowercase" }, "color"),
+            React.createElement("div", { className: "flex gap-3 mb-5 flex-wrap" },
+                COLORS.map(c => React.createElement("button", {
+                    key: c, type: "button",
+                    onClick: () => setEditingHabit({ ...editingHabit, color: c }),
+                    style: {
+                        backgroundColor: c,
+                        width: '36px',
+                        height: '36px',
+                        borderRadius: '50%',
+                        border: 'none',
+                        boxShadow: editingHabit.color === c ? '0 0 0 3px #3b82f6, inset 0 0 0 2px white' : 'inset 0 0 0 1px rgba(0,0,0,0.1)'
+                    }
+                }))
             ),
-
-            // Duration Picker Modal for Countdown Timer
-            showDurationPicker && React.createElement("div", {
-                className: "fixed inset-0 flex items-center justify-center bg-black/50 backdrop-blur-sm",
-                style: { zIndex: 10000, padding: '16px' },
-                onClick: () => setShowDurationPicker(null)
-            },
-                React.createElement("div", {
-                    onClick: e => e.stopPropagation(),
-                    className: "bg-white dark:bg-gray-900 p-5 rounded-2xl w-full max-w-sm shadow-2xl border border-gray-200 dark:border-gray-700"
-                },
-                    React.createElement("div", { className: "flex justify-between items-center mb-4" },
-                        React.createElement("h3", { className: "text-lg font-light text-gray-800 dark:text-white lowercase" }, "set countdown timer"),
-                        React.createElement("button", {
-                            type: "button",
-                            onClick: () => setShowDurationPicker(null),
-                            className: "p-1 text-gray-400 hover:text-gray-600"
-                        },
-                            React.createElement(SysIcon, { name: "x", size: 18 })
-                        )
-                    ),
-                    React.createElement("p", { className: "text-sm text-gray-500 mb-4 lowercase" },
-                        `for: ${habits.find(h => h.id === showDurationPicker)?.title || 'habit'}`
-                    ),
-                    // Time input: HH:MM:SS
-                    React.createElement("div", { className: "flex items-center justify-center gap-2 mb-4" },
-                        React.createElement("div", { className: "flex-1" },
-                            React.createElement("label", { className: "block text-xs text-gray-500 mb-1 lowercase text-center" }, "hours"),
-                            React.createElement("input", {
-                                type: "number",
-                                min: "0",
-                                max: "23",
-                                value: countdownHours,
-                                onChange: e => setCountdownHours(e.target.value),
-                                className: "w-full px-2 py-3 rounded-lg border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white text-center text-2xl font-mono"
-                            })
-                        ),
-                        React.createElement("span", { className: "text-3xl text-gray-400 mt-5 font-mono" }, ":"),
-                        React.createElement("div", { className: "flex-1" },
-                            React.createElement("label", { className: "block text-xs text-gray-500 mb-1 lowercase text-center" }, "minutes"),
-                            React.createElement("input", {
-                                type: "number",
-                                min: "0",
-                                max: "59",
-                                value: countdownMinutes,
-                                onChange: e => setCountdownMinutes(e.target.value),
-                                className: "w-full px-2 py-3 rounded-lg border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white text-center text-2xl font-mono"
-                            })
-                        ),
-                        React.createElement("span", { className: "text-3xl text-gray-400 mt-5 font-mono" }, ":"),
-                        React.createElement("div", { className: "flex-1" },
-                            React.createElement("label", { className: "block text-xs text-gray-500 mb-1 lowercase text-center" }, "seconds"),
-                            React.createElement("input", {
-                                type: "number",
-                                min: "0",
-                                max: "59",
-                                value: countdownSeconds,
-                                onChange: e => setCountdownSeconds(e.target.value),
-                                className: "w-full px-2 py-3 rounded-lg border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white text-center text-2xl font-mono"
-                            })
-                        )
-                    ),
-                    // Quick preset buttons
-                    React.createElement("div", { className: "flex gap-2 mb-4" },
-                        [5, 15, 25, 45].map(mins =>
-                            React.createElement("button", {
-                                key: mins,
-                                type: "button",
-                                onClick: () => { setCountdownHours('0'); setCountdownMinutes(String(mins)); setCountdownSeconds('0'); },
-                                className: "flex-1 py-2 bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 rounded-lg lowercase text-sm"
-                            }, `${mins}m`)
-                        )
-                    ),
-                    React.createElement("div", { className: "flex gap-2" },
-                        React.createElement("button", {
-                            type: "button",
-                            onClick: () => setShowDurationPicker(null),
-                            className: "flex-1 py-2 bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 rounded-lg lowercase text-sm"
-                        }, "cancel"),
-                        React.createElement("button", {
-                            type: "button",
-                            onClick: () => saveDuration(showDurationPicker),
-                            className: "flex-1 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg lowercase text-sm"
-                        }, "start countdown")
-                    )
-                )
+            React.createElement("label", { className: "block text-sm text-gray-500 mb-2 lowercase" }, "icon"),
+            React.createElement("div", { className: "flex gap-2 flex-wrap mb-5" },
+                Object.keys(ICONS).map(k => React.createElement("button", {
+                    key: k, type: "button",
+                    onClick: () => setEditingHabit({ ...editingHabit, icon: k }),
+                    className: `p-2.5 rounded-lg transition ${editingHabit.icon === k ? 'bg-blue-500 text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200'}`
+                }, React.createElement(Icon, { name: k, size: 20 })))
+            ),
+            React.createElement("label", { className: "block text-sm text-gray-500 mb-2 lowercase" }, "difficulty"),
+            React.createElement("div", { className: "grid grid-cols-3 gap-3 mb-5" },
+                ['easy', 'medium', 'hard'].map(d => {
+                    const coins = d === 'hard' ? 20 : d === 'medium' ? 10 : 5;
+                    const isSelected = editingHabit.difficulty === d;
+                    const bgColor = isSelected
+                        ? (d === 'easy' ? 'bg-green-500 text-white' : d === 'hard' ? 'bg-red-500 text-white' : 'bg-yellow-500 text-gray-900')
+                        : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200';
+                    return React.createElement("button", {
+                        key: d, type: "button",
+                        onClick: () => setEditingHabit({ ...editingHabit, difficulty: d }),
+                        className: `py-3 rounded-xl lowercase transition text-sm font-medium ${bgColor}`
+                    }, `${d} · ${coins}c`);
+                })
+            ),
+            React.createElement("div", { className: "flex gap-3 pt-5 mt-2 border-t border-gray-100 dark:border-gray-800" },
+                React.createElement("button", { type: "button", onClick: () => { deleteHabit(editingHabit.id); setEditingHabit(null); }, className: "flex-1 py-3.5 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-xl lowercase text-sm font-medium" }, "delete"),
+                React.createElement("button", { type: "submit", className: "flex-1 py-3.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl lowercase text-sm font-medium" }, "save")
             )
+        )
+    ),
+
+    // Manual Session Modal
+    showManualSession && React.createElement("div", {
+        className: "absolute inset-0 flex items-start justify-center bg-black/30 backdrop-blur-sm rounded-2xl",
+        style: { zIndex: 100, padding: '20px', paddingTop: '100px' },
+        onClick: () => setShowManualSession(null)
+    },
+        React.createElement("div", {
+            onClick: e => e.stopPropagation(),
+            className: "bg-white dark:bg-gray-900 p-5 rounded-2xl w-full max-w-xs shadow-2xl border border-gray-200 dark:border-gray-700"
+        },
+            React.createElement("div", { className: "flex justify-between items-center mb-4" },
+                React.createElement("h3", { className: "text-lg font-light text-gray-800 dark:text-white lowercase" }, "add manual session"),
+                React.createElement("button", {
+                    type: "button",
+                    onClick: () => setShowManualSession(null),
+                    className: "p-1 text-gray-400 hover:text-gray-600"
+                },
+                    React.createElement(SysIcon, { name: "x", size: 18 })
+                )
+            ),
+            React.createElement("p", { className: "text-sm text-gray-500 mb-4 lowercase" },
+                `for: ${habits.find(h => h.id === showManualSession)?.title || 'habit'}`
+            ),
+            React.createElement("div", { className: "flex items-center gap-3 mb-4" },
+                React.createElement("div", { className: "flex-1" },
+                    React.createElement("label", { className: "block text-xs text-gray-500 mb-1 lowercase" }, "hours"),
+                    React.createElement("input", {
+                        type: "number",
+                        min: "0",
+                        max: "24",
+                        value: manualHours,
+                        onChange: e => setManualHours(e.target.value),
+                        className: "w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white text-center text-lg"
+                    })
+                ),
+                React.createElement("span", { className: "text-2xl text-gray-400 mt-5" }, ":"),
+                React.createElement("div", { className: "flex-1" },
+                    React.createElement("label", { className: "block text-xs text-gray-500 mb-1 lowercase" }, "minutes"),
+                    React.createElement("input", {
+                        type: "number",
+                        min: "0",
+                        max: "59",
+                        value: manualMinutes,
+                        onChange: e => setManualMinutes(e.target.value),
+                        className: "w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white text-center text-lg"
+                    })
+                )
+            ),
+            React.createElement("div", { className: "flex gap-2" },
+                React.createElement("button", {
+                    type: "button",
+                    onClick: () => setShowManualSession(null),
+                    className: "flex-1 py-2 bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 rounded-lg lowercase text-sm"
+                }, "cancel"),
+                React.createElement("button", {
+                    type: "button",
+                    onClick: () => saveManualSession(showManualSession),
+                    className: "flex-1 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg lowercase text-sm"
+                }, "save session")
+            )
+        )
+    ),
+
+    // Duration Picker Modal for Countdown Timer
+    showDurationPicker && React.createElement("div", {
+        className: "fixed inset-0 flex items-center justify-center bg-black/50 backdrop-blur-sm",
+        style: { zIndex: 10000, padding: '16px' },
+        onClick: () => setShowDurationPicker(null)
+    },
+        React.createElement("div", {
+            onClick: e => e.stopPropagation(),
+            className: "bg-white dark:bg-gray-900 p-5 rounded-2xl w-full max-w-sm shadow-2xl border border-gray-200 dark:border-gray-700"
+        },
+            React.createElement("div", { className: "flex justify-between items-center mb-4" },
+                React.createElement("h3", { className: "text-lg font-light text-gray-800 dark:text-white lowercase" }, "set countdown timer"),
+                React.createElement("button", {
+                    type: "button",
+                    onClick: () => setShowDurationPicker(null),
+                    className: "p-1 text-gray-400 hover:text-gray-600"
+                },
+                    React.createElement(SysIcon, { name: "x", size: 18 })
+                )
+            ),
+            React.createElement("p", { className: "text-sm text-gray-500 mb-4 lowercase" },
+                `for: ${habits.find(h => h.id === showDurationPicker)?.title || 'habit'}`
+            ),
+            // Time input: HH:MM:SS
+            React.createElement("div", { className: "flex items-center justify-center gap-2 mb-4" },
+                React.createElement("div", { className: "flex-1" },
+                    React.createElement("label", { className: "block text-xs text-gray-500 mb-1 lowercase text-center" }, "hours"),
+                    React.createElement("input", {
+                        type: "number",
+                        min: "0",
+                        max: "23",
+                        value: countdownHours,
+                        onChange: e => setCountdownHours(e.target.value),
+                        className: "w-full px-2 py-3 rounded-lg border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white text-center text-2xl font-mono"
+                    })
+                ),
+                React.createElement("span", { className: "text-3xl text-gray-400 mt-5 font-mono" }, ":"),
+                React.createElement("div", { className: "flex-1" },
+                    React.createElement("label", { className: "block text-xs text-gray-500 mb-1 lowercase text-center" }, "minutes"),
+                    React.createElement("input", {
+                        type: "number",
+                        min: "0",
+                        max: "59",
+                        value: countdownMinutes,
+                        onChange: e => setCountdownMinutes(e.target.value),
+                        className: "w-full px-2 py-3 rounded-lg border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white text-center text-2xl font-mono"
+                    })
+                ),
+                React.createElement("span", { className: "text-3xl text-gray-400 mt-5 font-mono" }, ":"),
+                React.createElement("div", { className: "flex-1" },
+                    React.createElement("label", { className: "block text-xs text-gray-500 mb-1 lowercase text-center" }, "seconds"),
+                    React.createElement("input", {
+                        type: "number",
+                        min: "0",
+                        max: "59",
+                        value: countdownSeconds,
+                        onChange: e => setCountdownSeconds(e.target.value),
+                        className: "w-full px-2 py-3 rounded-lg border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white text-center text-2xl font-mono"
+                    })
+                )
+            ),
+            // Quick preset buttons
+            React.createElement("div", { className: "flex gap-2 mb-4" },
+                [5, 15, 25, 45].map(mins =>
+                    React.createElement("button", {
+                        key: mins,
+                        type: "button",
+                        onClick: () => { setCountdownHours('0'); setCountdownMinutes(String(mins)); setCountdownSeconds('0'); },
+                        className: "flex-1 py-2 bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 rounded-lg lowercase text-sm"
+                    }, `${mins}m`)
+                )
+            ),
+            React.createElement("div", { className: "flex gap-2" },
+                React.createElement("button", {
+                    type: "button",
+                    onClick: () => setShowDurationPicker(null),
+                    className: "flex-1 py-2 bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 rounded-lg lowercase text-sm"
+                }, "cancel"),
+                React.createElement("button", {
+                    type: "button",
+                    onClick: () => saveDuration(showDurationPicker),
+                    className: "flex-1 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg lowercase text-sm"
+                }, "start countdown")
+            )
+        )
+    )
         );
 };
 
@@ -1399,7 +1399,7 @@ const GamificationTab = (props) => {
 
 window.HabitsTab = GamificationTab;
 window.RewardsPage = RewardsPage;
-console.log("HabitsTab v55 loaded - countdown timer with duration picker");
+console.log("HabitsTab v58 loaded - countdown timer with duration picker");
 }) ();
 
 
