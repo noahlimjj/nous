@@ -4404,7 +4404,102 @@ const GrowthTree = ({ sessions, db, userId, setNotification }) => {
 
     // Beautiful Tree SVG with crisp animations
     const TreeSVG = React.memo(({ growth, color, treeType }) => {
-        return React.createElement("div", { className: "text-center p-4 text-green-600" }, "Tree Visualization Placeholder");
+        const typeProps = TREE_TYPES.find(t => t.id === treeType) || TREE_TYPES[0];
+        const stage = Math.min(100, Math.max(0, growth)) / 100;
+
+        // Deterministic random for consistent tree shape per type
+        const seededRandom = (s) => {
+            const x = Math.sin(s) * 10000;
+            return x - Math.floor(x);
+        };
+
+        const renderTree = () => {
+            if (stage < 0.05) {
+                // Seed stage
+                return [
+                    React.createElement('circle', { key: 'seed', cx: 100, cy: 220, r: 5, fill: '#8D6E63' })
+                ];
+            } else if (stage < 0.15) {
+                // Sprout stage
+                return [
+                    React.createElement('path', {
+                        key: 'stem',
+                        d: `M100,220 Q100,${210 - (stage * 100)} ${100 + (Math.sin(stage * 10) * 10)},${200 - (stage * 100)}`,
+                        stroke: '#66BB6A',
+                        strokeWidth: 3,
+                        fill: 'none'
+                    }),
+                    React.createElement('circle', { key: 'leaf1', cx: 100 + (Math.sin(stage * 10) * 10), cy: 200 - (stage * 100), r: 4, fill: '#66BB6A' })
+                ];
+            }
+
+            // Fractal Tree Generation
+            const elements = [];
+            const trunkColor = typeProps.branchColor || '#5D4037';
+            const leafColors = typeProps.leafColors || [color];
+
+            // Deterministic structure based on tree name
+            const seed = treeType.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+
+            const growBranch = (x, y, length, angle, depth, id) => {
+                if (depth === 0) return;
+
+                const endX = x + length * Math.sin(angle);
+                const endY = y - length * Math.cos(angle);
+
+                // Branch
+                elements.push(React.createElement('line', {
+                    key: `b-${id}`,
+                    x1: x, y1: y,
+                    x2: endX, y2: endY,
+                    stroke: trunkColor,
+                    strokeWidth: Math.max(1, depth),
+                    strokeLinecap: 'round'
+                }));
+
+                // Leaves at ends of branches
+                if (depth <= 2 || (depth <= 4 && seededRandom(id * seed) > 0.6)) {
+                    // Start leaves appearing after 30% growth
+                    if (stage > 0.3) {
+                        const leafSize = (4 + (depth * 2)) * stage;
+                        const leafColor = leafColors[Math.floor(seededRandom(id) * leafColors.length)];
+
+                        elements.push(React.createElement('circle', {
+                            key: `l-${id}`,
+                            cx: endX, cy: endY,
+                            r: leafSize,
+                            fill: leafColor,
+                            opacity: 0.8
+                        }));
+                    }
+                }
+
+                const newLength = length * 0.75;
+                const spread = 0.5 + (seededRandom(depth + seed) * 0.3);
+
+                // Recursively grow
+                growBranch(endX, endY, newLength, angle - spread, depth - 1, id * 2);
+                growBranch(endX, endY, newLength, angle + spread, depth - 1, id * 2 + 1);
+            };
+
+            // Initial growth parameters based on stage
+            const maxDepth = Math.min(6, Math.floor(stage * 6) + 2);
+            const initialLength = 40 + (stage * 20);
+
+            growBranch(100, 220, initialLength / (7 / maxDepth), 0, maxDepth, 1);
+
+            return elements;
+        };
+
+        return React.createElement('svg', {
+            viewBox: "0 0 200 240",
+            className: "w-full h-full",
+            style: { overflow: 'visible' }
+        },
+            // Ground shadow
+            React.createElement('ellipse', { cx: 100, cy: 220, rx: 50 * stage, ry: 8, fill: "#000", opacity: 0.1 }),
+            renderTree()
+        );
     });
     return React.createElement('div', { className: "bg-white rounded-xl soft-shadow p-6" },
         // Header
