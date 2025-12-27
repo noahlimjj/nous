@@ -1,4 +1,5 @@
 (function () {
+    console.log("HabitsTab script starting execution...");
     const { useState, useEffect } = React;
 
     // Notion-style Emoji Icons + SVG fallbacks
@@ -866,18 +867,17 @@
                     // Timer section (debug placeholder)
                     isExpanded && React.createElement("div", { className: "p-4 text-center bg-gray-50 border-t" }, "Timer Controls Placeholder")
                 )
-        )
-        );
-    }),
+            }),
 
-        // Add Habit Button - static inline at end of habits list
-        React.createElement("button", {
-            onClick: () => setShowAddHabit(true),
-            className: "add-habit-btn w-full mt-4 mb-6 py-3.5 flex items-center justify-center gap-2 rounded-xl border-2 border-dashed border-gray-300 dark:border-gray-600 text-gray-500 dark:text-gray-400 hover:border-blue-400 hover:text-blue-500 dark:hover:border-blue-400 dark:hover:text-blue-400 transition-all bg-white/50 dark:bg-gray-800/30 hover:bg-blue-50/50 dark:hover:bg-blue-900/20"
-        },
-            React.createElement(SysIcon, { name: "plus", size: 20 }),
-            React.createElement("span", { className: "lowercase text-sm font-medium" }, "add habit")
-        ),
+
+            // Add Habit Button - static inline at end of habits list
+            React.createElement("button", {
+                onClick: () => setShowAddHabit(true),
+                className: "add-habit-btn w-full mt-4 mb-6 py-3.5 flex items-center justify-center gap-2 rounded-xl border-2 border-dashed border-gray-300 dark:border-gray-600 text-gray-500 dark:text-gray-400 hover:border-blue-400 hover:text-blue-500 dark:hover:border-blue-400 dark:hover:text-blue-400 transition-all bg-white/50 dark:bg-gray-800/30 hover:bg-blue-50/50 dark:hover:bg-blue-900/20"
+            },
+                React.createElement(SysIcon, { name: "plus", size: 20 }),
+                React.createElement("span", { className: "lowercase text-sm font-medium" }, "add habit")
+            ),
 
             // Add Habit Modal (positioned within container)
             showAddHabit && React.createElement("div", {
@@ -1154,212 +1154,212 @@
                 )
             )
         );
-};
-
-const RewardsPage = ({ user, db, onToggleView }) => {
-    const [rewards, setRewards] = useState([]);
-    const [claimedRewards, setClaimedRewards] = useState([]);
-    const [wallet, setWallet] = useState({ coins: 0 });
-    const [showAddReward, setShowAddReward] = useState(false);
-    const [editingReward, setEditingReward] = useState(null);
-    const [notification, setNotification] = useState(null);
-    const [newReward, setNewReward] = useState({ title: "", cost: 50, description: "" });
-
-    const userId = user?.uid || user?.id || null;
-    const appId = typeof __app_id !== 'undefined' ? __app_id : 'study-tracker-app';
-
-    useEffect(() => {
-        if (!db || !userId) return;
-        const unsub1 = window.onSnapshot(window.collection(db, `/artifacts/${appId}/users/${userId}/rewards`), snap => {
-            setRewards(snap.docs.map(d => ({ id: d.id, ...d.data() })));
-        });
-        const unsub2 = window.onSnapshot(window.doc(db, `/artifacts/${appId}/users/${userId}/gamification/wallet`), doc => {
-            if (doc.exists()) setWallet(doc.data());
-        });
-        const unsub3 = window.onSnapshot(window.collection(db, `/artifacts/${appId}/users/${userId}/claimedRewards`), snap => {
-            const claims = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-            claims.sort((a, b) => (b.claimedAt || 0) - (a.claimedAt || 0));
-            setClaimedRewards(claims);
-        });
-        return () => { unsub1(); unsub2(); unsub3(); };
-    }, [db, userId, appId]);
-
-    const showNotif = (msg) => { setNotification(msg); setTimeout(() => setNotification(null), 3000); };
-
-    const addReward = async (e) => {
-        e.preventDefault();
-        if (!newReward.title.trim()) return;
-        const id = Date.now().toString();
-        await window.setDoc(window.doc(db, `/artifacts/${appId}/users/${userId}/rewards/${id}`), {
-            id,
-            title: newReward.title.trim(),
-            cost: parseInt(newReward.cost) || 50,
-            description: newReward.description.trim() || ""
-        });
-        setNewReward({ title: "", cost: 50, description: "" });
-        setShowAddReward(false);
-        showNotif("reward added!");
     };
 
-    const saveReward = async (e) => {
-        e.preventDefault();
-        if (!editingReward || !editingReward.title.trim()) return;
-        await window.updateDoc(window.doc(db, `/artifacts/${appId}/users/${userId}/rewards/${editingReward.id}`), {
-            title: editingReward.title.trim(),
-            cost: parseInt(editingReward.cost) || 50,
-            description: editingReward.description?.trim() || ""
-        });
-        setEditingReward(null);
-        showNotif("reward updated!");
-    };
+    const RewardsPage = ({ user, db, onToggleView }) => {
+        const [rewards, setRewards] = useState([]);
+        const [claimedRewards, setClaimedRewards] = useState([]);
+        const [wallet, setWallet] = useState({ coins: 0 });
+        const [showAddReward, setShowAddReward] = useState(false);
+        const [editingReward, setEditingReward] = useState(null);
+        const [notification, setNotification] = useState(null);
+        const [newReward, setNewReward] = useState({ title: "", cost: 50, description: "" });
 
-    const buyReward = async (id) => {
-        const r = rewards.find(x => x.id === id);
-        if (!r || wallet.coins < r.cost) return showNotif("insufficient coins, complete habits to earn more!");
-        await window.updateDoc(window.doc(db, `/artifacts/${appId}/users/${userId}/gamification/wallet`), { coins: wallet.coins - r.cost });
-        const claimId = Date.now().toString();
-        await window.setDoc(window.doc(db, `/artifacts/${appId}/users/${userId}/claimedRewards/${claimId}`), {
-            id: claimId,
-            rewardId: r.id,
-            title: r.title,
-            cost: r.cost,
-            claimedAt: Date.now()
-        });
-        if (typeof window.confetti === 'function') window.confetti({ particleCount: 150, spread: 80, origin: { y: 0.6 } });
-        showNotif("congratulations! reward claimed!");
-    };
+        const userId = user?.uid || user?.id || null;
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'study-tracker-app';
 
-    const deleteReward = async (id) => {
-        if (confirm('Delete reward?')) await window.deleteDoc(window.doc(db, `/artifacts/${appId}/users/${userId}/rewards/${id}`));
-    };
+        useEffect(() => {
+            if (!db || !userId) return;
+            const unsub1 = window.onSnapshot(window.collection(db, `/artifacts/${appId}/users/${userId}/rewards`), snap => {
+                setRewards(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+            });
+            const unsub2 = window.onSnapshot(window.doc(db, `/artifacts/${appId}/users/${userId}/gamification/wallet`), doc => {
+                if (doc.exists()) setWallet(doc.data());
+            });
+            const unsub3 = window.onSnapshot(window.collection(db, `/artifacts/${appId}/users/${userId}/claimedRewards`), snap => {
+                const claims = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+                claims.sort((a, b) => (b.claimedAt || 0) - (a.claimedAt || 0));
+                setClaimedRewards(claims);
+            });
+            return () => { unsub1(); unsub2(); unsub3(); };
+        }, [db, userId, appId]);
 
-    const deleteClaimedReward = async (id) => {
-        if (confirm('Delete this claimed reward from history?')) {
-            await window.deleteDoc(window.doc(db, `/artifacts/${appId}/users/${userId}/claimedRewards/${id}`));
-            showNotif("claim history deleted");
-        }
-    };
+        const showNotif = (msg) => { setNotification(msg); setTimeout(() => setNotification(null), 3000); };
 
-    const formatDate = (timestamp) => {
-        if (!timestamp) return '';
-        const date = new Date(timestamp);
-        return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-    };
+        const addReward = async (e) => {
+            e.preventDefault();
+            if (!newReward.title.trim()) return;
+            const id = Date.now().toString();
+            await window.setDoc(window.doc(db, `/artifacts/${appId}/users/${userId}/rewards/${id}`), {
+                id,
+                title: newReward.title.trim(),
+                cost: parseInt(newReward.cost) || 50,
+                description: newReward.description.trim() || ""
+            });
+            setNewReward({ title: "", cost: 50, description: "" });
+            setShowAddReward(false);
+            showNotif("reward added!");
+        };
 
-    return React.createElement("div", { className: "container mx-auto px-4 py-6 max-w-4xl", style: { paddingBottom: '100px', marginTop: '16px' } },
-        notification && React.createElement("div", { className: "fixed top-20 left-1/2 transform -translate-x-1/2 bg-gray-900 text-white px-6 py-3 rounded-xl shadow-2xl lowercase", style: { zIndex: 9999 } }, notification),
+        const saveReward = async (e) => {
+            e.preventDefault();
+            if (!editingReward || !editingReward.title.trim()) return;
+            await window.updateDoc(window.doc(db, `/artifacts/${appId}/users/${userId}/rewards/${editingReward.id}`), {
+                title: editingReward.title.trim(),
+                cost: parseInt(editingReward.cost) || 50,
+                description: editingReward.description?.trim() || ""
+            });
+            setEditingReward(null);
+            showNotif("reward updated!");
+        };
 
-        React.createElement("div", { className: "flex justify-between items-center mb-6" },
-            React.createElement("h2", { className: "text-3xl text-calm-800 mb-2", style: { fontWeight: 300 } }, "rewards"),
-            React.createElement("div", { className: "flex items-center gap-3" },
-                React.createElement(CoinDisplay, { amount: wallet.coins }),
-                onToggleView && React.createElement("button", {
-                    onClick: onToggleView,
-                    className: "px-4 py-2 bg-green-100 hover:bg-green-200 text-green-700 rounded-lg transition lowercase text-sm",
-                    title: "View Habits"
-                }, "habits")
-            )
-        ),
+        const buyReward = async (id) => {
+            const r = rewards.find(x => x.id === id);
+            if (!r || wallet.coins < r.cost) return showNotif("insufficient coins, complete habits to earn more!");
+            await window.updateDoc(window.doc(db, `/artifacts/${appId}/users/${userId}/gamification/wallet`), { coins: wallet.coins - r.cost });
+            const claimId = Date.now().toString();
+            await window.setDoc(window.doc(db, `/artifacts/${appId}/users/${userId}/claimedRewards/${claimId}`), {
+                id: claimId,
+                rewardId: r.id,
+                title: r.title,
+                cost: r.cost,
+                claimedAt: Date.now()
+            });
+            if (typeof window.confetti === 'function') window.confetti({ particleCount: 150, spread: 80, origin: { y: 0.6 } });
+            showNotif("congratulations! reward claimed!");
+        };
 
-        // Available Rewards
-        React.createElement("div", { className: "grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 mb-8" },
-            rewards.map(r => React.createElement("div", {
-                key: r.id,
-                className: `relative p-4 rounded-2xl border transition ${wallet.coins >= r.cost ? 'bg-white dark:bg-gray-800 hover:border-blue-400 hover:shadow-lg' : 'bg-gray-50 dark:bg-gray-800 opacity-60'}`
-            },
-                // Reward content
-                React.createElement("div", { className: "text-left mb-3" },
-                    React.createElement("h3", { className: "text-lg dark:text-white lowercase font-medium mb-1" }, r.title),
-                    r.description && React.createElement("p", { className: "text-sm text-gray-500 dark:text-gray-400 mb-1" }, r.description),
-                    React.createElement("div", { className: "text-sm", style: { color: '#92400e', fontWeight: '500' } }, `${r.cost} coins`)
-                ),
-                // Action buttons
-                React.createElement("div", { className: "flex gap-2" },
-                    React.createElement("button", {
-                        onClick: () => buyReward(r.id),
-                        disabled: wallet.coins < r.cost,
-                        className: `flex-1 py-2 rounded-lg lowercase text-sm transition ${wallet.coins >= r.cost ? 'bg-blue-600 hover:bg-blue-700 text-white' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`
-                    }, "claim"),
-                    React.createElement("button", {
-                        onClick: () => setEditingReward({ ...r }),
-                        className: "px-3 py-2 text-gray-400 hover:text-blue-500 transition"
-                    }, React.createElement(SysIcon, { name: "edit", size: 16 })),
-                    React.createElement("button", {
-                        onClick: () => deleteReward(r.id),
-                        className: "px-3 py-2 text-gray-400 hover:text-red-500 transition"
-                    }, React.createElement(SysIcon, { name: "x", size: 16 }))
+        const deleteReward = async (id) => {
+            if (confirm('Delete reward?')) await window.deleteDoc(window.doc(db, `/artifacts/${appId}/users/${userId}/rewards/${id}`));
+        };
+
+        const deleteClaimedReward = async (id) => {
+            if (confirm('Delete this claimed reward from history?')) {
+                await window.deleteDoc(window.doc(db, `/artifacts/${appId}/users/${userId}/claimedRewards/${id}`));
+                showNotif("claim history deleted");
+            }
+        };
+
+        const formatDate = (timestamp) => {
+            if (!timestamp) return '';
+            const date = new Date(timestamp);
+            return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+        };
+
+        return React.createElement("div", { className: "container mx-auto px-4 py-6 max-w-4xl", style: { paddingBottom: '100px', marginTop: '16px' } },
+            notification && React.createElement("div", { className: "fixed top-20 left-1/2 transform -translate-x-1/2 bg-gray-900 text-white px-6 py-3 rounded-xl shadow-2xl lowercase", style: { zIndex: 9999 } }, notification),
+
+            React.createElement("div", { className: "flex justify-between items-center mb-6" },
+                React.createElement("h2", { className: "text-3xl text-calm-800 mb-2", style: { fontWeight: 300 } }, "rewards"),
+                React.createElement("div", { className: "flex items-center gap-3" },
+                    React.createElement(CoinDisplay, { amount: wallet.coins }),
+                    onToggleView && React.createElement("button", {
+                        onClick: onToggleView,
+                        className: "px-4 py-2 bg-green-100 hover:bg-green-200 text-green-700 rounded-lg transition lowercase text-sm",
+                        title: "View Habits"
+                    }, "habits")
                 )
-            )),
-            React.createElement("button", { onClick: () => setShowAddReward(true), className: "flex flex-col items-center justify-center p-5 rounded-2xl border-2 border-dashed border-gray-300 dark:border-gray-600 text-gray-400 hover:text-blue-500 hover:border-blue-400 min-h-[120px]" },
-                React.createElement(SysIcon, { name: "plus", size: 28 }),
-                React.createElement("span", { className: "mt-2 lowercase text-sm" }, "add reward")
-            )
-        ),
-
-        // Claimed Rewards History
-        claimedRewards.length > 0 && React.createElement("div", { className: "mt-8" },
-            React.createElement("h3", { className: "text-lg font-light text-gray-600 dark:text-gray-300 lowercase mb-4" }, "claimed rewards"),
-            React.createElement("div", { className: "space-y-2" },
-                claimedRewards.slice(0, 10).map(claim => React.createElement("div", {
-                    key: claim.id,
-                    className: "flex items-center gap-3 p-3 rounded-xl bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 border border-green-100 dark:border-green-800/30"
-                },
-                    React.createElement("div", { className: "flex-1" },
-                        React.createElement("span", { className: "text-gray-800 dark:text-white lowercase font-medium" }, claim.title),
-                        React.createElement("span", { className: "text-gray-400 text-sm ml-2" }, `${claim.cost}c`)
-                    ),
-                    React.createElement("span", { className: "text-xs text-gray-400 mr-2" }, formatDate(claim.claimedAt)),
-                    React.createElement("button", {
-                        onClick: () => deleteClaimedReward(claim.id),
-                        className: "text-gray-400 hover:text-red-500 transition p-1",
-                        title: "Remove from history"
-                    }, React.createElement(SysIcon, { name: "x", size: 14 }))
-                ))
             ),
-            claimedRewards.length > 10 && React.createElement("p", { className: "text-sm text-gray-400 mt-2 text-center lowercase" }, `+ ${claimedRewards.length - 10} more`)
-        ),
 
-        // Add Reward Modal
-        showAddReward && React.createElement("div", { className: "fixed inset-0 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4", style: { zIndex: 10000 }, onClick: () => setShowAddReward(false) },
-            React.createElement("form", { onSubmit: addReward, onClick: e => e.stopPropagation(), className: "bg-white dark:bg-gray-900 p-5 sm:p-6 rounded-2xl w-full max-w-xs sm:max-w-sm md:max-w-md shadow-2xl" },
-                React.createElement("div", { className: "flex justify-between items-center mb-4" },
-                    React.createElement("h3", { className: "text-xl font-light dark:text-white lowercase" }, "new reward"),
-                    React.createElement("button", { type: "button", onClick: () => setShowAddReward(false), className: "p-2 text-gray-400 hover:text-gray-600" }, React.createElement(SysIcon, { name: "x", size: 18 }))
-                ),
-                React.createElement("input", { type: "text", value: newReward.title, onChange: e => setNewReward({ ...newReward, title: e.target.value }), placeholder: "reward name...", className: "w-full px-4 py-3 rounded-xl mb-3 border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white lowercase", autoFocus: true }),
-                React.createElement("textarea", { value: newReward.description, onChange: e => setNewReward({ ...newReward, description: e.target.value }), placeholder: "description (optional)...", rows: 2, className: "w-full px-4 py-3 rounded-xl mb-3 border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white resize-none" }),
-                React.createElement("input", { type: "number", value: newReward.cost, onChange: e => setNewReward({ ...newReward, cost: e.target.value }), placeholder: "cost in coins", className: "w-full px-4 py-3 rounded-xl mb-4 border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white" }),
-                React.createElement("button", { type: "submit", className: "w-full py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl lowercase" }, "add reward")
-            )
-        ),
+            // Available Rewards
+            React.createElement("div", { className: "grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 mb-8" },
+                rewards.map(r => React.createElement("div", {
+                    key: r.id,
+                    className: `relative p-4 rounded-2xl border transition ${wallet.coins >= r.cost ? 'bg-white dark:bg-gray-800 hover:border-blue-400 hover:shadow-lg' : 'bg-gray-50 dark:bg-gray-800 opacity-60'}`
+                },
+                    // Reward content
+                    React.createElement("div", { className: "text-left mb-3" },
+                        React.createElement("h3", { className: "text-lg dark:text-white lowercase font-medium mb-1" }, r.title),
+                        r.description && React.createElement("p", { className: "text-sm text-gray-500 dark:text-gray-400 mb-1" }, r.description),
+                        React.createElement("div", { className: "text-sm", style: { color: '#92400e', fontWeight: '500' } }, `${r.cost} coins`)
+                    ),
+                    // Action buttons
+                    React.createElement("div", { className: "flex gap-2" },
+                        React.createElement("button", {
+                            onClick: () => buyReward(r.id),
+                            disabled: wallet.coins < r.cost,
+                            className: `flex-1 py-2 rounded-lg lowercase text-sm transition ${wallet.coins >= r.cost ? 'bg-blue-600 hover:bg-blue-700 text-white' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`
+                        }, "claim"),
+                        React.createElement("button", {
+                            onClick: () => setEditingReward({ ...r }),
+                            className: "px-3 py-2 text-gray-400 hover:text-blue-500 transition"
+                        }, React.createElement(SysIcon, { name: "edit", size: 16 })),
+                        React.createElement("button", {
+                            onClick: () => deleteReward(r.id),
+                            className: "px-3 py-2 text-gray-400 hover:text-red-500 transition"
+                        }, React.createElement(SysIcon, { name: "x", size: 16 }))
+                    )
+                )),
+                React.createElement("button", { onClick: () => setShowAddReward(true), className: "flex flex-col items-center justify-center p-5 rounded-2xl border-2 border-dashed border-gray-300 dark:border-gray-600 text-gray-400 hover:text-blue-500 hover:border-blue-400 min-h-[120px]" },
+                    React.createElement(SysIcon, { name: "plus", size: 28 }),
+                    React.createElement("span", { className: "mt-2 lowercase text-sm" }, "add reward")
+                )
+            ),
 
-        // Edit Reward Modal
-        editingReward && React.createElement("div", { className: "fixed inset-0 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4", style: { zIndex: 10000 }, onClick: () => setEditingReward(null) },
-            React.createElement("form", { onSubmit: saveReward, onClick: e => e.stopPropagation(), className: "bg-white dark:bg-gray-900 p-5 sm:p-6 rounded-2xl w-full max-w-xs sm:max-w-sm md:max-w-md shadow-2xl" },
-                React.createElement("div", { className: "flex justify-between items-center mb-4" },
-                    React.createElement("h3", { className: "text-xl font-light dark:text-white lowercase" }, "edit reward"),
-                    React.createElement("button", { type: "button", onClick: () => setEditingReward(null), className: "p-2 text-gray-400 hover:text-gray-600" }, React.createElement(SysIcon, { name: "x", size: 18 }))
+            // Claimed Rewards History
+            claimedRewards.length > 0 && React.createElement("div", { className: "mt-8" },
+                React.createElement("h3", { className: "text-lg font-light text-gray-600 dark:text-gray-300 lowercase mb-4" }, "claimed rewards"),
+                React.createElement("div", { className: "space-y-2" },
+                    claimedRewards.slice(0, 10).map(claim => React.createElement("div", {
+                        key: claim.id,
+                        className: "flex items-center gap-3 p-3 rounded-xl bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 border border-green-100 dark:border-green-800/30"
+                    },
+                        React.createElement("div", { className: "flex-1" },
+                            React.createElement("span", { className: "text-gray-800 dark:text-white lowercase font-medium" }, claim.title),
+                            React.createElement("span", { className: "text-gray-400 text-sm ml-2" }, `${claim.cost}c`)
+                        ),
+                        React.createElement("span", { className: "text-xs text-gray-400 mr-2" }, formatDate(claim.claimedAt)),
+                        React.createElement("button", {
+                            onClick: () => deleteClaimedReward(claim.id),
+                            className: "text-gray-400 hover:text-red-500 transition p-1",
+                            title: "Remove from history"
+                        }, React.createElement(SysIcon, { name: "x", size: 14 }))
+                    ))
                 ),
-                React.createElement("input", { type: "text", value: editingReward.title, onChange: e => setEditingReward({ ...editingReward, title: e.target.value }), placeholder: "reward name...", className: "w-full px-4 py-3 rounded-xl mb-3 border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white lowercase", autoFocus: true }),
-                React.createElement("textarea", { value: editingReward.description || "", onChange: e => setEditingReward({ ...editingReward, description: e.target.value }), placeholder: "description (optional)...", rows: 2, className: "w-full px-4 py-3 rounded-xl mb-3 border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white resize-none" }),
-                React.createElement("input", { type: "number", value: editingReward.cost, onChange: e => setEditingReward({ ...editingReward, cost: e.target.value }), placeholder: "cost in coins", className: "w-full px-4 py-3 rounded-xl mb-4 border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white" }),
-                React.createElement("div", { className: "flex gap-2" },
-                    React.createElement("button", { type: "button", onClick: () => { deleteReward(editingReward.id); setEditingReward(null); }, className: "flex-1 py-3 text-red-500 hover:bg-red-50 rounded-xl lowercase border border-red-200" }, "delete"),
-                    React.createElement("button", { type: "submit", className: "flex-1 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl lowercase" }, "save")
+                claimedRewards.length > 10 && React.createElement("p", { className: "text-sm text-gray-400 mt-2 text-center lowercase" }, `+ ${claimedRewards.length - 10} more`)
+            ),
+
+            // Add Reward Modal
+            showAddReward && React.createElement("div", { className: "fixed inset-0 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4", style: { zIndex: 10000 }, onClick: () => setShowAddReward(false) },
+                React.createElement("form", { onSubmit: addReward, onClick: e => e.stopPropagation(), className: "bg-white dark:bg-gray-900 p-5 sm:p-6 rounded-2xl w-full max-w-xs sm:max-w-sm md:max-w-md shadow-2xl" },
+                    React.createElement("div", { className: "flex justify-between items-center mb-4" },
+                        React.createElement("h3", { className: "text-xl font-light dark:text-white lowercase" }, "new reward"),
+                        React.createElement("button", { type: "button", onClick: () => setShowAddReward(false), className: "p-2 text-gray-400 hover:text-gray-600" }, React.createElement(SysIcon, { name: "x", size: 18 }))
+                    ),
+                    React.createElement("input", { type: "text", value: newReward.title, onChange: e => setNewReward({ ...newReward, title: e.target.value }), placeholder: "reward name...", className: "w-full px-4 py-3 rounded-xl mb-3 border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white lowercase", autoFocus: true }),
+                    React.createElement("textarea", { value: newReward.description, onChange: e => setNewReward({ ...newReward, description: e.target.value }), placeholder: "description (optional)...", rows: 2, className: "w-full px-4 py-3 rounded-xl mb-3 border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white resize-none" }),
+                    React.createElement("input", { type: "number", value: newReward.cost, onChange: e => setNewReward({ ...newReward, cost: e.target.value }), placeholder: "cost in coins", className: "w-full px-4 py-3 rounded-xl mb-4 border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white" }),
+                    React.createElement("button", { type: "submit", className: "w-full py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl lowercase" }, "add reward")
+                )
+            ),
+
+            // Edit Reward Modal
+            editingReward && React.createElement("div", { className: "fixed inset-0 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4", style: { zIndex: 10000 }, onClick: () => setEditingReward(null) },
+                React.createElement("form", { onSubmit: saveReward, onClick: e => e.stopPropagation(), className: "bg-white dark:bg-gray-900 p-5 sm:p-6 rounded-2xl w-full max-w-xs sm:max-w-sm md:max-w-md shadow-2xl" },
+                    React.createElement("div", { className: "flex justify-between items-center mb-4" },
+                        React.createElement("h3", { className: "text-xl font-light dark:text-white lowercase" }, "edit reward"),
+                        React.createElement("button", { type: "button", onClick: () => setEditingReward(null), className: "p-2 text-gray-400 hover:text-gray-600" }, React.createElement(SysIcon, { name: "x", size: 18 }))
+                    ),
+                    React.createElement("input", { type: "text", value: editingReward.title, onChange: e => setEditingReward({ ...editingReward, title: e.target.value }), placeholder: "reward name...", className: "w-full px-4 py-3 rounded-xl mb-3 border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white lowercase", autoFocus: true }),
+                    React.createElement("textarea", { value: editingReward.description || "", onChange: e => setEditingReward({ ...editingReward, description: e.target.value }), placeholder: "description (optional)...", rows: 2, className: "w-full px-4 py-3 rounded-xl mb-3 border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white resize-none" }),
+                    React.createElement("input", { type: "number", value: editingReward.cost, onChange: e => setEditingReward({ ...editingReward, cost: e.target.value }), placeholder: "cost in coins", className: "w-full px-4 py-3 rounded-xl mb-4 border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white" }),
+                    React.createElement("div", { className: "flex gap-2" },
+                        React.createElement("button", { type: "button", onClick: () => { deleteReward(editingReward.id); setEditingReward(null); }, className: "flex-1 py-3 text-red-500 hover:bg-red-50 rounded-xl lowercase border border-red-200" }, "delete"),
+                        React.createElement("button", { type: "submit", className: "flex-1 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl lowercase" }, "save")
+                    )
                 )
             )
-        )
-    );
-};
+        );
+    };
 
-const GamificationTab = (props) => {
-    if (props.isRewardsPage) return React.createElement(RewardsPage, props);
-    return React.createElement(HabitsPage, props);
-};
+    const GamificationTab = (props) => {
+        if (props.isRewardsPage) return React.createElement(RewardsPage, props);
+        return React.createElement(HabitsPage, props);
+    };
 
-window.HabitsTab = GamificationTab;
-window.RewardsPage = RewardsPage;
-console.log("HabitsTab v59 loaded - debug simplifiction");
-}) ();
+    window.HabitsTab = GamificationTab;
+    window.RewardsPage = RewardsPage;
+    console.log("HabitsTab v59 loaded - debug simplifiction");
+})();
 
 
