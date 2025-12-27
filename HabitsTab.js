@@ -172,6 +172,7 @@
     const getTimerMs = (totalMs) => Math.floor((totalMs % 1000) / 10);
 
     const HabitsPage = ({ user, db, isWidget = false, onToggleView }) => {
+        console.log("HabitsPage rendered. User:", user, "DB:", db);
         const userId = user?.uid || user?.id || null;
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'study-tracker-app';
         const [habits, setHabits] = useState([]);
@@ -202,7 +203,7 @@
 
         useEffect(() => {
             if (!db || !userId) return;
-            const unsub1 = window.onSnapshot(window.collection(db, `/ artifacts / ${appId} /users/${userId}/habits`), snap => {
+            const unsub1 = window.onSnapshot(window.collection(db, `/artifacts/${appId}/users/${userId}/habits`), snap => {
                 const habitsData = snap.docs.map(d => ({ id: d.id, ...d.data() }));
                 // Sort by backend order if present, otherwise by creation/alphabetical
                 habitsData.sort((a, b) => {
@@ -404,7 +405,13 @@
 
         const addHabit = async (e) => {
             e.preventDefault();
-            if (!newHabit.title.trim() || !db || !userId) return;
+            if (!newHabit.title.trim()) return;
+
+            if (!db || !userId) {
+                console.error("Habit creation failed: DB or UserID missing", { db: !!db, userId: !!userId });
+                showNotif("Error: Database unavailable");
+                return;
+            }
             try {
                 const id = Date.now().toString();
                 // Assign a high order number to put it at the end
