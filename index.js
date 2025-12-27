@@ -1791,6 +1791,8 @@ const Dashboard = ({ db, userId, setNotification, activeTimers, setActiveTimers,
 
 
 
+
+
     const handleDeleteHabit = async (habitId) => {
         if (window.confirm("Are you sure you want to delete this habit and all its sessions? This cannot be undone.")) {
             try {
@@ -2916,7 +2918,9 @@ const Dashboard = ({ db, userId, setNotification, activeTimers, setActiveTimers,
                     }));
                     const allItems = [...sharedTimerItems, ...habitItems];
 
+
                     if (allItems.length === 0) {
+
                         return React.createElement('p', { className: "text-gray-500 text-center py-8" }, "No habits yet. Add one to get started!");
                     }
 

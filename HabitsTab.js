@@ -164,9 +164,9 @@
         const seconds = totalSeconds % 60;
         const ms = Math.floor((totalMs % 1000) / 10);
         if (hours > 0) {
-            return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')} `;
+            return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}.${String(ms).padStart(2, '0')}`;
         }
-        return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')} `;
+        return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}.${String(ms).padStart(2, '0')}`;
     };
 
     const getTimerMs = (totalMs) => Math.floor((totalMs % 1000) / 10);
@@ -186,6 +186,7 @@
         const [timers, setTimers] = useState({});
         const [currentTime, setCurrentTime] = useState(Date.now());
         const [expandedHabit, setExpandedHabit] = useState(null);
+        const [selectedHabitId, setSelectedHabitId] = useState(null);
         // Manual session state
         const [showManualSession, setShowManualSession] = useState(null); // habitId for which to show modal
         const [manualHours, setManualHours] = useState('0');
@@ -195,6 +196,7 @@
         const [countdownHours, setCountdownHours] = useState('0');
         const [countdownMinutes, setCountdownMinutes] = useState('25');
         const [countdownSeconds, setCountdownSeconds] = useState('0');
+        const [showHabitSelector, setShowHabitSelector] = useState(false);
         const [draggedHabit, setDraggedHabit] = useState(null);
         // Track heaters checks
         const stoppedTimersRef = React.useRef(new Set());
@@ -586,6 +588,180 @@
                 )
             ),
 
+            // Big Timer (if habit selected)
+            // Big Timer (Always visible if habits exist)
+            habits.length > 0 && (() => {
+                const activeHabitId = selectedHabitId || habits[0].id;
+                const h = habits.find(h => h.id === activeHabitId) || habits[0];
+                if (!h) return null;
+                const timer = timers[h.id];
+                const isRunning = timer && timer.isRunning;
+                const elapsed = getElapsedTime(h.id);
+
+                return React.createElement("div", { className: "bg-white p-4 rounded-lg shadow-sm flex flex-col sm:flex-row sm:items-center gap-4 transition-all mb-8 border border-gray-100 dark:border-gray-700 dark:bg-gray-800" },
+                    // Habit Icon (using h.color/icon, replaces drag handle)
+                    !isMobile && React.createElement("div", { className: "p-2 text-gray-400 transition" },
+                        React.createElement("div", {
+                            className: "w-8 h-8 rounded-full flex items-center justify-center text-white",
+                            style: { backgroundColor: h.color || '#26DE81' }
+                        }, React.createElement(Icon, { name: h.icon || 'leaf', size: 16 }))
+                    ),
+
+                    // Main Content
+                    React.createElement("div", { className: "flex-grow" },
+                        // Title Row (with Dropdown)
+                        React.createElement("div", { className: "flex items-center gap-2 mb-4" },
+                            // Dropdown Trigger (styled as h3 per snippet)
+                            React.createElement("div", { className: "relative z-30" },
+                                React.createElement("button", {
+                                    onClick: () => setShowHabitSelector(!showHabitSelector),
+                                    className: "text-xl text-gray-700 dark:text-gray-200 flex items-center gap-2 hover:bg-gray-50 dark:hover:bg-gray-700 px-2 py-1 rounded transition",
+                                    style: { fontWeight: 400 }
+                                },
+                                    h.title,
+                                    React.createElement(SysIcon, { name: "down", size: 16 })
+                                ),
+                                // Dropdown Menu
+                                showHabitSelector && React.createElement("div", {
+                                    className: "absolute top-full left-0 mt-2 w-64 bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-100 dark:border-gray-700 overflow-hidden animate-in fade-in slide-in-from-top-2",
+                                    style: { maxHeight: '300px', overflowY: 'auto' }
+                                },
+                                    habits.map(habit => React.createElement("button", {
+                                        key: habit.id,
+                                        onClick: () => { setSelectedHabitId(habit.id); setShowHabitSelector(false); },
+                                        className: `w-full text-left px-4 py-3 text-sm flex items-center gap-3 hover:bg-gray-50 dark:hover:bg-gray-700 transition ${habit.id === h.id ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600' : 'text-gray-700 dark:text-gray-200'}`
+                                    },
+                                        React.createElement("div", {
+                                            className: "w-6 h-6 rounded-full flex items-center justify-center text-white text-xs",
+                                            style: { backgroundColor: habit.color || '#26DE81' }
+                                        }, React.createElement(Icon, { name: habit.icon || 'leaf', size: 12 })),
+                                        React.createElement("span", { className: "truncate" }, habit.title)
+                                    )),
+                                    React.createElement("button", {
+                                        onClick: () => { setShowAddHabit(true); setShowHabitSelector(false); },
+                                        className: "w-full text-left px-4 py-3 text-sm flex items-center gap-3 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-500 border-t border-gray-100 dark:border-gray-700"
+                                    },
+                                        React.createElement(SysIcon, { name: "plus", size: 14 }),
+                                        "new habit"
+                                    )
+                                ),
+                                showHabitSelector && React.createElement("div", { className: "fixed inset-0 z-20", onClick: () => setShowHabitSelector(false) })
+                            ),
+
+                            // Edit Button
+                            React.createElement("button", {
+                                onClick: () => setEditingHabit(h),
+                                className: "p-1 text-gray-400 hover:text-gray-600 transition",
+                                title: "Rename habit"
+                            }, React.createElement("svg", { width: 20, height: 20, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: 2, strokeLinecap: "round", strokeLinejoin: "round" },
+                                React.createElement("path", { d: "M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z" })
+                            ))
+                        ),
+
+                        // Timer Input Row
+                        React.createElement("div", { className: "flex items-center gap-2 mb-2" },
+                            React.createElement("button", {
+                                onClick: () => toggleTimerMode(h.id),
+                                className: "p-2 rounded transition bg-blue-100 text-blue-600 hover:bg-blue-200",
+                                title: h.timerMode === 'timer' ? "Countdown mode - Click to switch to stopwatch" : "Switch to Timer Mode"
+                            }, React.createElement(StopwatchIcon, { size: 18 })),
+
+                            h.timerMode === 'timer' && React.createElement("button", {
+                                onClick: () => openDurationPicker(h.id),
+                                className: "w-32 px-3 py-2 rounded border border-gray-300 text-center text-base font-mono bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white focus:outline-none focus:border-blue-500 transition-colors",
+                                title: "Click to set duration"
+                            },
+                                (() => {
+                                    const totalSeconds = Math.floor((h.targetDuration || 1500000) / 1000);
+                                    const hours = Math.floor(totalSeconds / 3600);
+                                    const minutes = Math.floor((totalSeconds % 3600) / 60);
+                                    const seconds = totalSeconds % 60;
+                                    return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+                                })()
+                            )
+                        ),
+
+                        // Timer Display
+                        React.createElement("div", {
+                            className: "timer-display text-5xl font-light tabular-nums tracking-tight text-gray-900 dark:text-white select-none cursor-pointer",
+                            onClick: h.timerMode === 'timer' && !isRunning ? () => openDurationPicker(h.id) : undefined
+                        },
+                            (() => {
+                                const isTimerMode = h.timerMode === 'timer';
+                                const displayTime = isTimerMode ? getRemainingTime(h.id, h) : elapsed;
+                                const formatted = formatTimerDisplay(displayTime);
+                                const [mainTime, msTime] = formatted.split('.');
+                                return [
+                                    React.createElement("span", { key: "time" }, mainTime),
+                                    React.createElement("span", { key: "ms", className: "milliseconds text-2xl text-gray-400 font-light" }, `.${msTime}`)
+                                ];
+                            })()
+                        )
+                    ),
+
+                    // Controls
+                    React.createElement("div", { className: "flex items-center gap-2 flex-wrap" },
+                        // Start/Pause
+                        isRunning ?
+                            React.createElement("button", {
+                                onClick: () => pauseTimer(h.id),
+                                className: "p-3 bg-yellow-100 text-yellow-600 rounded-full hover:bg-yellow-200 transition"
+                            }, React.createElement("svg", { width: 24, height: 24, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: 2, strokeLinecap: "round", strokeLinejoin: "round" },
+                                React.createElement("rect", { x: 6, y: 4, width: 4, height: 16 }),
+                                React.createElement("rect", { x: 14, y: 4, width: 4, height: 16 })
+                            )) :
+                            React.createElement("button", {
+                                onClick: () => startTimer(h.id),
+                                className: "p-3 bg-green-100 text-green-600 rounded-full hover:bg-green-200 transition"
+                            }, React.createElement("svg", { width: 24, height: 24, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: 2, strokeLinecap: "round", strokeLinejoin: "round" },
+                                React.createElement("polygon", { points: "5 3 19 12 5 21 5 3" })
+                            )),
+
+                        // Stop
+                        React.createElement("button", {
+                            onClick: () => stopTimer(h.id),
+                            disabled: !timer,
+                            className: "p-3 bg-red-100 text-red-600 rounded-full hover:bg-red-200 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                        }, React.createElement("svg", { width: 24, height: 24, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: 2, strokeLinecap: "round", strokeLinejoin: "round" },
+                            React.createElement("rect", { x: 3, y: 3, width: 18, height: 18, rx: 2 })
+                        )),
+
+                        // Manual Session
+                        React.createElement("button", {
+                            onClick: () => setShowManualSession(h.id),
+                            className: "p-3 bg-blue-100 text-blue-600 rounded-full hover:bg-blue-200 transition"
+                        }, React.createElement("svg", { width: 24, height: 24, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: 2, strokeLinecap: "round", strokeLinejoin: "round" },
+                            React.createElement("circle", { cx: 12, cy: 12, r: 10 }),
+                            React.createElement("line", { x1: 12, y1: 8, x2: 12, y2: 16 }),
+                            React.createElement("line", { x1: 8, y1: 12, x2: 16, y2: 12 })
+                        )),
+
+                        // Reset
+                        React.createElement("button", {
+                            onClick: () => setTimers(prev => ({ ...prev, [h.id]: { isRunning: false, startTime: null, originalStartTime: null, elapsedTime: 0 } })),
+                            className: "p-3 bg-orange-100 text-orange-600 rounded-full hover:bg-orange-200 transition disabled:opacity-50 disabled:cursor-not-allowed",
+                            title: "Reset timer to 0"
+                        }, React.createElement("svg", { width: 24, height: 24, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: 2, strokeLinecap: "round", strokeLinejoin: "round" },
+                            React.createElement("path", { d: "M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" }),
+                            React.createElement("path", { d: "M21 3v5h-5" }),
+                            React.createElement("path", { d: "M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" }),
+                            React.createElement("path", { d: "M3 21v-5h5" })
+                        )),
+
+                        // Hide/Bin
+                        React.createElement("button", {
+                            onClick: () => setSelectedHabitId(null),
+                            className: "p-3 bg-gray-100 text-gray-500 rounded-full hover:bg-gray-200 transition"
+                        }, React.createElement("svg", { width: 24, height: 24, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: 2, strokeLinecap: "round", strokeLinejoin: "round" },
+                            React.createElement("polyline", { points: "3 6 5 6 21 6" }),
+                            React.createElement("path", { d: "M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2-2h4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" }),
+                            React.createElement("line", { x1: 10, y1: 11, x2: 10, y2: 17 }),
+                            React.createElement("line", { x1: 14, y1: 11, x2: 14, y2: 17 })
+                        ))
+                    )
+                );
+            })(),
+
             // Week Nav
             React.createElement("div", { className: "flex items-center justify-between mb-4 p-2 bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-900/30 dark:to-purple-900/30 rounded-xl" },
                 React.createElement("button", { onClick: () => setWeekOffset(w => w - 1), className: "p-1 hover:bg-white/50 rounded-lg" },
@@ -641,11 +817,14 @@
                 },
                     // Main habit row
                     React.createElement("div", { style: rowStyle, className: "p-2" },
-                        // Timer toggle button - now using stopwatch icon
+                        // Timer toggle button - changed to Focus button
                         React.createElement("button", {
-                            onClick: () => setExpandedHabit(isExpanded ? null : h.id),
-                            className: `p-1.5 rounded-lg transition ${isExpanded ? 'bg-blue-100 text-blue-600' : 'text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'}`,
-                            title: "Toggle timer"
+                            onClick: () => {
+                                setSelectedHabitId(h.id);
+                                window.scrollTo({ top: 0, behavior: 'smooth' });
+                            },
+                            className: `p-1.5 rounded-lg transition ${selectedHabitId === h.id ? 'bg-blue-100 text-blue-600' : 'text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'}`,
+                            title: "Focus on this habit"
                         }, React.createElement(StopwatchIcon, { size: 16 })),
                         React.createElement("div", { style: habitColStyle, className: "flex items-center gap-1" },
                             // Hide color icon on mobile to save space
@@ -656,10 +835,11 @@
                             React.createElement("div", { className: "flex-1 min-w-0", style: { overflow: 'hidden' } },
                                 // Habit title with double click to edit
                                 React.createElement("div", {
-                                    className: `${isMobile ? 'text-xs' : 'text-sm'} font-medium text-gray-800 dark:text-white lowercase leading-tight cursor-pointer select-none`,
+                                    className: `${isMobile ? 'text-xs' : 'text-sm'} font-medium text-gray-800 dark:text-white lowercase leading-tight cursor-pointer select-none hover:text-blue-600 transition-colors`,
                                     style: { wordBreak: 'break-word', whiteSpace: 'normal' },
+                                    onClick: () => setSelectedHabitId(h.id),
                                     onDoubleClick: () => setEditingHabit({ ...h, difficulty: h.difficulty || 'medium', icon: h.icon || 'leaf', color: h.color || '#26DE81' }),
-                                    title: "Double click to edit"
+                                    title: "Click to focus, double click to edit"
                                 }, h.title || 'untitled'),
                                 // Hide coins/streak/edit on mobile to save space
                                 !isMobile && React.createElement("div", { className: "flex items-center gap-1 text-xs text-gray-400 mt-0.5" },
@@ -685,138 +865,59 @@
                         })
                     ),
                     // Timer section (expandable)
-                    isExpanded && React.createElement("div", {
-                        className: "px-4 py-3 border-t border-gray-100 dark:border-gray-700 bg-gradient-to-r from-amber-50 to-yellow-50 dark:from-amber-900/20 dark:to-yellow-900/20"
-                    },
-                        React.createElement("div", { className: "flex items-center justify-between flex-wrap gap-3" },
-                            // Timer display - shows countdown in timer mode, elapsed in stopwatch mode
-                            React.createElement("div", {
-                                className: `timer-display flex-1 min-w-[200px] ${isRunning ? 'running' : (timer ? 'paused' : '')} ${h.timerMode === 'timer' ? 'cursor-pointer hover:opacity-80' : ''}`,
-                                style: { margin: 0, padding: '12px 16px', fontSize: '2rem' },
-                                onClick: h.timerMode === 'timer' && !isRunning ? () => openDurationPicker(h.id) : undefined,
-                                title: h.timerMode === 'timer' ? "Click to set countdown duration" : undefined
-                            },
-                                (() => {
-                                    const isTimerMode = h.timerMode === 'timer';
-                                    const displayTime = isTimerMode ? getRemainingTime(h.id, h) : elapsed;
-                                    const isComplete = isTimerMode && displayTime <= 0 && elapsed > 0;
-
-                                    // Show completion if countdown finished
-                                    if (isComplete && isRunning) {
-                                        // Auto-stop when countdown reaches 0 (with isAutoComplete flag to prevent duplicates)
-                                        stopTimer(h.id, true);
-                                    }
-
-                                    return [
-                                        React.createElement("span", {
-                                            key: "time",
-                                            style: isComplete ? { color: '#22c55e' } : undefined
-                                        }, isComplete ? "00:00" : formatTimerDisplay(displayTime)),
-                                        React.createElement("span", {
-                                            key: "ms",
-                                            className: "milliseconds",
-                                            style: { fontSize: '1rem' }
-                                        }, `.${String(getTimerMs(displayTime)).padStart(2, '0')}`),
-                                        isTimerMode && !isRunning && !timer && React.createElement("div", {
-                                            key: "hint",
-                                            className: "text-xs text-gray-400 mt-1"
-                                        }, h.targetDuration ? `target: ${formatTimerDisplay(h.targetDuration)}` : "tap to set duration")
-                                    ];
-                                })()
-                            ),
-                            // Timer controls
-                            React.createElement("div", { className: "flex items-center gap-2" },
-                                // Play/Pause
-                                isRunning ?
-                                    React.createElement("button", {
-                                        onClick: (e) => { e.preventDefault(); e.stopPropagation(); pauseTimer(h.id); },
-                                        onTouchEnd: (e) => { e.preventDefault(); pauseTimer(h.id); },
-                                        className: "p-3 bg-yellow-100 text-yellow-600 rounded-full hover:bg-yellow-200 transition",
-                                        title: "Pause",
-                                        type: "button"
-                                    }, React.createElement("svg", { width: 20, height: 20, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: 2 },
-                                        React.createElement("rect", { x: 6, y: 4, width: 4, height: 16 }),
-                                        React.createElement("rect", { x: 14, y: 4, width: 4, height: 16 })
-                                    )) :
-                                    React.createElement("button", {
-                                        onClick: () => startTimer(h.id),
-                                        className: "p-3 bg-green-100 text-green-600 rounded-full hover:bg-green-200 transition",
-                                        title: "Play"
-                                    }, React.createElement("svg", { width: 20, height: 20, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: 2 },
-                                        React.createElement("polygon", { points: "5 3 19 12 5 21 5 3" })
-                                    )),
-                                // Stop
-                                React.createElement("button", {
-                                    onClick: () => stopTimer(h.id),
-                                    disabled: !timer,
-                                    className: "p-3 bg-red-100 text-red-600 rounded-full hover:bg-red-200 transition disabled:opacity-50",
-                                    title: "Stop & Save"
-                                }, React.createElement("svg", { width: 20, height: 20, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: 2 },
-                                    React.createElement("rect", { x: 3, y: 3, width: 18, height: 18, rx: 2 })
-                                )),
-                                // Add manual time
-                                React.createElement("button", {
-                                    onClick: () => openManualSession(h.id),
-                                    className: "p-3 bg-blue-100 text-blue-600 rounded-full hover:bg-blue-200 transition",
-                                    title: "Add Manual Session"
-                                }, React.createElement("svg", { width: 20, height: 20, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: 2 },
-                                    React.createElement("circle", { cx: 12, cy: 12, r: 10 }),
-                                    React.createElement("line", { x1: 12, y1: 8, x2: 12, y2: 16 }),
-                                    React.createElement("line", { x1: 8, y1: 12, x2: 16, y2: 12 })
-                                )),
-                                // Timer mode toggle (stopwatch/hourglass)
-                                React.createElement("button", {
-                                    onClick: () => toggleTimerMode(h.id),
-                                    className: "p-3 bg-purple-100 text-purple-600 rounded-full hover:bg-purple-200 transition",
-                                    title: h.timerMode === 'timer' ? "Switch to Stopwatch" : "Switch to Countdown"
-                                }, h.timerMode === 'timer' ?
-                                    // Hourglass icon for countdown mode
-                                    React.createElement("svg", { width: 20, height: 20, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: 2, strokeLinecap: "round", strokeLinejoin: "round" },
-                                        React.createElement("path", { d: "M5 22h14" }),
-                                        React.createElement("path", { d: "M5 2h14" }),
-                                        React.createElement("path", { d: "M17 22v-4.172a2 2 0 0 0-.586-1.414L12 12l-4.414 4.414A2 2 0 0 0 7 17.828V22" }),
-                                        React.createElement("path", { d: "M7 2v4.172a2 2 0 0 0 .586 1.414L12 12l4.414-4.414A2 2 0 0 0 17 6.172V2" })
-                                    ) :
-                                    // Stopwatch icon for stopwatch mode
-                                    React.createElement("svg", { width: 20, height: 20, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: 2, strokeLinecap: "round", strokeLinejoin: "round" },
-                                        React.createElement("circle", { cx: "12", cy: "13", r: "8" }),
-                                        React.createElement("path", { d: "M12 9v4l2 2" }),
-                                        React.createElement("path", { d: "M9 4h6" }),
-                                        React.createElement("path", { d: "M12 2v2" })
-                                    )
-                                ),
-                                // Reset
-                                React.createElement("button", {
-                                    onClick: () => resetTimer(h.id),
-                                    disabled: !timer,
-                                    className: "p-3 bg-orange-100 text-orange-600 rounded-full hover:bg-orange-200 transition disabled:opacity-50",
-                                    title: "Reset"
-                                }, React.createElement("svg", { width: 20, height: 20, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: 2 },
-                                    React.createElement("path", { d: "M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" }),
-                                    React.createElement("path", { d: "M21 3v5h-5" }),
-                                    React.createElement("path", { d: "M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" }),
-                                    React.createElement("path", { d: "M3 21v-5h5" })
-                                )),
-                                // Delete timer
-                                React.createElement("button", {
-                                    onClick: () => { setTimers(prev => ({ ...prev, [h.id]: null })); setExpandedHabit(null); },
-                                    className: "p-3 bg-gray-100 text-gray-500 rounded-full hover:bg-gray-200 transition",
-                                    title: "Close Timer"
-                                }, React.createElement(SysIcon, { name: "trash", size: 18 }))
+                    isExpanded && React.createElement("div", { className: "mt-2 pt-2 border-t border-gray-100 dark:border-gray-700 flex items-center justify-center gap-4 animate-in slide-in-from-top-2 fade-in duration-200" },
+                        // Timer Toggle/Mode Button
+                        React.createElement("button", {
+                            onClick: () => toggleTimerMode(h.id),
+                            className: "p-3 bg-blue-100 text-blue-600 rounded-full hover:bg-blue-200 transition",
+                            title: h.timerMode === 'timer' ? "Switch to Stopwatch" : "Switch to Countdown"
+                        }, h.timerMode === 'timer' ?
+                            React.createElement("svg", { width: 20, height: 20, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: 2, strokeLinecap: "round", strokeLinejoin: "round" },
+                                React.createElement("path", { d: "M5 22h14" }),
+                                React.createElement("path", { d: "M5 2h14" }),
+                                React.createElement("path", { d: "M17 22v-4.172a2 2 0 0 0-.586-1.414L12 12l-4.414 4.414A2 2 0 0 0 7 17.828V22" }),
+                                React.createElement("path", { d: "M7 2v4.172a2 2 0 0 0 .586 1.414L12 12l4.414-4.414A2 2 0 0 0 17 6.172V2" })
+                            ) :
+                            // Stopwatch icon for stopwatch mode
+                            React.createElement("svg", { width: 20, height: 20, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: 2, strokeLinecap: "round", strokeLinejoin: "round" },
+                                React.createElement("circle", { cx: "12", cy: "13", r: "8" }),
+                                React.createElement("path", { d: "M12 9v4l2 2" }),
+                                React.createElement("path", { d: "M9 4h6" }),
+                                React.createElement("path", { d: "M12 2v2" })
                             )
-                        )
+                        ),
+                        // Reset
+                        React.createElement("button", {
+                            onClick: () => resetTimer(h.id),
+                            disabled: !timer,
+                            className: "p-3 bg-orange-100 text-orange-600 rounded-full hover:bg-orange-200 transition disabled:opacity-50",
+                            title: "Reset"
+                        }, React.createElement("svg", { width: 20, height: 20, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: 2 },
+                            React.createElement("path", { d: "M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" }),
+                            React.createElement("path", { d: "M21 3v5h-5" }),
+                            React.createElement("path", { d: "M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" }),
+                            React.createElement("path", { d: "M3 21v-5h5" })
+                        )),
+                        // Delete timer
+                        React.createElement("button", {
+                            onClick: () => { setTimers(prev => ({ ...prev, [h.id]: null })); setExpandedHabit(null); },
+                            className: "p-3 bg-gray-100 text-gray-500 rounded-full hover:bg-gray-200 transition",
+                            title: "Close Timer"
+                        }, React.createElement(SysIcon, { name: "trash", size: 18 }))
                     )
-                );
-            }),
+                )
+                    )
+        );
+    }),
 
-            // Add Habit Button - static inline at end of habits list
-            React.createElement("button", {
-                onClick: () => setShowAddHabit(true),
-                className: "add-habit-btn w-full mt-4 mb-6 py-3.5 flex items-center justify-center gap-2 rounded-xl border-2 border-dashed border-gray-300 dark:border-gray-600 text-gray-500 dark:text-gray-400 hover:border-blue-400 hover:text-blue-500 dark:hover:border-blue-400 dark:hover:text-blue-400 transition-all bg-white/50 dark:bg-gray-800/30 hover:bg-blue-50/50 dark:hover:bg-blue-900/20"
-            },
-                React.createElement(SysIcon, { name: "plus", size: 20 }),
-                React.createElement("span", { className: "lowercase text-sm font-medium" }, "add habit")
-            ),
+        // Add Habit Button - static inline at end of habits list
+        React.createElement("button", {
+            onClick: () => setShowAddHabit(true),
+            className: "add-habit-btn w-full mt-4 mb-6 py-3.5 flex items-center justify-center gap-2 rounded-xl border-2 border-dashed border-gray-300 dark:border-gray-600 text-gray-500 dark:text-gray-400 hover:border-blue-400 hover:text-blue-500 dark:hover:border-blue-400 dark:hover:text-blue-400 transition-all bg-white/50 dark:bg-gray-800/30 hover:bg-blue-50/50 dark:hover:bg-blue-900/20"
+        },
+            React.createElement(SysIcon, { name: "plus", size: 20 }),
+            React.createElement("span", { className: "lowercase text-sm font-medium" }, "add habit")
+        ),
 
             // Add Habit Modal (positioned within container)
             showAddHabit && React.createElement("div", {
@@ -1093,212 +1194,212 @@
                 )
             )
         );
+};
+
+const RewardsPage = ({ user, db, onToggleView }) => {
+    const [rewards, setRewards] = useState([]);
+    const [claimedRewards, setClaimedRewards] = useState([]);
+    const [wallet, setWallet] = useState({ coins: 0 });
+    const [showAddReward, setShowAddReward] = useState(false);
+    const [editingReward, setEditingReward] = useState(null);
+    const [notification, setNotification] = useState(null);
+    const [newReward, setNewReward] = useState({ title: "", cost: 50, description: "" });
+
+    const userId = user?.uid || user?.id || null;
+    const appId = typeof __app_id !== 'undefined' ? __app_id : 'study-tracker-app';
+
+    useEffect(() => {
+        if (!db || !userId) return;
+        const unsub1 = window.onSnapshot(window.collection(db, `/artifacts/${appId}/users/${userId}/rewards`), snap => {
+            setRewards(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+        });
+        const unsub2 = window.onSnapshot(window.doc(db, `/artifacts/${appId}/users/${userId}/gamification/wallet`), doc => {
+            if (doc.exists()) setWallet(doc.data());
+        });
+        const unsub3 = window.onSnapshot(window.collection(db, `/artifacts/${appId}/users/${userId}/claimedRewards`), snap => {
+            const claims = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+            claims.sort((a, b) => (b.claimedAt || 0) - (a.claimedAt || 0));
+            setClaimedRewards(claims);
+        });
+        return () => { unsub1(); unsub2(); unsub3(); };
+    }, [db, userId, appId]);
+
+    const showNotif = (msg) => { setNotification(msg); setTimeout(() => setNotification(null), 3000); };
+
+    const addReward = async (e) => {
+        e.preventDefault();
+        if (!newReward.title.trim()) return;
+        const id = Date.now().toString();
+        await window.setDoc(window.doc(db, `/artifacts/${appId}/users/${userId}/rewards/${id}`), {
+            id,
+            title: newReward.title.trim(),
+            cost: parseInt(newReward.cost) || 50,
+            description: newReward.description.trim() || ""
+        });
+        setNewReward({ title: "", cost: 50, description: "" });
+        setShowAddReward(false);
+        showNotif("reward added!");
     };
 
-    const RewardsPage = ({ user, db, onToggleView }) => {
-        const [rewards, setRewards] = useState([]);
-        const [claimedRewards, setClaimedRewards] = useState([]);
-        const [wallet, setWallet] = useState({ coins: 0 });
-        const [showAddReward, setShowAddReward] = useState(false);
-        const [editingReward, setEditingReward] = useState(null);
-        const [notification, setNotification] = useState(null);
-        const [newReward, setNewReward] = useState({ title: "", cost: 50, description: "" });
+    const saveReward = async (e) => {
+        e.preventDefault();
+        if (!editingReward || !editingReward.title.trim()) return;
+        await window.updateDoc(window.doc(db, `/artifacts/${appId}/users/${userId}/rewards/${editingReward.id}`), {
+            title: editingReward.title.trim(),
+            cost: parseInt(editingReward.cost) || 50,
+            description: editingReward.description?.trim() || ""
+        });
+        setEditingReward(null);
+        showNotif("reward updated!");
+    };
 
-        const userId = user?.uid || user?.id || null;
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'study-tracker-app';
+    const buyReward = async (id) => {
+        const r = rewards.find(x => x.id === id);
+        if (!r || wallet.coins < r.cost) return showNotif("insufficient coins, complete habits to earn more!");
+        await window.updateDoc(window.doc(db, `/artifacts/${appId}/users/${userId}/gamification/wallet`), { coins: wallet.coins - r.cost });
+        const claimId = Date.now().toString();
+        await window.setDoc(window.doc(db, `/artifacts/${appId}/users/${userId}/claimedRewards/${claimId}`), {
+            id: claimId,
+            rewardId: r.id,
+            title: r.title,
+            cost: r.cost,
+            claimedAt: Date.now()
+        });
+        if (typeof window.confetti === 'function') window.confetti({ particleCount: 150, spread: 80, origin: { y: 0.6 } });
+        showNotif("congratulations! reward claimed!");
+    };
 
-        useEffect(() => {
-            if (!db || !userId) return;
-            const unsub1 = window.onSnapshot(window.collection(db, `/artifacts/${appId}/users/${userId}/rewards`), snap => {
-                setRewards(snap.docs.map(d => ({ id: d.id, ...d.data() })));
-            });
-            const unsub2 = window.onSnapshot(window.doc(db, `/artifacts/${appId}/users/${userId}/gamification/wallet`), doc => {
-                if (doc.exists()) setWallet(doc.data());
-            });
-            const unsub3 = window.onSnapshot(window.collection(db, `/artifacts/${appId}/users/${userId}/claimedRewards`), snap => {
-                const claims = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-                claims.sort((a, b) => (b.claimedAt || 0) - (a.claimedAt || 0));
-                setClaimedRewards(claims);
-            });
-            return () => { unsub1(); unsub2(); unsub3(); };
-        }, [db, userId, appId]);
+    const deleteReward = async (id) => {
+        if (confirm('Delete reward?')) await window.deleteDoc(window.doc(db, `/artifacts/${appId}/users/${userId}/rewards/${id}`));
+    };
 
-        const showNotif = (msg) => { setNotification(msg); setTimeout(() => setNotification(null), 3000); };
+    const deleteClaimedReward = async (id) => {
+        if (confirm('Delete this claimed reward from history?')) {
+            await window.deleteDoc(window.doc(db, `/artifacts/${appId}/users/${userId}/claimedRewards/${id}`));
+            showNotif("claim history deleted");
+        }
+    };
 
-        const addReward = async (e) => {
-            e.preventDefault();
-            if (!newReward.title.trim()) return;
-            const id = Date.now().toString();
-            await window.setDoc(window.doc(db, `/artifacts/${appId}/users/${userId}/rewards/${id}`), {
-                id,
-                title: newReward.title.trim(),
-                cost: parseInt(newReward.cost) || 50,
-                description: newReward.description.trim() || ""
-            });
-            setNewReward({ title: "", cost: 50, description: "" });
-            setShowAddReward(false);
-            showNotif("reward added!");
-        };
+    const formatDate = (timestamp) => {
+        if (!timestamp) return '';
+        const date = new Date(timestamp);
+        return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    };
 
-        const saveReward = async (e) => {
-            e.preventDefault();
-            if (!editingReward || !editingReward.title.trim()) return;
-            await window.updateDoc(window.doc(db, `/artifacts/${appId}/users/${userId}/rewards/${editingReward.id}`), {
-                title: editingReward.title.trim(),
-                cost: parseInt(editingReward.cost) || 50,
-                description: editingReward.description?.trim() || ""
-            });
-            setEditingReward(null);
-            showNotif("reward updated!");
-        };
+    return React.createElement("div", { className: "container mx-auto px-4 py-6 max-w-4xl", style: { paddingBottom: '100px', marginTop: '16px' } },
+        notification && React.createElement("div", { className: "fixed top-20 left-1/2 transform -translate-x-1/2 bg-gray-900 text-white px-6 py-3 rounded-xl shadow-2xl lowercase", style: { zIndex: 9999 } }, notification),
 
-        const buyReward = async (id) => {
-            const r = rewards.find(x => x.id === id);
-            if (!r || wallet.coins < r.cost) return showNotif("insufficient coins, complete habits to earn more!");
-            await window.updateDoc(window.doc(db, `/artifacts/${appId}/users/${userId}/gamification/wallet`), { coins: wallet.coins - r.cost });
-            const claimId = Date.now().toString();
-            await window.setDoc(window.doc(db, `/artifacts/${appId}/users/${userId}/claimedRewards/${claimId}`), {
-                id: claimId,
-                rewardId: r.id,
-                title: r.title,
-                cost: r.cost,
-                claimedAt: Date.now()
-            });
-            if (typeof window.confetti === 'function') window.confetti({ particleCount: 150, spread: 80, origin: { y: 0.6 } });
-            showNotif("congratulations! reward claimed!");
-        };
+        React.createElement("div", { className: "flex justify-between items-center mb-6" },
+            React.createElement("h2", { className: "text-3xl text-calm-800 mb-2", style: { fontWeight: 300 } }, "rewards"),
+            React.createElement("div", { className: "flex items-center gap-3" },
+                React.createElement(CoinDisplay, { amount: wallet.coins }),
+                onToggleView && React.createElement("button", {
+                    onClick: onToggleView,
+                    className: "px-4 py-2 bg-green-100 hover:bg-green-200 text-green-700 rounded-lg transition lowercase text-sm",
+                    title: "View Habits"
+                }, "habits")
+            )
+        ),
 
-        const deleteReward = async (id) => {
-            if (confirm('Delete reward?')) await window.deleteDoc(window.doc(db, `/artifacts/${appId}/users/${userId}/rewards/${id}`));
-        };
-
-        const deleteClaimedReward = async (id) => {
-            if (confirm('Delete this claimed reward from history?')) {
-                await window.deleteDoc(window.doc(db, `/artifacts/${appId}/users/${userId}/claimedRewards/${id}`));
-                showNotif("claim history deleted");
-            }
-        };
-
-        const formatDate = (timestamp) => {
-            if (!timestamp) return '';
-            const date = new Date(timestamp);
-            return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-        };
-
-        return React.createElement("div", { className: "container mx-auto px-4 py-6 max-w-4xl", style: { paddingBottom: '100px', marginTop: '16px' } },
-            notification && React.createElement("div", { className: "fixed top-20 left-1/2 transform -translate-x-1/2 bg-gray-900 text-white px-6 py-3 rounded-xl shadow-2xl lowercase", style: { zIndex: 9999 } }, notification),
-
-            React.createElement("div", { className: "flex justify-between items-center mb-6" },
-                React.createElement("h2", { className: "text-3xl text-calm-800 mb-2", style: { fontWeight: 300 } }, "rewards"),
-                React.createElement("div", { className: "flex items-center gap-3" },
-                    React.createElement(CoinDisplay, { amount: wallet.coins }),
-                    onToggleView && React.createElement("button", {
-                        onClick: onToggleView,
-                        className: "px-4 py-2 bg-green-100 hover:bg-green-200 text-green-700 rounded-lg transition lowercase text-sm",
-                        title: "View Habits"
-                    }, "habits")
-                )
-            ),
-
-            // Available Rewards
-            React.createElement("div", { className: "grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 mb-8" },
-                rewards.map(r => React.createElement("div", {
-                    key: r.id,
-                    className: `relative p-4 rounded-2xl border transition ${wallet.coins >= r.cost ? 'bg-white dark:bg-gray-800 hover:border-blue-400 hover:shadow-lg' : 'bg-gray-50 dark:bg-gray-800 opacity-60'}`
-                },
-                    // Reward content
-                    React.createElement("div", { className: "text-left mb-3" },
-                        React.createElement("h3", { className: "text-lg dark:text-white lowercase font-medium mb-1" }, r.title),
-                        r.description && React.createElement("p", { className: "text-sm text-gray-500 dark:text-gray-400 mb-1" }, r.description),
-                        React.createElement("div", { className: "text-sm", style: { color: '#92400e', fontWeight: '500' } }, `${r.cost} coins`)
-                    ),
-                    // Action buttons
-                    React.createElement("div", { className: "flex gap-2" },
-                        React.createElement("button", {
-                            onClick: () => buyReward(r.id),
-                            disabled: wallet.coins < r.cost,
-                            className: `flex-1 py-2 rounded-lg lowercase text-sm transition ${wallet.coins >= r.cost ? 'bg-blue-600 hover:bg-blue-700 text-white' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`
-                        }, "claim"),
-                        React.createElement("button", {
-                            onClick: () => setEditingReward({ ...r }),
-                            className: "px-3 py-2 text-gray-400 hover:text-blue-500 transition"
-                        }, React.createElement(SysIcon, { name: "edit", size: 16 })),
-                        React.createElement("button", {
-                            onClick: () => deleteReward(r.id),
-                            className: "px-3 py-2 text-gray-400 hover:text-red-500 transition"
-                        }, React.createElement(SysIcon, { name: "x", size: 16 }))
-                    )
-                )),
-                React.createElement("button", { onClick: () => setShowAddReward(true), className: "flex flex-col items-center justify-center p-5 rounded-2xl border-2 border-dashed border-gray-300 dark:border-gray-600 text-gray-400 hover:text-blue-500 hover:border-blue-400 min-h-[120px]" },
-                    React.createElement(SysIcon, { name: "plus", size: 28 }),
-                    React.createElement("span", { className: "mt-2 lowercase text-sm" }, "add reward")
-                )
-            ),
-
-            // Claimed Rewards History
-            claimedRewards.length > 0 && React.createElement("div", { className: "mt-8" },
-                React.createElement("h3", { className: "text-lg font-light text-gray-600 dark:text-gray-300 lowercase mb-4" }, "claimed rewards"),
-                React.createElement("div", { className: "space-y-2" },
-                    claimedRewards.slice(0, 10).map(claim => React.createElement("div", {
-                        key: claim.id,
-                        className: "flex items-center gap-3 p-3 rounded-xl bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 border border-green-100 dark:border-green-800/30"
-                    },
-                        React.createElement("div", { className: "flex-1" },
-                            React.createElement("span", { className: "text-gray-800 dark:text-white lowercase font-medium" }, claim.title),
-                            React.createElement("span", { className: "text-gray-400 text-sm ml-2" }, `${claim.cost}c`)
-                        ),
-                        React.createElement("span", { className: "text-xs text-gray-400 mr-2" }, formatDate(claim.claimedAt)),
-                        React.createElement("button", {
-                            onClick: () => deleteClaimedReward(claim.id),
-                            className: "text-gray-400 hover:text-red-500 transition p-1",
-                            title: "Remove from history"
-                        }, React.createElement(SysIcon, { name: "x", size: 14 }))
-                    ))
+        // Available Rewards
+        React.createElement("div", { className: "grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 mb-8" },
+            rewards.map(r => React.createElement("div", {
+                key: r.id,
+                className: `relative p-4 rounded-2xl border transition ${wallet.coins >= r.cost ? 'bg-white dark:bg-gray-800 hover:border-blue-400 hover:shadow-lg' : 'bg-gray-50 dark:bg-gray-800 opacity-60'}`
+            },
+                // Reward content
+                React.createElement("div", { className: "text-left mb-3" },
+                    React.createElement("h3", { className: "text-lg dark:text-white lowercase font-medium mb-1" }, r.title),
+                    r.description && React.createElement("p", { className: "text-sm text-gray-500 dark:text-gray-400 mb-1" }, r.description),
+                    React.createElement("div", { className: "text-sm", style: { color: '#92400e', fontWeight: '500' } }, `${r.cost} coins`)
                 ),
-                claimedRewards.length > 10 && React.createElement("p", { className: "text-sm text-gray-400 mt-2 text-center lowercase" }, `+ ${claimedRewards.length - 10} more`)
-            ),
-
-            // Add Reward Modal
-            showAddReward && React.createElement("div", { className: "fixed inset-0 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4", style: { zIndex: 10000 }, onClick: () => setShowAddReward(false) },
-                React.createElement("form", { onSubmit: addReward, onClick: e => e.stopPropagation(), className: "bg-white dark:bg-gray-900 p-5 sm:p-6 rounded-2xl w-full max-w-xs sm:max-w-sm md:max-w-md shadow-2xl" },
-                    React.createElement("div", { className: "flex justify-between items-center mb-4" },
-                        React.createElement("h3", { className: "text-xl font-light dark:text-white lowercase" }, "new reward"),
-                        React.createElement("button", { type: "button", onClick: () => setShowAddReward(false), className: "p-2 text-gray-400 hover:text-gray-600" }, React.createElement(SysIcon, { name: "x", size: 18 }))
-                    ),
-                    React.createElement("input", { type: "text", value: newReward.title, onChange: e => setNewReward({ ...newReward, title: e.target.value }), placeholder: "reward name...", className: "w-full px-4 py-3 rounded-xl mb-3 border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white lowercase", autoFocus: true }),
-                    React.createElement("textarea", { value: newReward.description, onChange: e => setNewReward({ ...newReward, description: e.target.value }), placeholder: "description (optional)...", rows: 2, className: "w-full px-4 py-3 rounded-xl mb-3 border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white resize-none" }),
-                    React.createElement("input", { type: "number", value: newReward.cost, onChange: e => setNewReward({ ...newReward, cost: e.target.value }), placeholder: "cost in coins", className: "w-full px-4 py-3 rounded-xl mb-4 border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white" }),
-                    React.createElement("button", { type: "submit", className: "w-full py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl lowercase" }, "add reward")
+                // Action buttons
+                React.createElement("div", { className: "flex gap-2" },
+                    React.createElement("button", {
+                        onClick: () => buyReward(r.id),
+                        disabled: wallet.coins < r.cost,
+                        className: `flex-1 py-2 rounded-lg lowercase text-sm transition ${wallet.coins >= r.cost ? 'bg-blue-600 hover:bg-blue-700 text-white' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`
+                    }, "claim"),
+                    React.createElement("button", {
+                        onClick: () => setEditingReward({ ...r }),
+                        className: "px-3 py-2 text-gray-400 hover:text-blue-500 transition"
+                    }, React.createElement(SysIcon, { name: "edit", size: 16 })),
+                    React.createElement("button", {
+                        onClick: () => deleteReward(r.id),
+                        className: "px-3 py-2 text-gray-400 hover:text-red-500 transition"
+                    }, React.createElement(SysIcon, { name: "x", size: 16 }))
                 )
-            ),
+            )),
+            React.createElement("button", { onClick: () => setShowAddReward(true), className: "flex flex-col items-center justify-center p-5 rounded-2xl border-2 border-dashed border-gray-300 dark:border-gray-600 text-gray-400 hover:text-blue-500 hover:border-blue-400 min-h-[120px]" },
+                React.createElement(SysIcon, { name: "plus", size: 28 }),
+                React.createElement("span", { className: "mt-2 lowercase text-sm" }, "add reward")
+            )
+        ),
 
-            // Edit Reward Modal
-            editingReward && React.createElement("div", { className: "fixed inset-0 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4", style: { zIndex: 10000 }, onClick: () => setEditingReward(null) },
-                React.createElement("form", { onSubmit: saveReward, onClick: e => e.stopPropagation(), className: "bg-white dark:bg-gray-900 p-5 sm:p-6 rounded-2xl w-full max-w-xs sm:max-w-sm md:max-w-md shadow-2xl" },
-                    React.createElement("div", { className: "flex justify-between items-center mb-4" },
-                        React.createElement("h3", { className: "text-xl font-light dark:text-white lowercase" }, "edit reward"),
-                        React.createElement("button", { type: "button", onClick: () => setEditingReward(null), className: "p-2 text-gray-400 hover:text-gray-600" }, React.createElement(SysIcon, { name: "x", size: 18 }))
+        // Claimed Rewards History
+        claimedRewards.length > 0 && React.createElement("div", { className: "mt-8" },
+            React.createElement("h3", { className: "text-lg font-light text-gray-600 dark:text-gray-300 lowercase mb-4" }, "claimed rewards"),
+            React.createElement("div", { className: "space-y-2" },
+                claimedRewards.slice(0, 10).map(claim => React.createElement("div", {
+                    key: claim.id,
+                    className: "flex items-center gap-3 p-3 rounded-xl bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 border border-green-100 dark:border-green-800/30"
+                },
+                    React.createElement("div", { className: "flex-1" },
+                        React.createElement("span", { className: "text-gray-800 dark:text-white lowercase font-medium" }, claim.title),
+                        React.createElement("span", { className: "text-gray-400 text-sm ml-2" }, `${claim.cost}c`)
                     ),
-                    React.createElement("input", { type: "text", value: editingReward.title, onChange: e => setEditingReward({ ...editingReward, title: e.target.value }), placeholder: "reward name...", className: "w-full px-4 py-3 rounded-xl mb-3 border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white lowercase", autoFocus: true }),
-                    React.createElement("textarea", { value: editingReward.description || "", onChange: e => setEditingReward({ ...editingReward, description: e.target.value }), placeholder: "description (optional)...", rows: 2, className: "w-full px-4 py-3 rounded-xl mb-3 border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white resize-none" }),
-                    React.createElement("input", { type: "number", value: editingReward.cost, onChange: e => setEditingReward({ ...editingReward, cost: e.target.value }), placeholder: "cost in coins", className: "w-full px-4 py-3 rounded-xl mb-4 border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white" }),
-                    React.createElement("div", { className: "flex gap-2" },
-                        React.createElement("button", { type: "button", onClick: () => { deleteReward(editingReward.id); setEditingReward(null); }, className: "flex-1 py-3 text-red-500 hover:bg-red-50 rounded-xl lowercase border border-red-200" }, "delete"),
-                        React.createElement("button", { type: "submit", className: "flex-1 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl lowercase" }, "save")
-                    )
+                    React.createElement("span", { className: "text-xs text-gray-400 mr-2" }, formatDate(claim.claimedAt)),
+                    React.createElement("button", {
+                        onClick: () => deleteClaimedReward(claim.id),
+                        className: "text-gray-400 hover:text-red-500 transition p-1",
+                        title: "Remove from history"
+                    }, React.createElement(SysIcon, { name: "x", size: 14 }))
+                ))
+            ),
+            claimedRewards.length > 10 && React.createElement("p", { className: "text-sm text-gray-400 mt-2 text-center lowercase" }, `+ ${claimedRewards.length - 10} more`)
+        ),
+
+        // Add Reward Modal
+        showAddReward && React.createElement("div", { className: "fixed inset-0 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4", style: { zIndex: 10000 }, onClick: () => setShowAddReward(false) },
+            React.createElement("form", { onSubmit: addReward, onClick: e => e.stopPropagation(), className: "bg-white dark:bg-gray-900 p-5 sm:p-6 rounded-2xl w-full max-w-xs sm:max-w-sm md:max-w-md shadow-2xl" },
+                React.createElement("div", { className: "flex justify-between items-center mb-4" },
+                    React.createElement("h3", { className: "text-xl font-light dark:text-white lowercase" }, "new reward"),
+                    React.createElement("button", { type: "button", onClick: () => setShowAddReward(false), className: "p-2 text-gray-400 hover:text-gray-600" }, React.createElement(SysIcon, { name: "x", size: 18 }))
+                ),
+                React.createElement("input", { type: "text", value: newReward.title, onChange: e => setNewReward({ ...newReward, title: e.target.value }), placeholder: "reward name...", className: "w-full px-4 py-3 rounded-xl mb-3 border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white lowercase", autoFocus: true }),
+                React.createElement("textarea", { value: newReward.description, onChange: e => setNewReward({ ...newReward, description: e.target.value }), placeholder: "description (optional)...", rows: 2, className: "w-full px-4 py-3 rounded-xl mb-3 border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white resize-none" }),
+                React.createElement("input", { type: "number", value: newReward.cost, onChange: e => setNewReward({ ...newReward, cost: e.target.value }), placeholder: "cost in coins", className: "w-full px-4 py-3 rounded-xl mb-4 border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white" }),
+                React.createElement("button", { type: "submit", className: "w-full py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl lowercase" }, "add reward")
+            )
+        ),
+
+        // Edit Reward Modal
+        editingReward && React.createElement("div", { className: "fixed inset-0 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4", style: { zIndex: 10000 }, onClick: () => setEditingReward(null) },
+            React.createElement("form", { onSubmit: saveReward, onClick: e => e.stopPropagation(), className: "bg-white dark:bg-gray-900 p-5 sm:p-6 rounded-2xl w-full max-w-xs sm:max-w-sm md:max-w-md shadow-2xl" },
+                React.createElement("div", { className: "flex justify-between items-center mb-4" },
+                    React.createElement("h3", { className: "text-xl font-light dark:text-white lowercase" }, "edit reward"),
+                    React.createElement("button", { type: "button", onClick: () => setEditingReward(null), className: "p-2 text-gray-400 hover:text-gray-600" }, React.createElement(SysIcon, { name: "x", size: 18 }))
+                ),
+                React.createElement("input", { type: "text", value: editingReward.title, onChange: e => setEditingReward({ ...editingReward, title: e.target.value }), placeholder: "reward name...", className: "w-full px-4 py-3 rounded-xl mb-3 border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white lowercase", autoFocus: true }),
+                React.createElement("textarea", { value: editingReward.description || "", onChange: e => setEditingReward({ ...editingReward, description: e.target.value }), placeholder: "description (optional)...", rows: 2, className: "w-full px-4 py-3 rounded-xl mb-3 border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white resize-none" }),
+                React.createElement("input", { type: "number", value: editingReward.cost, onChange: e => setEditingReward({ ...editingReward, cost: e.target.value }), placeholder: "cost in coins", className: "w-full px-4 py-3 rounded-xl mb-4 border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white" }),
+                React.createElement("div", { className: "flex gap-2" },
+                    React.createElement("button", { type: "button", onClick: () => { deleteReward(editingReward.id); setEditingReward(null); }, className: "flex-1 py-3 text-red-500 hover:bg-red-50 rounded-xl lowercase border border-red-200" }, "delete"),
+                    React.createElement("button", { type: "submit", className: "flex-1 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl lowercase" }, "save")
                 )
             )
-        );
-    };
+        )
+    );
+};
 
-    const GamificationTab = (props) => {
-        if (props.isRewardsPage) return React.createElement(RewardsPage, props);
-        return React.createElement(HabitsPage, props);
-    };
+const GamificationTab = (props) => {
+    if (props.isRewardsPage) return React.createElement(RewardsPage, props);
+    return React.createElement(HabitsPage, props);
+};
 
-    window.HabitsTab = GamificationTab;
-    window.RewardsPage = RewardsPage;
-    console.log("HabitsTab v55 loaded - countdown timer with duration picker");
-})();
+window.HabitsTab = GamificationTab;
+window.RewardsPage = RewardsPage;
+console.log("HabitsTab v55 loaded - countdown timer with duration picker");
+}) ();
 
 
