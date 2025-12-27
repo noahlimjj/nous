@@ -2866,7 +2866,7 @@ const Dashboard = ({ db, userId, setNotification, activeTimers, setActiveTimers,
 
         // Left/Main Column: Habits
         React.createElement('div', { className: "lg:col-span-2" },
-            React.createElement('h2', { className: "text-2xl text-gray-800 mb-4", style: { fontWeight: 300 } }, "timer"),
+            // React.createElement('h2', { className: "text-2xl text-gray-800 mb-4", style: { fontWeight: 300 } }, "timer"),
 
             // Nous Requests
             nousRequests.length > 0 && React.createElement('div', { className: "bg-purple-50 border border-purple-200 rounded-lg p-4 mb-4" },
@@ -2902,9 +2902,10 @@ const Dashboard = ({ db, userId, setNotification, activeTimers, setActiveTimers,
 
 
 
-            // Habits List (including shared timers)
+            // Habits List (including shared timers) - REMOVED
             React.createElement('div', { className: "space-y-4" },
                 (() => {
+                    return null;
                     // Combine shared timers and habits
                     const sharedTimerItems = sharedTimers.map(timer => ({
                         type: 'sharedTimer',

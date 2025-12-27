@@ -576,19 +576,6 @@
                 style: { zIndex: 9999 }
             }, notification),
 
-            // Header - only show when NOT embedded as widget (dashboard has its own header)
-            !isWidget && React.createElement("div", { className: "flex justify-between items-center mb-4" },
-                React.createElement("h2", { className: "text-3xl text-calm-800 mb-2", style: { fontWeight: 300 } }, "habit tracker"),
-                React.createElement("div", { className: "flex items-center gap-3" },
-                    React.createElement(CoinDisplay, { amount: wallet.coins }),
-                    onToggleView && React.createElement("button", {
-                        onClick: onToggleView,
-                        className: "px-4 py-2 bg-blue-100 hover:bg-blue-200 text-blue-700 rounded-lg transition lowercase text-sm",
-                        title: "View Rewards"
-                    }, "rewards")
-                )
-            ),
-
             // Big Timer (if habit selected)
             // Big Timer (Always visible if habits exist)
             habits.length > 0 && (() => {
@@ -755,7 +742,7 @@
                             className: "p-3 bg-gray-100 text-gray-500 rounded-full hover:bg-gray-200 transition"
                         }, React.createElement("svg", { width: 24, height: 24, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: 2, strokeLinecap: "round", strokeLinejoin: "round" },
                             React.createElement("polyline", { points: "3 6 5 6 21 6" }),
-                            React.createElement("path", { d: "M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2-2h4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" }),
+                            React.createElement("path", { d: "M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2-2h4a2 2 0 0 1 2-2h4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" }),
                             React.createElement("line", { x1: 10, y1: 11, x2: 10, y2: 17 }),
                             React.createElement("line", { x1: 14, y1: 11, x2: 14, y2: 17 })
                         ))
@@ -795,10 +782,7 @@
             ),
 
             // Habits
-            habits.length === 0 ? React.createElement("div", { className: "text-center py-8 text-gray-400" },
-                React.createElement("p", { className: "text-lg lowercase mb-1" }, "no habits yet"),
-                React.createElement("p", { className: "text-sm lowercase" }, "tap + to create one")
-            ) : habits.map(h => {
+            habits.map(h => {
                 const coinVal = h.difficulty === 'hard' ? 20 : h.difficulty === 'medium' ? 10 : 5;
                 const streak = calcStreak(h.completionDates);
                 const timer = timers[h.id];
@@ -859,8 +843,9 @@
                             return React.createElement("div", { key: iso, style: dayStyle, className: "flex items-center justify-center" },
                                 React.createElement("button", {
                                     onClick: () => toggleDate(h.id, iso),
-                                    style: done ? { backgroundColor: '#22c55e', width: checkboxSize, height: checkboxSize } : { width: checkboxSize, height: checkboxSize },
-                                }, done && React.createElement(SysIcon, { name: "check", size: isMobile ? 10 : 14 }))
+                                    className: `transition-all duration-200 rounded-full flex items-center justify-center ${done ? 'bg-green-500 shadow-sm transform scale-100' : 'bg-gray-50 border-2 border-gray-200 hover:border-gray-300'}`,
+                                    style: { width: checkboxSize, height: checkboxSize },
+                                }, done && React.createElement(SysIcon, { name: "check", size: isMobile ? 12 : 16 }))
                             );
                         })
                     ),
