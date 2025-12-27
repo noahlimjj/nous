@@ -63,7 +63,7 @@
         brain: "M12 2a4 4 0 0 0-4 4c0 1.5.5 2.5 1.5 3.5L8 12c-1.5 0-3 1.5-3 3s1.5 3 3 3l1.5 2.5c0 1 1 1.5 2.5 1.5s2.5-.5 2.5-1.5L16 18c1.5 0 3-1.5 3-3s-1.5-3-3-3l-1.5-2.5c1-.9 1.5-2 1.5-3.5a4 4 0 0 0-4-4z M12 9v3 M10 15h4"
     };
 
-    const COLORS = ['#FF6B6B', '#FF9F43', '#FECA57', '#26DE81', '#17C0EB', '#4B7BEC', '#A55EEA', '#FD79A8'];
+    const COLORS = ['#FF6B6B', '#FF9F43', '#FECA57', '#26DE81', '#17C0EB', '#4B7BEC', '#A55EEA', '#FD79A8', '#000000', '#FFFFFF'];
 
     const Icon = ({ name, size = 20 }) => {
         const iconDef = ICONS[name] || SVG_PATHS[name] || ICONS.leaf;

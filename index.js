@@ -1131,7 +1131,7 @@ const updateUserStats = async (db, userId, sessions) => {
 const Dashboard = ({ db, userId, setNotification, activeTimers, setActiveTimers, timerIntervals }) => {
     const [habits, setHabits] = useState([]);
     const [sessions, setSessions] = useState([]);
-    const [newHabitName, setNewHabitName] = useState('');
+
     const [isLoading, setIsLoading] = useState(true);
     const [modalHabit, setModalHabit] = useState(null);
     const [editingHabitId, setEditingHabitId] = useState(null);
@@ -1789,27 +1789,7 @@ const Dashboard = ({ db, userId, setNotification, activeTimers, setActiveTimers,
         }
     };
 
-    const handleAddHabit = async (e) => {
-        e.preventDefault();
-        if (newHabitName.trim() === '') return;
-        try {
-            const habitsCol = window.collection(db, `/artifacts/${appId}/users/${userId}/habits`);
-            // New habits go to the end
-            const maxOrder = habits.length > 0 ? Math.max(...habits.map(h => h.order || 0)) : -1;
-            await window.addDoc(habitsCol, {
-                name: newHabitName,
-                createdAt: window.Timestamp.now(),
-                order: maxOrder + 1,
-                timerMode: 'stopwatch', // default mode
-                targetDuration: 0 // default 0 seconds
-            });
-            setNewHabitName('');
-            setNotification({ type: 'success', message: 'Habit added!' });
-        } catch (error) {
-            console.error("Error adding habit:", error);
-            setNotification({ type: 'error', message: 'Failed to add habit.' });
-        }
-    };
+
 
     const handleDeleteHabit = async (habitId) => {
         if (window.confirm("Are you sure you want to delete this habit and all its sessions? This cannot be undone.")) {
@@ -2918,17 +2898,7 @@ const Dashboard = ({ db, userId, setNotification, activeTimers, setActiveTimers,
             ),
 
 
-            // Add new habit form
-            React.createElement('form', { onSubmit: handleAddHabit, className: "bg-white p-4 rounded-lg shadow-sm mb-6 flex gap-4" },
-                React.createElement('input', {
-                    type: "text",
-                    value: newHabitName,
-                    onChange: (e) => setNewHabitName(e.target.value),
-                    placeholder: "e.g., Morning Run",
-                    className: "flex-grow px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                }),
-                React.createElement('button', { type: "submit", className: "bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition", style: { fontWeight: 400 } }, "add timer")
-            ),
+
 
             // Habits List (including shared timers)
             React.createElement('div', { className: "space-y-4" },
