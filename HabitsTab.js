@@ -1172,6 +1172,13 @@
             if (confirm('Delete reward?')) await window.deleteDoc(window.doc(db, `/artifacts/${appId}/users/${userId}/rewards/${id}`));
         };
 
+        const deleteClaimedReward = async (id) => {
+            if (confirm('Delete this claimed reward from history?')) {
+                await window.deleteDoc(window.doc(db, `/artifacts/${appId}/users/${userId}/claimedRewards/${id}`));
+                showNotif("claim history deleted");
+            }
+        };
+
         const formatDate = (timestamp) => {
             if (!timestamp) return '';
             const date = new Date(timestamp);
@@ -1240,7 +1247,12 @@
                             React.createElement("span", { className: "text-gray-800 dark:text-white lowercase font-medium" }, claim.title),
                             React.createElement("span", { className: "text-gray-400 text-sm ml-2" }, `${claim.cost}c`)
                         ),
-                        React.createElement("span", { className: "text-xs text-gray-400" }, formatDate(claim.claimedAt))
+                        React.createElement("span", { className: "text-xs text-gray-400 mr-2" }, formatDate(claim.claimedAt)),
+                        React.createElement("button", {
+                            onClick: () => deleteClaimedReward(claim.id),
+                            className: "text-gray-400 hover:text-red-500 transition p-1",
+                            title: "Remove from history"
+                        }, React.createElement(SysIcon, { name: "x", size: 14 }))
                     ))
                 ),
                 claimedRewards.length > 10 && React.createElement("p", { className: "text-sm text-gray-400 mt-2 text-center lowercase" }, `+ ${claimedRewards.length - 10} more`)
