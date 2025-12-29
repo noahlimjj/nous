@@ -1157,7 +1157,7 @@
             // Manual Session Modal
             showManualSession && React.createElement("div", {
                 className: "absolute inset-0 flex items-start justify-center bg-black/30 backdrop-blur-sm rounded-2xl",
-                style: { zIndex: 100, padding: '20px', paddingTop: '100px' },
+                style: { zIndex: 100, padding: '20px', paddingTop: '200px' },
                 onClick: () => setShowManualSession(null)
             },
                 React.createElement("div", {
@@ -1165,7 +1165,7 @@
                     className: "bg-white dark:bg-gray-900 p-5 rounded-2xl w-full max-w-xs shadow-2xl border border-gray-200 dark:border-gray-700"
                 },
                     React.createElement("div", { className: "flex justify-between items-center mb-4" },
-                        React.createElement("h3", { className: "text-lg font-light text-gray-800 dark:text-white lowercase" }, "how long did you do this habit today?"),
+                        React.createElement("h3", { className: "text-lg font-light text-gray-800 dark:text-white lowercase" }, "forgot to time? add in time spent (optional)"),
                         React.createElement("button", {
                             type: "button",
                             onClick: () => setShowManualSession(null),
