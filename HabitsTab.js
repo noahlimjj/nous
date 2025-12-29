@@ -199,6 +199,8 @@
         const [countdownSeconds, setCountdownSeconds] = useState('0');
         const [showHabitSelector, setShowHabitSelector] = useState(false);
         const [draggedHabit, setDraggedHabit] = useState(null);
+        // Dashboard state
+        const [dashboardData, setDashboardData] = useState({ quote: "" });
         // Track heaters checks
         const stoppedTimersRef = React.useRef(new Set());
 
@@ -217,12 +219,40 @@
                     return a.id.localeCompare(b.id);
                 });
                 setHabits(habitsData);
+
+                // Sync active timers from Firestore
+                setTimers(prev => {
+                    const next = { ...prev };
+                    habitsData.forEach(h => {
+                        if (h.activeTimer) {
+                            next[h.id] = {
+                                isRunning: h.activeTimer.isRunning,
+                                startTime: h.activeTimer.startTime, // Timestamp from server
+                                elapsedTime: h.activeTimer.elapsedTime || 0,
+                                originalStartTime: h.activeTimer.startTime
+                            };
+                        } else if (prev[h.id] && prev[h.id].isRunning && !window.OfflineTimerManager?.isOffline()) {
+                            // If we have a running timer locally but server says no (and we are online), stop it?
+                            // Or maybe we just trust server.
+                            // For now, let's only strictly update if server has data, to avoid race conditions during forceful stop.
+                            // actually, if server says no timer, we should probably clear it if we think we are syncing.
+                            // next[h.id] = null; 
+                        }
+                    });
+                    return next;
+                });
+            });
+
+            // Dashboard listener
+            const unsubDashboard = window.onSnapshot(window.doc(db, `/artifacts/${appId}/users/${userId}/dashboard/daily`), doc => {
+                if (doc.exists()) setDashboardData(doc.data());
+                else setDashboardData({ quote: "" });
             });
             const unsub2 = window.onSnapshot(window.doc(db, `/artifacts/${appId}/users/${userId}/gamification/wallet`), doc => {
                 if (doc.exists()) setWallet(doc.data());
                 else window.setDoc(window.doc(db, `/artifacts/${appId}/users/${userId}/gamification/wallet`), { coins: 0 });
             });
-            return () => { unsub1(); unsub2(); };
+            return () => { unsub1(); unsub2(); unsubDashboard(); };
         }, [db, userId, appId]);
 
         // Timer tick effect
@@ -232,6 +262,47 @@
             const interval = setInterval(() => setCurrentTime(Date.now()), 50);
             return () => clearInterval(interval);
         }, [timers]);
+
+        // Hydrate timers from OfflineTimerManager on mount
+        useEffect(() => {
+            if (window.OfflineTimerManager) {
+                const offlineTimers = window.OfflineTimerManager.getTimers();
+                if (Object.keys(offlineTimers).length > 0) {
+                    console.log("Hydrating timers from offline storage:", offlineTimers);
+                    setTimers(prev => {
+                        const next = { ...prev };
+                        Object.entries(offlineTimers).forEach(([id, t]) => {
+                            next[id] = {
+                                isRunning: t.isRunning,
+                                startTime: t.startTime,
+                                elapsedTime: t.elapsedTime,
+                                originalStartTime: t.startTime
+                            };
+                        });
+                        return next;
+                    });
+                }
+            }
+        }, []);
+
+        // Listen for online status to sync
+        useEffect(() => {
+            const handleOnline = async () => {
+                console.log("App is back online, checking for pending syncs...");
+                if (db && userId && window.OfflineTimerManager) {
+                    const res = await window.OfflineTimerManager.sync(db, userId);
+                    if (res && res.synced > 0) {
+                        showNotif(`synced ${res.synced} offline sessions`);
+                    }
+                }
+            };
+            window.addEventListener('online', handleOnline);
+            // Also try to sync on mount if online
+            if (navigator.onLine) {
+                handleOnline();
+            }
+            return () => window.removeEventListener('online', handleOnline);
+        }, [db, userId]);
 
         const showNotif = (msg) => { setNotification(msg); setTimeout(() => setNotification(null), 3000); };
 
@@ -247,6 +318,27 @@
                     elapsedTime: prev[habitId]?.elapsedTime || 0
                 }
             }));
+
+            // Persist start to Firestore
+            if (db && userId) {
+                window.updateDoc(window.doc(db, `/artifacts/${appId}/users/${userId}/habits/${habitId}`), {
+                    activeTimer: {
+                        isRunning: true,
+                        startTime: Date.now(),
+                        elapsedTime: timers[habitId]?.elapsedTime || 0
+                    }
+                }).catch(e => console.error("Error syncing start timer:", e));
+            }
+
+            // Sync with OfflineTimerManager
+            if (window.OfflineTimerManager) {
+                const prevTimer = timers[habitId];
+                if (prevTimer && prevTimer.elapsedTime > 0) {
+                    window.OfflineTimerManager.resume(habitId);
+                } else {
+                    window.OfflineTimerManager.start(habitId, habit?.title || 'Unknown', habit?.targetDuration || 0);
+                }
+            }
         };
 
         const pauseTimer = (habitId) => {
@@ -254,8 +346,25 @@
                 const timer = prev[habitId];
                 if (!timer) return prev;
                 const elapsed = timer.isRunning ? (Date.now() - timer.startTime) + timer.elapsedTime : timer.elapsedTime;
+
+                // Persist pause to Firestore
+                if (db && userId) {
+                    window.updateDoc(window.doc(db, `/artifacts/${appId}/users/${userId}/habits/${habitId}`), {
+                        activeTimer: {
+                            isRunning: false,
+                            startTime: null,
+                            elapsedTime: elapsed
+                        }
+                    }).catch(e => console.error("Error syncing pause timer:", e));
+                }
+
                 return { ...prev, [habitId]: { ...timer, isRunning: false, elapsedTime: elapsed } };
             });
+
+            // Sync with OfflineTimerManager
+            if (window.OfflineTimerManager) {
+                window.OfflineTimerManager.pause(habitId);
+            }
         };
 
         const stopTimer = async (habitId, isAutoComplete = false) => {
@@ -269,28 +378,47 @@
             const habit = habits.find(h => h.id === habitId);
             if (!habit) return;
 
-            // Mark as stopped immediately to prevent race conditions
+            // Mark as stopped immediately
             stoppedTimersRef.current.add(habitId);
 
             const elapsed = timer.isRunning ? (Date.now() - timer.startTime) + timer.elapsedTime : timer.elapsedTime;
 
-            if (elapsed > 0 && db && userId) {
-                try {
-                    // Save session to Firebase (same format as main timer - syncs with reports, friends, leaderboard)
-                    await window.addDoc(window.collection(db, `/artifacts/${appId}/users/${userId}/sessions`), {
-                        habitId: habitId,
-                        habitName: habit.title,
-                        startTime: window.Timestamp.fromMillis(timer.originalStartTime || timer.startTime),
-                        endTime: window.Timestamp.now(),
-                        duration: Math.round(elapsed),
-                        createdAt: window.Timestamp.now()
-                    });
-                    showNotif(isAutoComplete ? "⏰ countdown complete!" : `session saved: ${formatTimerDisplay(elapsed)}`);
-                } catch (error) {
-                    console.error('Error saving session:', error);
-                    showNotif(`session saved locally: ${formatTimerDisplay(elapsed)}`);
-                }
+            // Clear active timer from Firestore
+            if (db && userId) {
+                window.updateDoc(window.doc(db, `/artifacts/${appId}/users/${userId}/habits/${habitId}`), {
+                    activeTimer: window.deleteField ? window.deleteField() : null // Handle deleteField if available, else null
+                }).catch(e => console.error("Error clearing active timer:", e));
             }
+
+            // Use OfflineTimerManager to handle the stop logic (it queues the save)
+            if (window.OfflineTimerManager) {
+                const result = window.OfflineTimerManager.stop(habitId, habit.title);
+
+                if (result) {
+                    if (isAutoComplete) {
+                        showNotif("⏰ countdown complete!");
+                    } else {
+                        showNotif(`session finished: ${formatTimerDisplay(elapsed)}`);
+                    }
+
+                    // Attempt immediate sync if online
+                    if (navigator.onLine && db && userId) {
+                        try {
+                            await window.OfflineTimerManager.sync(db, userId);
+                            showNotif(`session saved to cloud`);
+                        } catch (e) {
+                            console.error("Sync failed, will retry later", e);
+                            showNotif("saved offline, will sync later");
+                        }
+                    } else {
+                        showNotif("saved offline, will sync later");
+                    }
+                }
+            } else {
+                // Fallback for some reason if Manager missing?
+                console.error("OfflineTimerManager missing");
+            }
+
             setTimers(prev => ({ ...prev, [habitId]: null }));
             // Clean up the stopped ref after a short delay
             setTimeout(() => {
@@ -300,6 +428,15 @@
 
         const resetTimer = (habitId) => {
             setTimers(prev => ({ ...prev, [habitId]: { isRunning: false, startTime: null, originalStartTime: null, elapsedTime: 0 } }));
+            if (window.OfflineTimerManager) {
+                window.OfflineTimerManager.reset(habitId);
+            }
+            // Clear active timer from Firestore on reset too
+            if (db && userId) {
+                window.updateDoc(window.doc(db, `/artifacts/${appId}/users/${userId}/habits/${habitId}`), {
+                    activeTimer: window.deleteField ? window.deleteField() : null
+                }).catch(e => console.error("Error clearing on reset:", e));
+            }
         };
 
         // Open duration picker for countdown mode
@@ -461,6 +598,11 @@
             await window.updateDoc(window.doc(db, `/artifacts/${appId}/users/${userId}/gamification/wallet`), {
                 coins: Math.max(0, (wallet.coins || 0) + (done ? -coins : coins))
             });
+
+            // If marking as done (not unchecking), open manual session modal to ask for duration
+            if (!done) {
+                openManualSession(habitId);
+            }
             // No confetti on habit completion - only on reward claims
         };
 
@@ -575,6 +717,29 @@
                 className: "fixed top-20 left-1/2 transform -translate-x-1/2 bg-gray-900 text-white px-6 py-3 rounded-xl shadow-2xl lowercase",
                 style: { zIndex: 9999 }
             }, notification),
+
+            // Dashboard / Daily Quote
+            React.createElement("div", { className: "mb-6 bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700" },
+                React.createElement("h3", { className: "text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2" }, "Daily Focus"),
+                React.createElement("textarea", {
+                    value: dashboardData.quote || "",
+                    onChange: (e) => {
+                        const val = e.target.value;
+                        setDashboardData(prev => ({ ...prev, quote: val }));
+                        // Debounce save? For simplicity using onBlur or just rapid updates for now (with simple throttling if needed, but local state is fast)
+                        // Actually, let's save on blur to avoid too many writes
+                    },
+                    onBlur: async (e) => {
+                        if (db && userId) {
+                            await window.setDoc(window.doc(db, `/artifacts/${appId}/users/${userId}/dashboard/daily`), { quote: e.target.value }, { merge: true });
+                        }
+                    },
+                    placeholder: "What is your main focus today? Write a quote or a goal...",
+                    className: "w-full bg-transparent border-none p-0 text-xl font-light text-gray-700 dark:text-gray-200 focus:ring-0 resize-none placeholder-gray-300 dark:placeholder-gray-600",
+                    rows: 2,
+                    style: { minHeight: '3rem' }
+                })
+            ),
 
             // Big Timer (if habit selected)
             // Big Timer (Always visible if habits exist)
@@ -1000,7 +1165,7 @@
                     className: "bg-white dark:bg-gray-900 p-5 rounded-2xl w-full max-w-xs shadow-2xl border border-gray-200 dark:border-gray-700"
                 },
                     React.createElement("div", { className: "flex justify-between items-center mb-4" },
-                        React.createElement("h3", { className: "text-lg font-light text-gray-800 dark:text-white lowercase" }, "add manual session"),
+                        React.createElement("h3", { className: "text-lg font-light text-gray-800 dark:text-white lowercase" }, "how long did you do this habit today?"),
                         React.createElement("button", {
                             type: "button",
                             onClick: () => setShowManualSession(null),
