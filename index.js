@@ -1290,6 +1290,8 @@ const Dashboard = ({ db, userId, setNotification, activeTimers, setActiveTimers,
         });
 
         const unsubscribeSessions = window.onSnapshot(sessionsCol, (snapshot) => {
+            console.log(`[Dashboard] Sessions snapshot received for appId: ${appId}, path: ${sessionsCol.path}`);
+            console.log(`[Dashboard] Found ${snapshot.docs.length} sessions.`);
             const sessionsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
             // Sort sessions by createdAt (if available) or startTime, descending (most recent first)
             sessionsData.sort((a, b) => {
@@ -2826,7 +2828,7 @@ const Dashboard = ({ db, userId, setNotification, activeTimers, setActiveTimers,
             // Header OUTSIDE the white card (like timer section)
             React.createElement("h2", { className: "text-3xl text-calm-800 mb-6", style: { fontWeight: 300 } }, "habit tracker"),
             React.createElement("div", { className: "bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-gray-100 dark:border-slate-800 overflow-hidden" },
-                React.createElement(window.HabitsTab, { user: { id: userId }, db, activeTimers, isWidget: true })
+                React.createElement(window.HabitsTab, { user: { id: userId }, db, activeTimers, isWidget: true, appId })
             )
         ),
 

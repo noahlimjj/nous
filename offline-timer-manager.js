@@ -231,18 +231,20 @@
 
         // fallback if not provided
         appId = appId || 'study-tracker-app';
+        console.log(`[Offline Timer] Syncing with appId: ${appId}, userId: ${userId}`);
         let syncedCount = 0;
         const errors = [];
 
         for (const op of queue) {
             try {
                 if (op.type === 'complete') {
+                    console.log(`[Offline Timer] Processing 'complete' op for habit: ${op.habitName}`);
                     // Add hours to habit
                     const habitRef = window.doc(db, `/artifacts/${appId}/users/${userId}/habits/${op.habitId}`);
                     const habitSnap = await window.getDoc(habitRef);
 
                     if (habitSnap.exists()) {
-                        const habitData = habitSnap.getData();
+                        const habitData = habitSnap.data();
                         const newTotalHours = (habitData.totalHours || 0) + op.hoursTracked;
 
                         await window.updateDoc(habitRef, {

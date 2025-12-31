@@ -108,7 +108,7 @@
             // Wait for app to be ready (db and userId available)
             setTimeout(() => {
                 if (window.__currentDb && window.__currentUserId) {
-                    const appId = window.__currentAppId || 'study-tracker-app';
+                    const appId = window.__currentAppId || (typeof window.__app_id !== 'undefined' ? window.__app_id : 'study-tracker-app');
                     window.OfflineTimerManager.sync(window.__currentDb, window.__currentUserId, appId)
                         .then(result => {
                             if (result.success) {

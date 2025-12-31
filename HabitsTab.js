@@ -394,32 +394,79 @@
             }
 
             // Use OfflineTimerManager to handle the stop logic (it queues the save)
+            let result = null;
             if (window.OfflineTimerManager) {
-                const result = window.OfflineTimerManager.stop(habitId, habit.title);
+                result = window.OfflineTimerManager.stop(habitId, habit.title);
+            }
 
-                if (result) {
-                    if (isAutoComplete) {
-                        showNotif("⏰ countdown complete!");
-                    } else {
-                        showNotif(`session finished: ${formatTimerDisplay(elapsed)}`);
-                    }
+            if (result) {
+                if (isAutoComplete) {
+                    showNotif("⏰ countdown complete!");
+                } else {
+                    showNotif(`session finished: ${formatTimerDisplay(elapsed)}`);
+                }
 
-                    // Attempt immediate sync if online
-                    if (navigator.onLine && db && userId) {
-                        try {
-                            await window.OfflineTimerManager.sync(db, userId, appId);
+                // Attempt immediate sync if online
+                if (navigator.onLine && db && userId) {
+                    try {
+                        console.log(`[HabitsTab] Attempting sync with appId: ${appId}`);
+                        const syncResult = await window.OfflineTimerManager.sync(db, userId, appId);
+
+                        if (syncResult && syncResult.success) {
                             showNotif(`session saved to cloud`);
-                        } catch (e) {
-                            console.error("Sync failed, will retry later", e);
-                            showNotif("saved offline, will sync later");
+                        } else {
+                            console.error("Sync incomplete:", syncResult);
+                            const errorMsg = syncResult?.errors?.[0]?.error || "unknown error";
+                            showNotif(`sync warning: ${errorMsg}`);
                         }
-                    } else {
+                    } catch (e) {
+                        console.error("Sync failed, will retry later", e);
                         showNotif("saved offline, will sync later");
                     }
+                } else {
+                    showNotif("saved offline, will sync later");
                 }
             } else {
-                // Fallback for some reason if Manager missing?
-                console.error("OfflineTimerManager missing");
+                // Fallback: Timer not found in Offline Manager (e.g. cross-device, cache cleared)
+                console.warn("Timer not found in OfflineManager, attempting fallback save...");
+
+                if (navigator.onLine && db && userId) {
+                    try {
+                        const hoursTracked = elapsed / (1000 * 60 * 60);
+
+                        // 1. Update Habit
+                        const habitRef = window.doc(db, `/artifacts/${appId}/users/${userId}/habits/${habitId}`);
+                        const habitSnap = await window.getDoc(habitRef);
+                        if (habitSnap.exists()) {
+                            const hData = habitSnap.data(); // Ensure .data() is used
+                            const newTotal = (hData.totalHours || 0) + hoursTracked;
+                            await window.updateDoc(habitRef, {
+                                totalHours: newTotal,
+                                lastStudied: new Date()
+                            });
+                        }
+
+                        // 2. Add Session
+                        await window.addDoc(window.collection(db, `/artifacts/${appId}/users/${userId}/sessions`), {
+                            habitId,
+                            habitName: habit.title,
+                            duration: elapsed,
+                            startTime: new Date(Date.now() - elapsed),
+                            endTime: new Date(),
+                            createdAt: window.serverTimestamp ? window.serverTimestamp() : new Date(),
+                            isManual: false,
+                            source: 'timer_fallback'
+                        });
+
+                        showNotif(`session saved (restored): ${formatTimerDisplay(elapsed)}`);
+                    } catch (e) {
+                        console.error("Fallback save failed:", e);
+                        showNotif("failed to save session");
+                    }
+                } else {
+                    console.error("Active timer not tracked offline and currently offline. Data lost.");
+                    showNotif("error: timer data lost (offline mismatch)");
+                }
             }
 
             setTimers(prev => ({ ...prev, [habitId]: null }));
