@@ -232,11 +232,9 @@
                                 originalStartTime: h.activeTimer.startTime
                             };
                         } else if (prev[h.id] && prev[h.id].isRunning && !window.OfflineTimerManager?.isOffline()) {
-                            // If we have a running timer locally but server says no (and we are online), stop it?
-                            // Or maybe we just trust server.
-                            // For now, let's only strictly update if server has data, to avoid race conditions during forceful stop.
-                            // actually, if server says no timer, we should probably clear it if we think we are syncing.
-                            // next[h.id] = null; 
+                            // If we have a running timer locally but server says no (and we are online), 
+                            // it means it was stopped on another device. Stop it locally.
+                            next[h.id] = null;
                         }
                     });
                     return next;
@@ -318,6 +316,8 @@
                     elapsedTime: prev[habitId]?.elapsedTime || 0
                 }
             }));
+            // Update current time immediately to avoid "73ms" glitch on first render
+            setCurrentTime(Date.now());
 
             // Persist start to Firestore
             if (db && userId) {
@@ -736,8 +736,8 @@
                     },
                     placeholder: "What is your main focus today? Write a quote or a goal...",
                     className: "w-full bg-transparent border-none p-0 text-xl font-light text-gray-700 dark:text-gray-200 focus:ring-0 resize-none placeholder-gray-300 dark:placeholder-gray-600",
-                    rows: 2,
-                    style: { minHeight: '3rem' }
+                    rows: 1,
+                    style: { minHeight: '2rem' }
                 })
             ),
 

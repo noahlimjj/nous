@@ -249,6 +249,18 @@
                             lastStudied: new Date(op.completedAt)
                         });
 
+                        // Create a session document in the sessions collection
+                        // This ensures it appears in "Recent Sessions" and reports
+                        await window.addDoc(window.collection(db, `/artifacts/${appId}/users/${userId}/sessions`), {
+                            habitId: op.habitId,
+                            habitName: op.habitName,
+                            duration: op.elapsedTime,
+                            startTime: new Date(op.completedAt - op.elapsedTime), // Approximate start time
+                            endTime: new Date(op.completedAt),
+                            isManual: false,
+                            source: 'timer'
+                        });
+
                         console.log(`[Offline Timer] Synced: ${op.habitName} +${op.hoursTracked.toFixed(2)}h`);
                         syncedCount++;
                     } else {
