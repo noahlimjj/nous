@@ -227,9 +227,9 @@
                         if (h.activeTimer) {
                             next[h.id] = {
                                 isRunning: h.activeTimer.isRunning,
-                                startTime: h.activeTimer.startTime, // Timestamp from server
+                                startTime: h.activeTimer.startTime?.toMillis ? h.activeTimer.startTime.toMillis() : h.activeTimer.startTime, // Convert to ms
                                 elapsedTime: h.activeTimer.elapsedTime || 0,
-                                originalStartTime: h.activeTimer.startTime
+                                originalStartTime: h.activeTimer.startTime?.toMillis ? h.activeTimer.startTime.toMillis() : h.activeTimer.startTime
                             };
                         } else if (prev[h.id] && prev[h.id].isRunning && !window.OfflineTimerManager?.isOffline()) {
                             // If we have a running timer locally but server says no (and we are online), 

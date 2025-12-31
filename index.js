@@ -1293,7 +1293,9 @@ const Dashboard = ({ db, userId, setNotification, activeTimers, setActiveTimers,
             sessionsData.sort((a, b) => {
                 const aTime = a.createdAt || a.startTime;
                 const bTime = b.createdAt || b.startTime;
-                return bTime.toMillis() - aTime.toMillis();
+                const aMillis = aTime?.toMillis ? aTime.toMillis() : (aTime?.getTime ? aTime.getTime() : 0);
+                const bMillis = bTime?.toMillis ? bTime.toMillis() : (bTime?.getTime ? bTime.getTime() : 0);
+                return bMillis - aMillis;
             });
             setSessions(sessionsData);
 
