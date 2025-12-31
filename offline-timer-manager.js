@@ -246,20 +246,24 @@
 
                         await window.updateDoc(habitRef, {
                             totalHours: newTotalHours,
-                            lastStudied: new Date(op.completedAt)
+                            lastStudied: new Date(op.completedAt) // Use JS Date for consistency with existing code
                         });
 
-                        // Create a session document in the sessions collection
-                        // This ensures it appears in "Recent Sessions" and reports
-                        await window.addDoc(window.collection(db, `/artifacts/${appId}/users/${userId}/sessions`), {
+                        // Create session document
+                        const startTimeMillis = op.completedAt - op.elapsedTime;
+                        const sessionData = {
                             habitId: op.habitId,
                             habitName: op.habitName,
                             duration: op.elapsedTime,
-                            startTime: new Date(op.completedAt - op.elapsedTime), // Approximate start time
-                            endTime: new Date(op.completedAt),
+                            // Use Firestore timestamp if possible, else Date
+                            startTime: window.Timestamp ? window.Timestamp.fromMillis(startTimeMillis) : new Date(startTimeMillis),
+                            endTime: window.Timestamp ? window.Timestamp.fromMillis(op.completedAt) : new Date(op.completedAt),
+                            createdAt: window.serverTimestamp ? window.serverTimestamp() : new Date(), // For sorting
                             isManual: false,
                             source: 'timer'
-                        });
+                        };
+
+                        await window.addDoc(window.collection(db, `/artifacts/${appId}/users/${userId}/sessions`), sessionData);
 
                         console.log(`[Offline Timer] Synced: ${op.habitName} +${op.hoursTracked.toFixed(2)}h`);
                         syncedCount++;
@@ -271,6 +275,14 @@
                 // Only completed sessions (hours tracked) are synced
             } catch (error) {
                 console.error(`[Offline Timer] Sync error for ${op.type}:`, error);
+                // Log detailed permission error if available
+                if (error.code === 'permission-denied') {
+                    console.error('Permission denied details:', {
+                        appId,
+                        userId,
+                        op
+                    });
+                }
                 errors.push({ operation: op, error: error.message });
             }
         }
