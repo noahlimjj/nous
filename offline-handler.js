@@ -15,14 +15,22 @@
     console.error = function (...args) {
         const message = args.join(' ');
 
+        // Always suppress these specific noisy network/firebase errors
+        if (
+            message.includes('ERR_NETWORK_CHANGED') ||
+            message.includes('ERR_HTTP2_PING_FAILED') ||
+            message.includes('webchannel_connection') ||
+            message.includes('fetchxmlhttpfactory')
+        ) {
+            return;
+        }
+
         // Suppress these errors when offline
         if (!isOnline) {
             if (
                 message.includes('ERR_INTERNET_DISCONNECTED') ||
-                message.includes('ERR_NETWORK_CHANGED') ||
                 message.includes('ERR_CONNECTION') ||
                 message.includes('WebChannelConnection') ||
-                message.includes('webchannel_connection') ||
                 message.includes('net::ERR_') ||
                 message.includes('firestore') ||
                 message.includes('Firestore') ||
