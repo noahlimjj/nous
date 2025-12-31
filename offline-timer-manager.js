@@ -229,7 +229,7 @@
 
         console.log(`[Offline Timer] Syncing ${queue.length} operations...`);
 
-        const appId = 'study-tracker-app-v1';
+        const appId = 'study-tracker-app';
         let syncedCount = 0;
         const errors = [];
 
