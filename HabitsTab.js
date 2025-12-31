@@ -172,10 +172,11 @@
 
     const getTimerMs = (totalMs) => Math.floor((totalMs % 1000) / 10);
 
-    const HabitsPage = ({ user, db, isWidget = false, onToggleView }) => {
+    const HabitsPage = ({ user, db, isWidget = false, onToggleView, appId: propAppId }) => {
         console.log("HabitsPage rendered. User:", user, "DB:", db);
         const userId = user?.uid || user?.id || null;
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'study-tracker-app';
+        // Use prop, or global, or default
+        const appId = propAppId || (typeof __app_id !== 'undefined' ? __app_id : 'study-tracker-app');
         const [habits, setHabits] = useState([]);
         const [wallet, setWallet] = useState({ coins: 0 });
         const [showAddHabit, setShowAddHabit] = useState(false);
@@ -285,22 +286,24 @@
 
         // Listen for online status to sync
         useEffect(() => {
-            const handleOnline = async () => {
-                console.log("App is back online, checking for pending syncs...");
-                if (db && userId && window.OfflineTimerManager) {
-                    const res = await window.OfflineTimerManager.sync(db, userId);
-                    if (res && res.synced > 0) {
-                        showNotif(`synced ${res.synced} offline sessions`);
-                    }
+            if (db && userId) {
+                window.__currentDb = db;
+                window.__currentUserId = userId;
+                window.__currentAppId = appId;
+
+                // Also trigger an immediate sync attempt if we just came online/loaded
+                if (navigator.onLine && window.OfflineTimerManager) {
+                    window.OfflineTimerManager.sync(db, userId, appId).catch(e => console.error("Initial sync failed", e));
+                }
+            }
+            const handleOnline = () => {
+                if (window.OfflineTimerManager) {
+                    window.OfflineTimerManager.sync(db, userId, appId).catch(console.error);
                 }
             };
             window.addEventListener('online', handleOnline);
-            // Also try to sync on mount if online
-            if (navigator.onLine) {
-                handleOnline();
-            }
             return () => window.removeEventListener('online', handleOnline);
-        }, [db, userId]);
+        }, [db, userId, appId]);
 
         const showNotif = (msg) => { setNotification(msg); setTimeout(() => setNotification(null), 3000); };
 
@@ -404,7 +407,7 @@
                     // Attempt immediate sync if online
                     if (navigator.onLine && db && userId) {
                         try {
-                            await window.OfflineTimerManager.sync(db, userId);
+                            await window.OfflineTimerManager.sync(db, userId, appId);
                             showNotif(`session saved to cloud`);
                         } catch (e) {
                             console.error("Sync failed, will retry later", e);

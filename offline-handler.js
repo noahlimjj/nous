@@ -1,7 +1,7 @@
 // Offline Mode Handler
 // Suppresses Firebase errors and provides offline mode support
 
-(function() {
+(function () {
     'use strict';
 
     // Track online/offline state
@@ -12,7 +12,7 @@
     const originalConsoleError = console.error;
     const originalConsoleWarn = console.warn;
 
-    console.error = function(...args) {
+    console.error = function (...args) {
         const message = args.join(' ');
 
         // Suppress these errors when offline
@@ -45,7 +45,7 @@
         originalConsoleError.apply(console, args);
     };
 
-    console.warn = function(...args) {
+    console.warn = function (...args) {
         const message = args.join(' ');
 
         // Suppress Firebase warnings when offline
@@ -108,7 +108,8 @@
             // Wait for app to be ready (db and userId available)
             setTimeout(() => {
                 if (window.__currentDb && window.__currentUserId) {
-                    window.OfflineTimerManager.sync(window.__currentDb, window.__currentUserId)
+                    const appId = window.__currentAppId || 'study-tracker-app';
+                    window.OfflineTimerManager.sync(window.__currentDb, window.__currentUserId, appId)
                         .then(result => {
                             if (result.success) {
                                 console.log(`✅ Synced ${result.synced} offline timer operations`);

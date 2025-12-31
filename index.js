@@ -1217,6 +1217,7 @@ const Dashboard = ({ db, userId, setNotification, activeTimers, setActiveTimers,
         const runMigration = async () => {
             const migratedAppId = await migrateAndConsolidateData(db, userId);
             setAppId(migratedAppId);
+            window.__app_id = migratedAppId; // Global source of truth
         };
 
         runMigration();
@@ -1227,6 +1228,7 @@ const Dashboard = ({ db, userId, setNotification, activeTimers, setActiveTimers,
         if (db && userId) {
             window.__currentDb = db;
             window.__currentUserId = userId;
+            window.__currentAppId = appId;
             window.__showNotification = setNotification;
         }
     }, [db, userId, setNotification]);
@@ -7397,6 +7399,7 @@ function App() {
                     currentPage === 'habits' && React.createElement(window.HabitsTab, {
                         user: { id: userId, ...userProfile },
                         db,
+                        appId, // Pass appId to HabitsTab
                         activeTimers,
                         isRewardsPage: showRewardsPage,
                         onToggleView: () => setShowRewardsPage(!showRewardsPage) // Allow toggling from within component

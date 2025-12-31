@@ -219,7 +219,7 @@
     }
 
     // Sync offline data to Firestore when back online
-    async function syncToFirestore(db, userId) {
+    async function syncToFirestore(db, userId, appId) {
         const queue = getSyncQueue();
 
         if (queue.length === 0) {
@@ -229,7 +229,8 @@
 
         console.log(`[Offline Timer] Syncing ${queue.length} operations...`);
 
-        const appId = 'study-tracker-app';
+        // fallback if not provided
+        appId = appId || 'study-tracker-app';
         let syncedCount = 0;
         const errors = [];
 
