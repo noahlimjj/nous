@@ -172,6 +172,19 @@
 
     const getTimerMs = (totalMs) => Math.floor((totalMs % 1000) / 10);
 
+    // Custom hook for timer tick - only re-renders when timers are running
+    const useTimerTick = (timers) => {
+        const [tick, setTick] = useState(0);
+        useEffect(() => {
+            const hasRunning = Object.values(timers).some(t => t && t.isRunning);
+            if (!hasRunning) return;
+            // Update every 100ms instead of 50ms for better performance
+            const interval = setInterval(() => setTick(Date.now()), 100);
+            return () => clearInterval(interval);
+        }, [timers]);
+        return tick;
+    };
+
     const HabitsPage = ({ user, db, isWidget = false, onToggleView, appId: propAppId }) => {
         // console.log("HabitsPage rendered. User:", user, "DB:", db);
         const userId = user?.uid || user?.id || null;
@@ -184,9 +197,7 @@
         const [weekOffset, setWeekOffset] = useState(0);
         const [notification, setNotification] = useState(null);
         const [newHabit, setNewHabit] = useState({ title: "", difficulty: "medium", icon: "leaf", color: "#26DE81" });
-        // Timer state
         const [timers, setTimers] = useState({});
-        const [currentTime, setCurrentTime] = useState(Date.now());
         const [expandedHabit, setExpandedHabit] = useState(null);
         const [selectedHabitId, setSelectedHabitId] = useState(null);
         // Manual session state
@@ -204,6 +215,9 @@
         const [dashboardData, setDashboardData] = useState({ quote: "" });
         // Track heaters checks
         const stoppedTimersRef = React.useRef(new Set());
+
+        // Use timer tick hook - this will cause re-renders only when timers are running
+        const timerTick = useTimerTick(timers);
 
 
 
@@ -253,14 +267,6 @@
             });
             return () => { unsub1(); unsub2(); unsubDashboard(); };
         }, [db, userId, appId]);
-
-        // Timer tick effect
-        useEffect(() => {
-            const hasRunning = Object.values(timers).some(t => t && t.isRunning);
-            if (!hasRunning) return;
-            const interval = setInterval(() => setCurrentTime(Date.now()), 50);
-            return () => clearInterval(interval);
-        }, [timers]);
 
         // Hydrate timers from OfflineTimerManager on mount
         useEffect(() => {
@@ -572,7 +578,7 @@
             const timer = timers[habitId];
             if (!timer) return 0;
             if (timer.isRunning) {
-                const elapsed = (currentTime - timer.startTime) + timer.elapsedTime;
+                const elapsed = (Date.now() - timer.startTime) + timer.elapsedTime;
                 return Math.max(0, elapsed); // Prevent negative values
             }
             return Math.max(0, timer.elapsedTime || 0);
