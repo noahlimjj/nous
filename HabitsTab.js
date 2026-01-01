@@ -246,10 +246,33 @@
                                 elapsedTime: h.activeTimer.elapsedTime || 0,
                                 originalStartTime: h.activeTimer.startTime?.toMillis ? h.activeTimer.startTime.toMillis() : h.activeTimer.startTime
                             };
-                        } else if (prev[h.id] && prev[h.id].isRunning && !window.OfflineTimerManager?.isOffline()) {
-                            // If we have a running timer locally but server says no (and we are online), 
-                            // it means it was stopped on another device. Stop it locally.
-                            next[h.id] = null;
+                        } else if (prev[h.id] && prev[h.id].isRunning) {
+                            // CONFLICT: Local timer is running, but Firestore says it's not.
+                            // This usually happens if the user just started the timer, closed the tab, 
+                            // and the network request to save `activeTimer` failed or hasn't arrived.
+                            // In this case, we TRUST LOCAL (persistence) and restore it to Firestore.
+
+                            if (window.OfflineTimerManager && window.OfflineTimerManager.getTimers()[h.id]) {
+                                console.log(`[HabitsTab] Restoring missing activeTimer for ${h.id} from local state`);
+                                // Keep local state running
+                                const localTimer = prev[h.id];
+                                next[h.id] = localTimer;
+
+                                // Trigger restore sync
+                                const restoreData = {
+                                    activeTimer: {
+                                        isRunning: true,
+                                        startTime: localTimer.originalStartTime, // Keep original start time
+                                        elapsedTime: localTimer.elapsedTime
+                                    }
+                                };
+                                window.updateDoc(window.doc(db, `/artifacts/${appId}/users/${userId}/habits/${h.id}`), restoreData)
+                                    .catch(e => console.error("Error restoring missing timer:", e));
+                            } else if (!window.OfflineTimerManager?.isOffline()) {
+                                // Only if NOT in offline mode (active decision) and NOT in OfflineManager do we trust Firestore stop
+                                // (If it's not in OfflineManager, it might be a zombie state, so we let it die)
+                                next[h.id] = null;
+                            }
                         }
                     });
                     return next;
@@ -908,20 +931,20 @@
                     ),
 
                     // Controls
-                    React.createElement("div", { className: "flex items-center gap-2 flex-wrap" },
+                    React.createElement("div", { className: "flex items-center gap-1 flex-nowrap" },
                         // Start/Pause
                         isRunning ?
                             React.createElement("button", {
                                 onClick: () => pauseTimer(h.id),
-                                className: "p-3 bg-yellow-100 text-yellow-600 rounded-full hover:bg-yellow-200 transition"
-                            }, React.createElement("svg", { width: 24, height: 24, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: 2, strokeLinecap: "round", strokeLinejoin: "round" },
+                                className: "p-2 bg-yellow-100 text-yellow-600 rounded-full hover:bg-yellow-200 transition"
+                            }, React.createElement("svg", { width: 20, height: 20, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: 2, strokeLinecap: "round", strokeLinejoin: "round" },
                                 React.createElement("rect", { x: 6, y: 4, width: 4, height: 16 }),
                                 React.createElement("rect", { x: 14, y: 4, width: 4, height: 16 })
                             )) :
                             React.createElement("button", {
                                 onClick: () => startTimer(h.id),
-                                className: "p-3 bg-green-100 text-green-600 rounded-full hover:bg-green-200 transition"
-                            }, React.createElement("svg", { width: 24, height: 24, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: 2, strokeLinecap: "round", strokeLinejoin: "round" },
+                                className: "p-2 bg-green-100 text-green-600 rounded-full hover:bg-green-200 transition"
+                            }, React.createElement("svg", { width: 20, height: 20, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: 2, strokeLinecap: "round", strokeLinejoin: "round" },
                                 React.createElement("polygon", { points: "5 3 19 12 5 21 5 3" })
                             )),
 
@@ -929,16 +952,16 @@
                         React.createElement("button", {
                             onClick: () => stopTimer(h.id),
                             disabled: !timer,
-                            className: "p-3 bg-red-100 text-red-600 rounded-full hover:bg-red-200 transition disabled:opacity-50 disabled:cursor-not-allowed"
-                        }, React.createElement("svg", { width: 24, height: 24, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: 2, strokeLinecap: "round", strokeLinejoin: "round" },
+                            className: "p-2 bg-red-100 text-red-600 rounded-full hover:bg-red-200 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                        }, React.createElement("svg", { width: 20, height: 20, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: 2, strokeLinecap: "round", strokeLinejoin: "round" },
                             React.createElement("rect", { x: 3, y: 3, width: 18, height: 18, rx: 2 })
                         )),
 
                         // Manual Session
                         React.createElement("button", {
                             onClick: () => setShowManualSession(h.id),
-                            className: "p-3 bg-blue-100 text-blue-600 rounded-full hover:bg-blue-200 transition"
-                        }, React.createElement("svg", { width: 24, height: 24, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: 2, strokeLinecap: "round", strokeLinejoin: "round" },
+                            className: "p-2 bg-blue-100 text-blue-600 rounded-full hover:bg-blue-200 transition"
+                        }, React.createElement("svg", { width: 20, height: 20, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: 2, strokeLinecap: "round", strokeLinejoin: "round" },
                             React.createElement("circle", { cx: 12, cy: 12, r: 10 }),
                             React.createElement("line", { x1: 12, y1: 8, x2: 12, y2: 16 }),
                             React.createElement("line", { x1: 8, y1: 12, x2: 16, y2: 12 })
@@ -947,9 +970,9 @@
                         // Reset
                         React.createElement("button", {
                             onClick: () => setTimers(prev => ({ ...prev, [h.id]: { isRunning: false, startTime: null, originalStartTime: null, elapsedTime: 0 } })),
-                            className: "p-3 bg-orange-100 text-orange-600 rounded-full hover:bg-orange-200 transition disabled:opacity-50 disabled:cursor-not-allowed",
+                            className: "p-2 bg-orange-100 text-orange-600 rounded-full hover:bg-orange-200 transition disabled:opacity-50 disabled:cursor-not-allowed",
                             title: "Reset timer to 0"
-                        }, React.createElement("svg", { width: 24, height: 24, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: 2, strokeLinecap: "round", strokeLinejoin: "round" },
+                        }, React.createElement("svg", { width: 20, height: 20, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: 2, strokeLinecap: "round", strokeLinejoin: "round" },
                             React.createElement("path", { d: "M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" }),
                             React.createElement("path", { d: "M21 3v5h-5" }),
                             React.createElement("path", { d: "M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" }),
@@ -959,10 +982,10 @@
                         // Hide/Bin
                         React.createElement("button", {
                             onClick: () => setSelectedHabitId(null),
-                            className: "p-3 bg-gray-100 text-gray-500 rounded-full hover:bg-gray-200 transition"
-                        }, React.createElement("svg", { width: 24, height: 24, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: 2, strokeLinecap: "round", strokeLinejoin: "round" },
+                            className: "p-2 bg-gray-100 text-gray-500 rounded-full hover:bg-gray-200 transition"
+                        }, React.createElement("svg", { width: 20, height: 20, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: 2, strokeLinecap: "round", strokeLinejoin: "round" },
                             React.createElement("polyline", { points: "3 6 5 6 21 6" }),
-                            React.createElement("path", { d: "M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2-2h4a2 2 0 0 1 2-2h4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" }),
+                            React.createElement("path", { d: "M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2-2h4a2 2 0 0 1 2-2h4a2 2 0 0 1 2-2h4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" }),
                             React.createElement("line", { x1: 10, y1: 11, x2: 10, y2: 17 }),
                             React.createElement("line", { x1: 14, y1: 11, x2: 14, y2: 17 })
                         ))
