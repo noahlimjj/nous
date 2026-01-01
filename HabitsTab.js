@@ -173,7 +173,7 @@
     const getTimerMs = (totalMs) => Math.floor((totalMs % 1000) / 10);
 
     const HabitsPage = ({ user, db, isWidget = false, onToggleView, appId: propAppId }) => {
-        console.log("HabitsPage rendered. User:", user, "DB:", db);
+        // console.log("HabitsPage rendered. User:", user, "DB:", db);
         const userId = user?.uid || user?.id || null;
         // Use prop, or global, or default
         const appId = propAppId || (typeof __app_id !== 'undefined' ? __app_id : 'study-tracker-app');
