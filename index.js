@@ -6935,6 +6935,9 @@ function App() {
     const [activeTimers, setActiveTimers] = useState({});
     const timerIntervals = useRef({});
 
+    // App ID for Firestore paths
+    const [appId, setAppId] = useState(() => typeof __app_id !== 'undefined' ? __app_id : 'study-tracker-app');
+
     // Night mode state
     const [isNightMode, setIsNightMode] = useState(() => {
         const saved = localStorage.getItem('nightMode');
@@ -6966,6 +6969,15 @@ function App() {
         console.log('Computed background color:', window.getComputedStyle(document.body).backgroundColor);
         console.log('=== End useEffect ===');
     }, [isNightMode]);
+
+    // Sync appId with global __app_id
+    useEffect(() => {
+        if (typeof __app_id !== 'undefined' && __app_id && __app_id !== appId) {
+            setAppId(__app_id);
+        }
+        // Expose appId globally for offline sync and other components
+        window.__app_id = appId;
+    }, [appId]);
 
     // Listen for Firebase SDK ready event
     useEffect(() => {
