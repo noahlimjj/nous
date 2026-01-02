@@ -549,12 +549,29 @@ const formatDate = (timestamp) => {
 
 // Generate unique friend code
 const generateFriendCode = () => {
-    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // Removed ambiguous chars like I, 1, O, 0
     let code = '';
     for (let i = 0; i < 8; i++) {
         code += chars.charAt(Math.floor(Math.random() * chars.length));
     }
     return code;
+};
+
+// Helper to format time ago (e.g., "5m ago", "2h ago", "1d ago")
+const formatTimeAgo = (date) => {
+    if (!date) return '';
+    const now = new Date();
+    const diffMs = now - date;
+    const diffSec = Math.floor(diffMs / 1000);
+    const diffMin = Math.floor(diffSec / 60);
+    const diffHr = Math.floor(diffMin / 60);
+    const diffDay = Math.floor(diffHr / 24);
+
+    if (diffSec < 60) return 'just now';
+    if (diffMin < 60) return `${diffMin}m ago`;
+    if (diffHr < 24) return `${diffHr}h ago`;
+    if (diffDay < 7) return `${diffDay}d ago`;
+    return formatDate(date); // Fallback to full date
 };
 
 // Generate unique friend code with collision check
@@ -1760,7 +1777,7 @@ const Dashboard = ({ db, userId, setNotification, activeTimers, setActiveTimers,
                                                 const userDocRef = window.doc(db, 'users', userId);
                                                 window.setDoc(userDocRef, {
                                                     currentTopic: null,
-                                                    lastActive: null
+                                                    // lastActive: null // Keep last active time for general presence
                                                 }, { merge: true });
                                             }
                                             return current;
@@ -2244,7 +2261,7 @@ const Dashboard = ({ db, userId, setNotification, activeTimers, setActiveTimers,
                     const userDocRef = window.doc(db, 'users', userId);
                     await window.setDoc(userDocRef, {
                         currentTopic: null,
-                        lastActive: null
+                        // lastActive: null // Keep last active time for general presence
                     }, { merge: true });
                 }
             } catch (error) {
@@ -6267,6 +6284,11 @@ const Friends = ({ db, userId, setNotification, userProfile }) => {
                                                         "Active"
                                                     )
                                                 );
+
+                                                // Show "Last active" if not currently active
+                                                return React.createElement('div', { className: "text-xs text-calm-500", style: { fontWeight: 300 } },
+                                                    `Last active: ${formatTimeAgo(toDate(friend.lastActive))}`
+                                                );
                                             })()
                                         ),
                                         // Current topic - more prominent when active
@@ -7277,7 +7299,37 @@ function App() {
             }
         );
 
-        return () => unsubscribe();
+        // Update lastActive timestamp on mount and visibility change
+        const updateLastActive = async () => {
+            if (!db || !userId) return;
+            try {
+                const userDocRef = window.doc(db, 'users', userId);
+                await window.updateDoc(userDocRef, {
+                    lastActive: window.serverTimestamp()
+                });
+            } catch (error) {
+                console.error("Error updating lastActive:", error);
+            }
+        };
+
+        updateLastActive();
+
+        const handleVisibilityChange = () => {
+            if (document.visibilityState === 'visible') {
+                updateLastActive();
+            }
+        };
+
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+
+        // Update every 5 minutes while open
+        const intervalId = setInterval(updateLastActive, 5 * 60 * 1000);
+
+        return () => {
+            unsubscribe();
+            document.removeEventListener('visibilitychange', handleVisibilityChange);
+            clearInterval(intervalId);
+        };
     }, [db, userId, auth]);
 
     // Handle username submission
