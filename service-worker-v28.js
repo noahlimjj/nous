@@ -1,5 +1,5 @@
-// Service Worker v27 - Fixed Sync & Cache Logic
-const CACHE_VERSION = 'nous-v27-2026-01-01';
+// Service Worker v28 - Fixed Sync & Cache Logic
+const CACHE_VERSION = 'nous-v28-2026-01-03';
 const CACHE_NAME = CACHE_VERSION;
 
 // Critical files for offline functionality
@@ -22,7 +22,7 @@ const OPTIONAL_FILES = [
 
 // Install: Pre-cache critical files
 self.addEventListener('install', (event) => {
-    console.log('[SW v27] Installing...');
+    console.log('[SW v28] Installing...');
 
     event.waitUntil(
         (async () => {
@@ -30,11 +30,11 @@ self.addEventListener('install', (event) => {
 
             // Cache critical files - must succeed
             try {
-                console.log('[SW v27] Caching critical files...');
+                console.log('[SW v28] Caching critical files...');
                 await cache.addAll(CRITICAL_FILES);
-                console.log('[SW v27] ✓ Critical files cached');
+                console.log('[SW v28] ✓ Critical files cached');
             } catch (error) {
-                console.error('[SW v27] ✗ Failed to cache critical files:', error);
+                console.error('[SW v28] ✗ Failed to cache critical files:', error);
                 // Don't throw - allow SW to install anyway
             }
 
@@ -44,17 +44,17 @@ self.addEventListener('install', (event) => {
                     const response = await fetch(file);
                     if (response.ok) {
                         await cache.put(file, response);
-                        console.log(`[SW v27] ✓ Cached optional file: ${file}`);
+                        console.log(`[SW v28] ✓ Cached optional file: ${file}`);
                     } else {
-                        console.warn(`[SW v27] ⚠ Could not cache ${file}: HTTP ${response.status}`);
+                        console.warn(`[SW v28] ⚠ Could not cache ${file}: HTTP ${response.status}`);
                     }
                 } catch (error) {
-                    console.warn(`[SW v27] ⚠ Failed to cache ${file}:`, error.message);
+                    console.warn(`[SW v28] ⚠ Failed to cache ${file}:`, error.message);
                     // Continue with installation even if optional files fail
                 }
             }
 
-            console.log('[SW v27] Installation complete, activating...');
+            console.log('[SW v28] Installation complete, activating...');
             return self.skipWaiting();
         })()
     );
@@ -62,7 +62,7 @@ self.addEventListener('install', (event) => {
 
 // Activate: Clean up old caches
 self.addEventListener('activate', (event) => {
-    console.log('[SW v27] Activating...');
+    console.log('[SW v28] Activating...');
 
     event.waitUntil(
         (async () => {
@@ -71,13 +71,13 @@ self.addEventListener('activate', (event) => {
             await Promise.all(
                 cacheNames.map(cacheName => {
                     if (cacheName !== CACHE_NAME) {
-                        console.log('[SW v27] Deleting old cache:', cacheName);
+                        console.log('[SW v28] Deleting old cache:', cacheName);
                         return caches.delete(cacheName);
                     }
                 })
             );
 
-            console.log('[SW v27] ✓ Activated and taking control');
+            console.log('[SW v28] ✓ Activated and taking control');
             return self.clients.claim();
         })()
     );
@@ -120,7 +120,7 @@ self.addEventListener('fetch', (event) => {
                     return networkResponse;
                 } catch (error) {
                     // Network failed - try cache
-                    console.log('[SW v27] Network failed, trying cache');
+                    console.log('[SW v28] Network failed, trying cache');
 
                     // Try cached responses in order of preference
                     const cachedResponse =
@@ -129,12 +129,12 @@ self.addEventListener('fetch', (event) => {
                         await caches.match(request);
 
                     if (cachedResponse) {
-                        console.log('[SW v27] ✓ Serving from cache offline');
+                        console.log('[SW v28] ✓ Serving from cache offline');
                         return cachedResponse;
                     }
 
                     // Last resort: offline fallback page
-                    console.log('[SW v27] ⚠ No cache available, showing offline page');
+                    console.log('[SW v28] ⚠ No cache available, showing offline page');
                     return new Response(
                         createOfflinePage(),
                         {
@@ -188,7 +188,7 @@ self.addEventListener('fetch', (event) => {
 
                     return networkResponse;
                 } catch (error) {
-                    console.error('[SW v27] Failed to fetch:', url.pathname);
+                    console.error('[SW v28] Failed to fetch:', url.pathname);
                     throw error;
                 }
             })()
@@ -202,7 +202,7 @@ self.addEventListener('fetch', (event) => {
 
 // Message handler
 self.addEventListener('message', (event) => {
-    console.log('[SW v27] Received message:', event.data);
+    console.log('[SW v28] Received message:', event.data);
 
     if (event.data === 'SKIP_WAITING') {
         self.skipWaiting();
@@ -211,7 +211,7 @@ self.addEventListener('message', (event) => {
     if (event.data === 'CLEAR_CACHE') {
         event.waitUntil(
             caches.delete(CACHE_NAME).then(() => {
-                console.log('[SW v27] Cache cleared');
+                console.log('[SW v28] Cache cleared');
             })
         );
     }
@@ -307,5 +307,5 @@ function createOfflinePage() {
 </html>`;
 }
 
-console.log('[SW v27] Service worker loaded and ready');
-console.log('[SW v27] Cache version:', CACHE_VERSION);
+console.log('[SW v28] Service worker loaded and ready');
+console.log('[SW v28] Cache version:', CACHE_VERSION);

@@ -137,15 +137,15 @@
 </head>
 
 <body>
-    <!-- PWA Service Worker Registration - v27 -->
+    <!-- PWA Service Worker Registration - v28 -->
     <script>
         // --- NUCLEAR CACHE CLEARING ---
         // Force unregister old service workers to ensure immediate update
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.getRegistrations().then(function (registrations) {
                 for (let registration of registrations) {
-                    if (registration.active && registration.active.scriptURL.includes('v26')) {
-                        console.log('Force unregistering old v26 SW');
+                    if (registration.active && registration.active.scriptURL.includes('v27')) {
+                        console.log('Force unregistering old v27 SW');
                         registration.unregister();
                     }
                 }
@@ -156,8 +156,8 @@
         // Smart service worker registration with improved error handling
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', async () => {
-                const CURRENT_SW = '/service-worker-v27.js';
-                const CURRENT_CACHE_PREFIX = 'nous-v27';
+                const CURRENT_SW = '/service-worker-v28.js';
+                const CURRENT_CACHE_PREFIX = 'nous-v28';
 
                 try {
                     console.log('[PWA] Initializing service worker...');
@@ -168,9 +168,9 @@
 
                     for (const reg of registrations) {
                         const scriptURL = reg.active?.scriptURL || '';
-                        if (scriptURL.includes('service-worker-v27.js')) {
+                        if (scriptURL.includes('service-worker-v28.js')) {
                             hasCurrentVersion = true;
-                            console.log('[PWA] ✓ Service worker v27 already registered');
+                            console.log('[PWA] ✓ Service worker v28 already registered');
                         } else {
                             // Unregister old versions
                             console.log('[PWA] Unregistering old SW:', scriptURL);
@@ -189,7 +189,7 @@
 
                     // Register current version if not already registered
                     if (!hasCurrentVersion) {
-                        console.log('[PWA] Registering service worker v27...');
+                        console.log('[PWA] Registering service worker v28...');
                         const registration = await navigator.serviceWorker.register(CURRENT_SW, {
                             scope: '/'
                         });
@@ -206,7 +206,7 @@
                             });
                         }
 
-                        console.log('[PWA] ✓ Service worker v27 registered successfully');
+                        console.log('[PWA] ✓ Service worker v28 registered successfully');
 
                         // Check for updates every 5 minutes
                         setInterval(() => {
@@ -246,7 +246,7 @@
     <div class="shooting-star"></div>
     <div class="shooting-star"></div>
 
-    <script src="HabitsTab.js?v=63"></script>
+    <script src="HabitsTab.js?v=64"></script>
     <script src="components/CalendarChecklist.js"></script>
     <script src="index.js?v=32&t=1766813000"></script>
 

@@ -1549,6 +1549,58 @@ const Dashboard = ({ db, userId, setNotification, activeTimers, setActiveTimers,
         }
     }, [db, userId, sharedTimers.length, sharedTimers.map(t => t.id).sort().join(',')]);
 
+    // Sync active shared timers to local habits (BRIDGE TO NEW TIMER SYSTEM)
+    // When a shared timer is active, ensure the corresponding local habit timer is running
+    useEffect(() => {
+        if (!db || !userId || sharedTimers.length === 0) return;
+
+        const syncSharedToLocal = async () => {
+            for (const timer of sharedTimers) {
+                // If I am a participant and the shared timer is active
+                if (timer.status === 'active' && !timer.isPaused && timer.participantHabits && timer.participantHabits[userId]) {
+                    const habitInfo = timer.participantHabits[userId];
+                    const habitId = habitInfo.habitId;
+
+                    if (!habitId) continue;
+
+                    try {
+                        const habitRef = window.doc(db, `/artifacts/${appId}/users/${userId}/habits/${habitId}`);
+                        const habitSnap = await window.getDoc(habitRef);
+
+                        if (habitSnap.exists()) {
+                            const habitData = habitSnap.data();
+                            // If local timer is NOT running, start it to match the shared timer
+                            // We use the NEW timer system: habit.activeTimer field
+                            if (!habitData.activeTimer || !habitData.activeTimer.isRunning) {
+                                console.log(`[Nous Together] Syncing shared timer to local habit: ${habitId}`);
+                                await window.updateDoc(habitRef, {
+                                    activeTimer: {
+                                        isRunning: true,
+                                        startTime: timer.startTime?.toMillis ? timer.startTime.toMillis() : Date.now(),
+                                        elapsedTime: timer.elapsedBeforePause || 0
+                                    }
+                                });
+
+                                // Also update user status (Heartbeat/Presence)
+                                const userRef = window.doc(db, 'users', userId);
+                                await window.setDoc(userRef, {
+                                    currentTopic: habitData.title || habitInfo.habitName || "Studying",
+                                    lastActive: window.serverTimestamp()
+                                }, { merge: true });
+                            }
+                        }
+                    } catch (e) {
+                        console.error("Error syncing shared timer to local:", e);
+                    }
+                }
+            }
+        };
+
+        // Debounce slightly to avoid hammering on initial load?
+        // For now, direct call is fine as sharedTimers updates are infrequent (status changes)
+        syncSharedToLocal();
+    }, [db, userId, sharedTimers]); // sharedTimers dependency is key
+
     // Listen for active timer changes from Firebase
     useEffect(() => {
         if (!db || !userId) return;

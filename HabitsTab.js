@@ -196,7 +196,7 @@
         const [editingHabit, setEditingHabit] = useState(null);
         const [weekOffset, setWeekOffset] = useState(0);
         const [notification, setNotification] = useState(null);
-        const [newHabit, setNewHabit] = useState({ title: "", difficulty: "medium", icon: "leaf", color: "#26DE81" });
+        const [newHabit, setNewHabit] = useState({ title: "", difficulty: "medium", icon: "leaf", color: "#FFFFFF" });
         const [timers, setTimers] = useState({});
         const [expandedHabit, setExpandedHabit] = useState(null);
         const [selectedHabitId, setSelectedHabitId] = useState(null);
@@ -212,7 +212,6 @@
         const [showHabitSelector, setShowHabitSelector] = useState(false);
         const [draggedHabit, setDraggedHabit] = useState(null);
         // Dashboard state
-        const [dashboardData, setDashboardData] = useState({ quote: "" });
         // Track heaters checks
         const stoppedTimersRef = React.useRef(new Set());
 
@@ -279,16 +278,11 @@
                 });
             });
 
-            // Dashboard listener
-            const unsubDashboard = window.onSnapshot(window.doc(db, `/artifacts/${appId}/users/${userId}/dashboard/daily`), doc => {
-                if (doc.exists()) setDashboardData(doc.data());
-                else setDashboardData({ quote: "" });
-            });
             const unsub2 = window.onSnapshot(window.doc(db, `/artifacts/${appId}/users/${userId}/gamification/wallet`), doc => {
                 if (doc.exists()) setWallet(doc.data());
                 else window.setDoc(window.doc(db, `/artifacts/${appId}/users/${userId}/gamification/wallet`), { coins: 0 });
             });
-            return () => { unsub1(); unsub2(); unsubDashboard(); };
+            return () => { unsub1(); unsub2(); };
         }, [db, userId, appId]);
 
         // Hydrate timers from OfflineTimerManager on mount
@@ -351,13 +345,25 @@
 
             // Persist start to Firestore
             if (db && userId) {
-                window.updateDoc(window.doc(db, `/artifacts/${appId}/users/${userId}/habits/${habitId}`), {
+                const batch = window.writeBatch(db);
+                const habitRef = window.doc(db, `/artifacts/${appId}/users/${userId}/habits/${habitId}`);
+                const userRef = window.doc(db, 'users', userId);
+
+                batch.update(habitRef, {
                     activeTimer: {
                         isRunning: true,
                         startTime: Date.now(),
                         elapsedTime: timers[habitId]?.elapsedTime || 0
                     }
-                }).catch(e => console.error("Error syncing start timer:", e));
+                });
+
+                // Set current topic for friends to see
+                batch.set(userRef, {
+                    currentTopic: habit.title || "Studying",
+                    lastActive: window.serverTimestamp ? window.serverTimestamp() : new Date()
+                }, { merge: true });
+
+                batch.commit().catch(e => console.error("Error syncing start timer:", e));
             }
 
             // Sync with OfflineTimerManager
@@ -415,9 +421,26 @@
 
             // Clear active timer from Firestore
             if (db && userId) {
-                window.updateDoc(window.doc(db, `/artifacts/${appId}/users/${userId}/habits/${habitId}`), {
-                    activeTimer: window.deleteField ? window.deleteField() : null // Handle deleteField if available, else null
-                }).catch(e => console.error("Error clearing active timer:", e));
+                const batch = window.writeBatch(db);
+                const habitRef = window.doc(db, `/artifacts/${appId}/users/${userId}/habits/${habitId}`);
+
+                batch.update(habitRef, {
+                    activeTimer: window.deleteField ? window.deleteField() : null
+                });
+
+                // Clear current topic if no other timers are running (check local state)
+                // We use a small delay or check other habits to be sure, but for now assuming single-tasking
+                // is the norm. To be safe, we only clear if THIS was the active topic.
+                // ideally we'd query all active timers but that's async. 
+                // Simple approach: Set to null. If another timer is running, its next tick or status update should set it back?
+                // Better: Just set it to null. Authenticity > Persistence for now.
+                const userRef = window.doc(db, 'users', userId);
+                batch.set(userRef, {
+                    currentTopic: null,
+                    lastActive: window.serverTimestamp ? window.serverTimestamp() : new Date()
+                }, { merge: true });
+
+                batch.commit().catch(e => console.error("Error clearing active timer:", e));
             }
 
             // Use OfflineTimerManager to handle the stop logic (it queues the save)
@@ -638,7 +661,7 @@
                     icon: newHabit.icon, color: newHabit.color, streak: 0, completionDates: [],
                     order: maxOrder + 1
                 });
-                setNewHabit({ title: "", difficulty: "medium", icon: "leaf", color: "#26DE81" });
+                setNewHabit({ title: "", difficulty: "medium", icon: "leaf", color: "#FFFFFF" });
                 setShowAddHabit(false);
                 showNotif("habit created!");
             } catch (error) {
@@ -794,29 +817,6 @@
                 className: "fixed top-20 left-1/2 transform -translate-x-1/2 bg-gray-900 text-white px-6 py-3 rounded-xl shadow-2xl lowercase",
                 style: { zIndex: 9999 }
             }, notification),
-
-            // Dashboard / Daily Quote
-            React.createElement("div", { className: "mb-6 bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700" },
-                React.createElement("h3", { className: "text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2" }, "Daily Focus"),
-                React.createElement("textarea", {
-                    value: dashboardData.quote || "",
-                    onChange: (e) => {
-                        const val = e.target.value;
-                        setDashboardData(prev => ({ ...prev, quote: val }));
-                        // Debounce save? For simplicity using onBlur or just rapid updates for now (with simple throttling if needed, but local state is fast)
-                        // Actually, let's save on blur to avoid too many writes
-                    },
-                    onBlur: async (e) => {
-                        if (db && userId) {
-                            await window.setDoc(window.doc(db, `/artifacts/${appId}/users/${userId}/dashboard/daily`), { quote: e.target.value }, { merge: true });
-                        }
-                    },
-                    placeholder: "What is your main focus today? Write a quote or a goal...",
-                    className: "w-full bg-transparent border-none p-0 text-xl font-light text-gray-700 dark:text-gray-200 focus:ring-0 resize-none placeholder-gray-300 dark:placeholder-gray-600",
-                    rows: 1,
-                    style: { minHeight: '2rem' }
-                })
-            ),
 
             // Big Timer (if habit selected)
             // Big Timer (Always visible if habits exist)
