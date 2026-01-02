@@ -185,7 +185,7 @@
         return tick;
     };
 
-    const HabitsPage = ({ user, db, isWidget = false, onToggleView, appId: propAppId }) => {
+    const HabitsPage = ({ user, db, isWidget = false, onToggleView, appId: propAppId, sharedTimers = [] }) => {
         // console.log("HabitsPage rendered. User:", user, "DB:", db);
         const userId = user?.uid || user?.id || null;
         // Use prop, or global, or default
@@ -850,7 +850,14 @@
                 const isRunning = timer && timer.isRunning;
                 const elapsed = getElapsedTime(h.id);
 
-                return React.createElement("div", { className: "bg-white p-6 sm:p-8 rounded-2xl shadow-sm flex flex-col sm:flex-row sm:items-center gap-8 transition-all mb-8 border border-gray-100 dark:border-gray-700 dark:bg-gray-800" },
+                // Check if this habit is part of a specific active shared timer
+                const isShared = (sharedTimers || []).some(t =>
+                    t.active &&
+                    t.participants &&
+                    t.participants.some(p => p.userId === userId && p.habitId === h.id)
+                );
+
+                return React.createElement("div", { className: `${isShared ? 'bg-purple-50 ring-2 ring-purple-400' : 'bg-white'} p-6 sm:p-8 rounded-2xl shadow-sm flex flex-col sm:flex-row sm:items-center gap-8 transition-all mb-8 border border-gray-100 dark:border-gray-700 dark:bg-gray-800` },
                     // Habit Icon (using h.color/icon, replaces drag handle)
                     !isMobile && React.createElement("div", { className: "hidden sm:block p-2 text-gray-400 transition" },
                         React.createElement("div", {
@@ -914,7 +921,7 @@
 
                         // Timer Display
                         React.createElement("div", {
-                            className: "timer-display text-7xl sm:text-8xl font-thin tabular-nums tracking-tight text-gray-900 dark:text-white select-none cursor-pointer transition-colors hover:text-gray-700 dark:hover:text-gray-200",
+                            className: `timer-display text-7xl sm:text-8xl font-thin tabular-nums tracking-tight ${isShared ? 'text-purple-600' : 'text-gray-900 dark:text-white'} select-none cursor-pointer transition-colors hover:text-gray-700 dark:hover:text-gray-200`,
                             style: { fontFamily: '"Satoshi", sans-serif', fontVariationSettings: '"wght" 200' },
                             onClick: h.timerMode === 'timer' && !isRunning ? () => openDurationPicker(h.id) : undefined
                         },

@@ -2897,7 +2897,7 @@ const Dashboard = ({ db, userId, setNotification, activeTimers, setActiveTimers,
             // Header OUTSIDE the white card (like timer section)
             React.createElement("h2", { className: "text-3xl text-calm-800 mb-6", style: { fontWeight: 300 } }, "habit tracker"),
             React.createElement("div", { className: "bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-gray-100 dark:border-slate-800 overflow-hidden" },
-                React.createElement(window.HabitsTab, { user: { id: userId }, db, activeTimers, isWidget: true, appId })
+                React.createElement(window.HabitsTab, { user: { id: userId }, db, activeTimers, isWidget: true, appId, sharedTimers })
             )
         ),
 
@@ -2980,27 +2980,16 @@ const Dashboard = ({ db, userId, setNotification, activeTimers, setActiveTimers,
             // Habits List (including shared timers) - REMOVED
             React.createElement('div', { className: "space-y-4" },
                 (() => {
-                    return null;
-                    // Combine shared timers and habits
+                    // Render ONLY shared timers here (habits are in HabitsTab)
                     const sharedTimerItems = sharedTimers.map(timer => ({
                         type: 'sharedTimer',
                         data: timer,
                         id: timer.id
                     }));
-                    const habitItems = habits.map(habit => ({
-                        type: 'habit',
-                        data: habit,
-                        id: habit.id
-                    }));
-                    const allItems = [...sharedTimerItems, ...habitItems];
 
+                    if (sharedTimerItems.length === 0) return null;
 
-                    if (allItems.length === 0) {
-
-                        return React.createElement('p', { className: "text-gray-500 text-center py-8" }, "No habits yet. Add one to get started!");
-                    }
-
-                    return allItems.map((item, index) => {
+                    return sharedTimerItems.map((item, index) => {
                         if (item.type === 'sharedTimer') {
                             // Render Nous session with shared timer
                             const session = item.data;
@@ -6262,32 +6251,38 @@ const Friends = ({ db, userId, setNotification, userProfile }) => {
                                             ),
                                             // Active indicator when friend is currently working (verified by lastActive timestamp)
                                             (() => {
-                                                if (!friend.currentTopic || !friend.lastActive) return null;
+                                                if (!friend.lastActive) return null;
 
                                                 const lastActiveDate = toDate(friend.lastActive);
                                                 const now = new Date();
-                                                const threeMinutesAgo = new Date(now.getTime() - 3 * 60 * 1000);
+                                                // Consider active if within last 5 minutes (standard heartbeat)
+                                                const isActive = (now - lastActiveDate) < 5 * 60 * 1000;
+                                                // Consider "recently active" if within 1 hour
+                                                const isRecent = (now - lastActiveDate) < 60 * 60 * 1000;
 
-                                                // Only show active if lastActive was within the last 3 minutes
-                                                const isActive = lastActiveDate >= threeMinutesAgo;
+                                                if (isActive) {
+                                                    return React.createElement('div', {
+                                                        className: "flex items-center gap-1 px-2 py-0.5 bg-green-100 rounded-full",
+                                                        title: "Currently active"
+                                                    },
+                                                        React.createElement('div', {
+                                                            className: "w-2 h-2 bg-green-500 rounded-full animate-pulse"
+                                                        }),
+                                                        React.createElement('span', { className: "text-xs text-green-700", style: { fontWeight: 400 } },
+                                                            "Active"
+                                                        )
+                                                    );
+                                                }
 
-                                                if (!isActive) return null;
-
-                                                return React.createElement('div', {
-                                                    className: "flex items-center gap-1 px-2 py-0.5 bg-green-100 rounded-full",
-                                                    title: "Currently active"
-                                                },
-                                                    React.createElement('div', {
-                                                        className: "w-2 h-2 bg-green-500 rounded-full animate-pulse"
-                                                    }),
-                                                    React.createElement('span', { className: "text-xs text-green-700", style: { fontWeight: 400 } },
-                                                        "Active"
-                                                    )
-                                                );
+                                                if (isRecent) {
+                                                    return React.createElement('div', { className: "text-xs text-calm-500", style: { fontWeight: 300 } },
+                                                        `Active ${Math.floor((now - lastActiveDate) / 60000)}m ago`
+                                                    );
+                                                }
 
                                                 // Show "Last active" if not currently active
                                                 return React.createElement('div', { className: "text-xs text-calm-500", style: { fontWeight: 300 } },
-                                                    `Last active: ${formatTimeAgo(toDate(friend.lastActive))}`
+                                                    `Last active: ${formatTimeAgo(lastActiveDate)}`
                                                 );
                                             })()
                                         ),
@@ -6448,7 +6443,7 @@ const Friends = ({ db, userId, setNotification, userProfile }) => {
                                         className: "w-4 h-4 text-purple-600"
                                     }),
                                     React.createElement('span', { className: "text-calm-800", style: { fontWeight: 400 } },
-                                        habit.name
+                                        habit.title || habit.name
                                     )
                                 )
                             )
@@ -6523,7 +6518,7 @@ const Friends = ({ db, userId, setNotification, userProfile }) => {
                                         className: "w-4 h-4 text-purple-600"
                                     }),
                                     React.createElement('span', { className: "text-calm-800", style: { fontWeight: 400 } },
-                                        habit.name
+                                        habit.title || habit.name
                                     )
                                 )
                             )
@@ -7518,6 +7513,7 @@ function App() {
                         user: { id: userId, ...userProfile },
                         db,
                         appId, // Pass appId to HabitsTab
+                        sharedTimers // Pass sharedTimers to HabitsTab
                         activeTimers,
                         isRewardsPage: showRewardsPage,
                         onToggleView: () => setShowRewardsPage(!showRewardsPage) // Allow toggling from within component
