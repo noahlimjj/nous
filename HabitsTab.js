@@ -852,9 +852,12 @@
 
                 // Check if this habit is part of a specific active shared timer
                 const isShared = (sharedTimers || []).some(t =>
-                    t.active &&
+                    (t.active || t.status === 'active') &&
                     t.participants &&
-                    t.participants.some(p => p.userId === userId && p.habitId === h.id)
+                    t.participants.includes(userId) &&
+                    t.participantHabits &&
+                    t.participantHabits[userId] &&
+                    t.participantHabits[userId].habitId === h.id
                 );
 
                 return React.createElement("div", { className: `${isShared ? 'bg-purple-50 ring-2 ring-purple-400' : 'bg-white'} p-6 sm:p-8 rounded-2xl shadow-sm flex flex-col sm:flex-row sm:items-center gap-8 transition-all mb-8 border border-gray-100 dark:border-gray-700 dark:bg-gray-800` },
