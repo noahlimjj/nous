@@ -681,7 +681,29 @@
         };
 
         const deleteHabit = async (id) => {
-            if (confirm('Delete habit?')) await window.deleteDoc(window.doc(db, `/artifacts/${appId}/users/${userId}/habits/${id}`));
+            if (!confirm('Delete this habit AND all its history/sessions? This cannot be undone.')) return;
+
+            try {
+                // 1. Delete all sessions for this habit
+                const sessionsRef = window.collection(db, `/artifacts/${appId}/users/${userId}/sessions`);
+                const q = window.query(sessionsRef, window.where('habitId', '==', id));
+                const snapshot = await window.getDocs(q);
+
+                const batch = window.writeBatch(db);
+                snapshot.docs.forEach(doc => {
+                    batch.delete(doc.ref);
+                });
+
+                // 2. Delete the habit itself
+                const habitRef = window.doc(db, `/artifacts/${appId}/users/${userId}/habits/${id}`);
+                batch.delete(habitRef);
+
+                await batch.commit();
+                showNotif("habit & history deleted");
+            } catch (error) {
+                console.error("Error deleting habit:", error);
+                showNotif("error deleting habit");
+            }
         };
 
         const toggleDate = async (habitId, dateStr) => {
@@ -888,28 +910,7 @@
                             ))
                         ),
 
-                        // Timer Input Row
-                        React.createElement("div", { className: "flex items-center gap-3 mb-1" },
-                            React.createElement("button", {
-                                onClick: () => toggleTimerMode(h.id),
-                                className: "p-2 rounded-lg transition bg-blue-50 text-blue-600 hover:bg-blue-100 dark:bg-blue-900/20 dark:text-blue-400",
-                                title: h.timerMode === 'timer' ? "Countdown mode - Click to switch to stopwatch" : "Switch to Timer Mode"
-                            }, React.createElement(StopwatchIcon, { size: 18 })),
 
-                            h.timerMode === 'timer' && React.createElement("button", {
-                                onClick: () => openDurationPicker(h.id),
-                                className: "w-36 px-3 py-1.5 rounded-lg border border-gray-200 text-center text-lg font-mono bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white focus:outline-none focus:border-blue-500 transition-colors shadow-sm",
-                                title: "Click to set duration"
-                            },
-                                (() => {
-                                    const totalSeconds = Math.floor((h.targetDuration || 1500000) / 1000);
-                                    const hours = Math.floor(totalSeconds / 3600);
-                                    const minutes = Math.floor((totalSeconds % 3600) / 60);
-                                    const seconds = totalSeconds % 60;
-                                    return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
-                                })()
-                            )
-                        ),
 
                         // Timer Display
                         React.createElement("div", {
@@ -931,7 +932,13 @@
                     ),
 
                     // Controls
-                    React.createElement("div", { className: "flex items-center gap-1 flex-nowrap" },
+                    React.createElement("div", { className: "flex items-center gap-1.5 flex-nowrap" },
+                        // Timer Control/Toggle
+                        React.createElement("button", {
+                            onClick: () => toggleTimerMode(h.id),
+                            className: "p-2 bg-indigo-50 text-indigo-600 rounded-full hover:bg-indigo-100 transition dark:bg-indigo-900/20 dark:text-indigo-400",
+                            title: h.timerMode === 'timer' ? "Click to switch to stopwatch" : "Click to switch to countdown"
+                        }, React.createElement(StopwatchIcon, { size: 20 })),
                         // Start/Pause
                         isRunning ?
                             React.createElement("button", {

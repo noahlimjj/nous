@@ -36,7 +36,7 @@
     <!-- Satoshi font -->
     <link href="https://api.fontshare.com/v2/css?f[]=satoshi@300,400,500,700&display=swap" rel="stylesheet">
 
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="style.css?v=design_update_1">
     <link rel="stylesheet" href="gamification.css">
 
     <!-- Firebase Configuration - Must load first -->
@@ -144,8 +144,8 @@
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.getRegistrations().then(function (registrations) {
                 for (let registration of registrations) {
-                    if (registration.active && registration.active.scriptURL.includes('v27')) {
-                        console.log('Force unregistering old v27 SW');
+                    if (registration.active && (registration.active.scriptURL.includes('v27') || registration.active.scriptURL.includes('v28'))) {
+                        console.log('Force unregistering old SW (v27/v28)');
                         registration.unregister();
                     }
                 }
@@ -156,8 +156,8 @@
         // Smart service worker registration with improved error handling
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', async () => {
-                const CURRENT_SW = '/service-worker-v28.js';
-                const CURRENT_CACHE_PREFIX = 'nous-v28';
+                const CURRENT_SW = '/service-worker-v29.js';
+                const CURRENT_CACHE_PREFIX = 'nous-v29';
 
                 try {
                     console.log('[PWA] Initializing service worker...');
@@ -168,9 +168,9 @@
 
                     for (const reg of registrations) {
                         const scriptURL = reg.active?.scriptURL || '';
-                        if (scriptURL.includes('service-worker-v28.js')) {
+                        if (scriptURL.includes('service-worker-v29.js')) {
                             hasCurrentVersion = true;
-                            console.log('[PWA] ✓ Service worker v28 already registered');
+                            console.log('[PWA] ✓ Service worker v29 already registered');
                         } else {
                             // Unregister old versions
                             console.log('[PWA] Unregistering old SW:', scriptURL);
@@ -189,7 +189,7 @@
 
                     // Register current version if not already registered
                     if (!hasCurrentVersion) {
-                        console.log('[PWA] Registering service worker v28...');
+                        console.log('[PWA] Registering service worker v29...');
                         const registration = await navigator.serviceWorker.register(CURRENT_SW, {
                             scope: '/'
                         });
@@ -206,7 +206,7 @@
                             });
                         }
 
-                        console.log('[PWA] ✓ Service worker v28 registered successfully');
+                        console.log('[PWA] ✓ Service worker v29 registered successfully');
 
                         // Check for updates every 5 minutes
                         setInterval(() => {

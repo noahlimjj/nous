@@ -394,31 +394,27 @@ button[style*="border-radius: 50%"][style*="backgroundColor"] {
 
 /* Premium timer display */
 body.night-mode .timer-display {
-    background: rgba(15, 23, 42, 0.7) !important;
-    backdrop-filter: blur(12px);
-    border: 1px solid rgba(100, 116, 139, 0.2) !important;
+    background: transparent !important;
+    backdrop-filter: none;
+    border: none !important;
     color: #f1f5f9 !important;
-    box-shadow:
-        0 8px 32px rgba(0, 0, 0, 0.3),
-        inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    box-shadow: none;
 }
 
 body.night-mode .timer-display.running {
-    background: rgba(15, 61, 48, 0.5) !important;
-    border-color: rgba(16, 185, 129, 0.4) !important;
-    box-shadow:
-        0 8px 32px rgba(0, 0, 0, 0.3),
-        0 0 48px rgba(16, 185, 129, 0.2),
-        inset 0 1px 0 rgba(16, 185, 129, 0.1);
+    background: transparent !important;
+    border-color: transparent !important;
+    box-shadow: none;
+    color: #34d399 !important;
+    /* Brighter green for contrast */
 }
 
 body.night-mode .timer-display.paused {
-    background: rgba(61, 47, 15, 0.5) !important;
-    border-color: rgba(245, 158, 11, 0.4) !important;
-    box-shadow:
-        0 8px 32px rgba(0, 0, 0, 0.3),
-        0 0 48px rgba(245, 158, 11, 0.2),
-        inset 0 1px 0 rgba(245, 158, 11, 0.1);
+    background: transparent !important;
+    border-color: transparent !important;
+    box-shadow: none;
+    color: #fbbf24 !important;
+    /* Brighter yellow/orange for contrast */
 }
 
 /* Premium SVG and tree styling */
@@ -584,24 +580,24 @@ body.night-mode * {
     color: #1f2937;
     text-align: center;
     user-select: none;
-    margin: 20px 0;
-    padding: 20px;
-    background: #f9fafb;
-    border-radius: 12px;
-    border: 2px solid #e5e7eb;
+    margin: 10px 0;
+    padding: 0;
+    background: transparent;
+    border-radius: 0;
+    border: none;
     transition: all 0.3s ease;
 }
 
 .timer-display.running {
     color: #10b981;
-    border-color: #10b981;
-    background: #f0fdf4;
+    border-color: transparent;
+    background: transparent;
 }
 
 .timer-display.paused {
     color: #f59e0b;
-    border-color: #f59e0b;
-    background: #fffbeb;
+    border-color: transparent;
+    background: transparent;
 }
 
 .timer-display .milliseconds {
