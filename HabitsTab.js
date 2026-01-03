@@ -499,9 +499,15 @@
                         if (habitSnap.exists()) {
                             const hData = habitSnap.data(); // Ensure .data() is used
                             const newTotal = (hData.totalHours || 0) + hoursTracked;
+
+                            const dateStr = toLocalDateString(new Date());
+                            const currentDates = hData.completionDates || [];
+                            const updatedDates = currentDates.includes(dateStr) ? currentDates : [...currentDates, dateStr];
+
                             await window.updateDoc(habitRef, {
                                 totalHours: newTotal,
-                                lastStudied: new Date()
+                                lastStudied: new Date(),
+                                completionDates: updatedDates
                             });
                         }
 
@@ -807,14 +813,25 @@
 
             // Save the session to Firestore
             try {
-                const sessionId = Date.now().toString();
+                const sessionDate = new Date();
+                const dateStr = toLocalDateString(sessionDate);
+
+                // Update habit completion dates if not already present
+                const currentDates = habit.completionDates || [];
+                if (!currentDates.includes(dateStr)) {
+                    await window.updateDoc(window.doc(db, `/artifacts/${appId}/users/${userId}/habits/${habitId}`), {
+                        completionDates: [...currentDates, dateStr]
+                    });
+                }
+
                 await window.addDoc(window.collection(db, `/artifacts/${appId}/users/${userId}/sessions`), {
                     habitId: habitId,
                     habitName: habit.title,
                     duration: totalMs,
                     startTime: window.Timestamp.now(),
                     endTime: window.Timestamp.now(),
-                    isManual: true
+                    isManual: true,
+                    localDate: dateStr // Optional: store local date string for easy debugging
                 });
                 showNotif(`manual session saved: ${hours > 0 ? hours + 'h ' : ''}${minutes}m`);
                 setShowManualSession(null);

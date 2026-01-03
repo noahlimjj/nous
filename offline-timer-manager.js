@@ -247,9 +247,23 @@
                         const habitData = habitSnap.data();
                         const newTotalHours = (habitData.totalHours || 0) + op.hoursTracked;
 
+                        // Helper for Local Date String (duplicated here as this is a standalone script)
+                        const toLocalDateString = (date) => {
+                            const d = new Date(date);
+                            const year = d.getFullYear();
+                            const month = String(d.getMonth() + 1).padStart(2, '0');
+                            const day = String(d.getDate()).padStart(2, '0');
+                            return `${year}-${month}-${day}`;
+                        };
+
+                        const dateStr = toLocalDateString(op.completedAt);
+                        const currentDates = habitData.completionDates || [];
+                        const updatedDates = currentDates.includes(dateStr) ? currentDates : [...currentDates, dateStr];
+
                         await window.updateDoc(habitRef, {
                             totalHours: newTotalHours,
-                            lastStudied: new Date(op.completedAt) // Use JS Date for consistency with existing code
+                            lastStudied: new Date(op.completedAt),
+                            completionDates: updatedDates
                         });
 
                         // Create session document
