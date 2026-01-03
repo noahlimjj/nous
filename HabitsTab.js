@@ -145,6 +145,7 @@
         const year = d.getFullYear();
         const month = String(d.getMonth() + 1).padStart(2, '0');
         const day = String(d.getDate()).padStart(2, '0');
+        // console.log(`toLocalDateString: input=${date}, output=${year}-${month}-${day} (timezone offset check)`);
         return `${year}-${month}-${day}`;
     };
 
