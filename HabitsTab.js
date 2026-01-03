@@ -140,11 +140,19 @@
         }, amount || 0)
     );
 
+    const toLocalDateString = (date) => {
+        const d = new Date(date);
+        const year = d.getFullYear();
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    };
+
     const calcStreak = (dates) => {
         if (!dates || dates.length === 0) return 0;
         const sorted = [...dates].sort().reverse();
-        const today = new Date().toISOString().split('T')[0];
-        const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
+        const today = toLocalDateString(new Date());
+        const yesterday = toLocalDateString(new Date(Date.now() - 86400000));
         if (sorted[0] !== today && sorted[0] !== yesterday) return 0;
         let streak = 1;
         for (let i = 1; i < sorted.length; i++) {
@@ -641,7 +649,7 @@
             return days;
         };
         const weekDays = getWeekDays();
-        const todayStr = new Date().toISOString().split('T')[0];
+        const todayStr = toLocalDateString(new Date());
 
         const addHabit = async (e) => {
             e.preventDefault();
@@ -1032,7 +1040,7 @@
                 React.createElement("div", { style: { width: flameColWidth, flexShrink: 0 } }),
                 React.createElement("div", { style: habitColStyle, className: "text-sm font-medium text-gray-600 dark:text-gray-300" }, "habit"),
                 weekDays.map(d => {
-                    const iso = d.toISOString().split('T')[0];
+                    const iso = toLocalDateString(d);
                     const isToday = iso === todayStr;
                     return React.createElement("div", { key: iso, style: dayStyle, className: isToday ? 'text-blue-600 font-bold' : 'text-gray-500' },
                         React.createElement("div", { className: "text-[10px] lowercase" }, d.toLocaleDateString('en-US', { weekday: 'narrow' })),
@@ -1097,7 +1105,7 @@
                             )
                         ),
                         weekDays.map(d => {
-                            const iso = d.toISOString().split('T')[0];
+                            const iso = toLocalDateString(d);
                             const done = (h.completionDates || []).includes(iso);
                             const isToday = iso === todayStr;
                             return React.createElement("div", { key: iso, style: dayStyle, className: "flex items-center justify-center" },

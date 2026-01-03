@@ -6016,6 +6016,7 @@ const Friends = ({ db, userId, setNotification, userProfile }) => {
                     participantNames: participantNames,
                     participantHabits: updatedParticipantHabits,
                     status: 'active',
+                    active: true, // Required for listener
                     startTime: window.Timestamp.now(),
                     elapsedBeforePause: 0,
                     isPaused: false,
@@ -7512,11 +7513,10 @@ function App() {
                     currentPage === 'habits' && React.createElement(window.HabitsTab, {
                         user: { id: userId, ...userProfile },
                         db,
-                        appId, // Pass appId to HabitsTab
-                        sharedTimers // Pass sharedTimers to HabitsTab
+                        appId,
                         activeTimers,
                         isRewardsPage: showRewardsPage,
-                        onToggleView: () => setShowRewardsPage(!showRewardsPage) // Allow toggling from within component
+                        onToggleView: () => setShowRewardsPage(!showRewardsPage)
                     }),
 
                     currentPage === 'goals' && React.createElement(Goals, { db, userId, setNotification }),
