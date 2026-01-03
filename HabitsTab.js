@@ -1145,8 +1145,8 @@ return React.createElement("div", { className: "px-4 py-2 max-w-4xl mx-auto", st
 
     // Add Habit Modal (positioned within container)
     showAddHabit && React.createElement("div", {
-        className: "absolute inset-0 flex items-start justify-center bg-black/30 backdrop-blur-sm rounded-2xl",
-        style: { zIndex: 100, padding: '20px', paddingTop: '40px' },
+        className: "fixed inset-0 flex items-center justify-center bg-black/50 backdrop-blur-sm",
+        style: { zIndex: 10000, padding: '20px' },
         onClick: () => setShowAddHabit(false)
     },
         React.createElement("form", {
