@@ -7512,9 +7512,9 @@ function App() {
                     currentPage === 'dashboard' && React.createElement(Dashboard, { db, userId, setNotification, activeTimers, setActiveTimers, timerIntervals }),
                     currentPage === 'habits' && React.createElement(window.HabitsTab, {
                         user: { id: userId, ...userProfile },
-                        db,
-                        appId,
-                        activeTimers,
+                        db: db,
+                        appId: appId,
+                        activeTimers: activeTimers,
                         isRewardsPage: showRewardsPage,
                         onToggleView: () => setShowRewardsPage(!showRewardsPage)
                     }),
