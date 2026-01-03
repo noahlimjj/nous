@@ -540,7 +540,8 @@
         };
 
         const resetTimer = (habitId) => {
-            setTimers(prev => ({ ...prev, [habitId]: { isRunning: false, startTime: null, originalStartTime: null, elapsedTime: 0 } }));
+            console.log(`[HabitsTab] Resetting timer for ${habitId}`);
+            setTimers(prev => ({ ...prev, [habitId]: null }));
             if (window.OfflineTimerManager) {
                 window.OfflineTimerManager.reset(habitId);
             }
@@ -548,7 +549,8 @@
             if (db && userId) {
                 window.updateDoc(window.doc(db, `/artifacts/${appId}/users/${userId}/habits/${habitId}`), {
                     activeTimer: window.deleteField ? window.deleteField() : null
-                }).catch(e => console.error("Error clearing on reset:", e));
+                }).then(() => console.log(`[HabitsTab] Cleared activeTimer for ${habitId} in DB`))
+                    .catch(e => console.error("Error clearing on reset:", e));
             }
         };
 
