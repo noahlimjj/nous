@@ -39,6 +39,102 @@
     <link rel="stylesheet" href="style.css?v=design_update_1">
     <link rel="stylesheet" href="gamification.css">
 
+    <!-- Critical CSS for Skeleton Loader (Instant Startup) -->
+    <style>
+        :root {
+            --sk-bg: #f8f9fb;
+            --sk-card: #ffffff;
+            --sk-pulse: #e2e8f0;
+        }
+
+        body {
+            background-color: var(--sk-bg);
+            margin: 0;
+            font-family: -apple-system, sans-serif;
+        }
+
+        .skeleton-container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        .sk-header {
+            height: 40px;
+            width: 150px;
+            background: var(--sk-pulse);
+            border-radius: 8px;
+            margin: 20px auto 40px;
+            animation: pulse 1.5s infinite ease-in-out;
+        }
+
+        .sk-timer-card {
+            background: var(--sk-card);
+            border-radius: 24px;
+            padding: 40px;
+            text-align: center;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+            margin-bottom: 40px;
+        }
+
+        .sk-timer-circle {
+            width: 180px;
+            height: 60px;
+            background: var(--sk-pulse);
+            border-radius: 12px;
+            margin: 0 auto 16px;
+            animation: pulse 1.5s infinite ease-in-out;
+        }
+
+        .sk-timer-control {
+            width: 220px;
+            height: 40px;
+            background: var(--sk-pulse);
+            border-radius: 20px;
+            margin: 0 auto;
+            animation: pulse 1.5s infinite ease-in-out;
+            opacity: 0.6;
+        }
+
+        .sk-habit-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .sk-habit-item {
+            height: 72px;
+            background: var(--sk-card);
+            border-radius: 16px;
+            width: 100%;
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05);
+            animation: pulse 1.5s infinite ease-in-out;
+        }
+
+        @keyframes pulse {
+            0% {
+                opacity: 0.6;
+            }
+
+            50% {
+                opacity: 0.3;
+            }
+
+            100% {
+                opacity: 0.6;
+            }
+        }
+
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --sk-bg: #0f172a;
+                --sk-card: #1e293b;
+                --sk-pulse: #334155;
+            }
+        }
+    </style>
+
     <!-- Firebase Configuration - Must load first -->
     <script src="config.js?v=16&t=1730700000"></script>
 
@@ -241,7 +337,23 @@
         }
     </script>
 
-    <div id="root"></div>
+    <div id="root">
+        <!-- Skeleton Loading UI -->
+        <div class="skeleton-container">
+            <div class="sk-header"></div>
+            <div class="sk-timer-card">
+                <div class="sk-timer-circle"></div>
+                <div class="sk-timer-control"></div>
+            </div>
+            <div class="sk-habit-list">
+                <div class="sk-habit-item"></div>
+                <div class="sk-habit-item"></div>
+                <div class="sk-habit-item"></div>
+                <div class="sk-habit-item"></div>
+                <div class="sk-habit-item"></div>
+            </div>
+        </div>
+    </div>
     <div class="shooting-star"></div>
     <div class="shooting-star"></div>
     <div class="shooting-star"></div>
