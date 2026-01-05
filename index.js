@@ -1234,6 +1234,12 @@ const Dashboard = ({ db, userId, setNotification, activeTimers, setActiveTimers,
         habitsRef.current = habits;
     }, [habits]);
 
+    // Keep ref to activeTimers for use in handlers (avoids stale closure)
+    const activeTimersRef = useRef({});
+    useEffect(() => {
+        activeTimersRef.current = activeTimers;
+    }, [activeTimers]);
+
     const [appId, setAppId] = useState('study-tracker-app');
 
     // Run migration on first load
@@ -1930,11 +1936,19 @@ const Dashboard = ({ db, userId, setNotification, activeTimers, setActiveTimers,
                 return;
             }
 
-            const activeTimer = activeTimers[habitId];
+            // Use ref to get current activeTimers (avoids stale closure)
+            const activeTimer = activeTimersRef.current[habitId];
+            console.log('[Reset Timer Debug] activeTimer:', activeTimer);
             if (activeTimer) {
                 // If timer is running, stop and delete it
                 const timerDocRef = window.doc(db, `/artifacts/${appId}/users/${userId}/activeTimers/${habitId}`);
                 await window.deleteDoc(timerDocRef);
+                // Also clear from local state immediately
+                setActiveTimers(prev => {
+                    const newTimers = { ...prev };
+                    delete newTimers[habitId];
+                    return newTimers;
+                });
                 setNotification({ type: 'success', message: `Timer reset for ${habitName}.` });
             } else {
                 setNotification({ type: 'info', message: `No active timer for ${habitName}.` });
