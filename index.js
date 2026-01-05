@@ -1911,6 +1911,7 @@ const Dashboard = ({ db, userId, setNotification, activeTimers, setActiveTimers,
     };
 
     const handleResetTimer = async (habitId, habitName) => {
+        console.log('[Reset Timer Debug] Called with:', habitId, habitName);
         try {
             // OFFLINE MODE: Use offline timer manager
             if (!navigator.onLine && window.OfflineTimerManager) {
@@ -1945,6 +1946,7 @@ const Dashboard = ({ db, userId, setNotification, activeTimers, setActiveTimers,
     };
 
     const handleDeleteSession = async (sessionId) => {
+        console.log('[Delete Session Debug] Called with:', sessionId);
         if (window.confirm("Are you sure you want to delete this session? This cannot be undone.")) {
             try {
                 const sessionDocRef = window.doc(db, `/artifacts/${appId}/users/${userId}/sessions/${sessionId}`);
