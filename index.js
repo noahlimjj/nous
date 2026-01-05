@@ -1228,6 +1228,12 @@ const Dashboard = ({ db, userId, setNotification, activeTimers, setActiveTimers,
     // Track which countdown timers have completed (persists across re-renders)
     const completedTimersRef = useRef(new Set());
 
+    // Keep ref to habits for use in interval callback (avoids stale closure)
+    const habitsRef = useRef([]);
+    useEffect(() => {
+        habitsRef.current = habits;
+    }, [habits]);
+
     const [appId, setAppId] = useState('study-tracker-app');
 
     // Run migration on first load
@@ -1688,7 +1694,7 @@ const Dashboard = ({ db, userId, setNotification, activeTimers, setActiveTimers,
                         hasChanges = true;
 
                         // Check if countdown timer has completed
-                        const habit = habits.find(h => h.id === habitId);
+                        const habit = habitsRef.current.find(h => h.id === habitId);
                         if (habit && habit.timerMode === 'timer') {
                             // Handle both Firestore Timestamp (online) and regular timestamp (offline)
                             const startTimeMs = timer.startTime?.toMillis ? timer.startTime.toMillis() : timer.startTime;
@@ -1809,7 +1815,7 @@ const Dashboard = ({ db, userId, setNotification, activeTimers, setActiveTimers,
         }, 10);
 
         return () => clearInterval(interval);
-    }, [habits]);
+    }, []); // Empty deps - we use habitsRef.current which is always up-to-date
 
     // Accept Nous request and create shared timer
     const handleAcceptNousRequest = async (request) => {
