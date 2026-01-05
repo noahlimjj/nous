@@ -1961,9 +1961,27 @@ const Dashboard = ({ db, userId, setNotification, activeTimers, setActiveTimers,
 
     const handleDeleteSession = async (sessionId) => {
         console.log('[Delete Session Debug] Called with:', sessionId);
+        console.log('[Delete Session Debug] db:', db);
+        console.log('[Delete Session Debug] appId:', appId);
+        console.log('[Delete Session Debug] userId:', userId);
+
+        if (!db) {
+            console.error('[Delete Session Debug] db is undefined!');
+            setNotification({ type: 'error', message: 'Database not available. Please refresh the page.' });
+            return;
+        }
+
+        if (!appId || !userId) {
+            console.error('[Delete Session Debug] appId or userId is undefined!', { appId, userId });
+            setNotification({ type: 'error', message: 'User session not available. Please refresh the page.' });
+            return;
+        }
+
         if (window.confirm("Are you sure you want to delete this session? This cannot be undone.")) {
             try {
-                const sessionDocRef = window.doc(db, `/artifacts/${appId}/users/${userId}/sessions/${sessionId}`);
+                const path = `/artifacts/${appId}/users/${userId}/sessions/${sessionId}`;
+                console.log('[Delete Session Debug] Deleting at path:', path);
+                const sessionDocRef = window.doc(db, path);
                 await window.deleteDoc(sessionDocRef);
                 setNotification({ type: 'success', message: 'Session deleted successfully.' });
             } catch (error) {
