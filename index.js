@@ -1225,6 +1225,9 @@ const Dashboard = ({ db, userId, setNotification, activeTimers, setActiveTimers,
     // Audio context for all sounds (reused to avoid creating multiple contexts)
     const audioContextRef = useRef(null);
 
+    // Track which countdown timers have completed (persists across re-renders)
+    const completedTimersRef = useRef(new Set());
+
     const [appId, setAppId] = useState('study-tracker-app');
 
     // Run migration on first load
@@ -1670,7 +1673,7 @@ const Dashboard = ({ db, userId, setNotification, activeTimers, setActiveTimers,
 
     // Update timer display every 10ms for running timers
     useEffect(() => {
-        const completedTimers = new Set(); // Track which timers have already played sound
+        // Use ref to track completed timers (persists across useEffect re-runs)
 
         const interval = setInterval(() => {
             setCurrentTime(Date.now());
@@ -1694,8 +1697,8 @@ const Dashboard = ({ db, userId, setNotification, activeTimers, setActiveTimers,
                             const remaining = habit.targetDuration - totalElapsed;
 
                             // Timer has reached or passed 0 - stop it!
-                            if (remaining <= 0 && !completedTimers.has(habitId)) {
-                                completedTimers.add(habitId);
+                            if (remaining <= 0 && !completedTimersRef.current.has(habitId)) {
+                                completedTimersRef.current.add(habitId);
 
                                 // IMMEDIATELY remove timer from state to stop the display
                                 setActiveTimers(prev => {
@@ -1784,8 +1787,13 @@ const Dashboard = ({ db, userId, setNotification, activeTimers, setActiveTimers,
                                         });
 
                                         console.log(`Timer completed! Session saved: ${habit.name} - ${Math.round(exactDuration / 1000)}s`);
+
+                                        // Clear from completed set so user can start another countdown with this habit
+                                        completedTimersRef.current.delete(habitId);
                                     } catch (error) {
                                         console.error('Error auto-stopping timer:', error);
+                                        // Also clear from set on error so retry is possible
+                                        completedTimersRef.current.delete(habitId);
                                     }
                                 })();
                             }
