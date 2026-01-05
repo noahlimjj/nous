@@ -253,7 +253,7 @@
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', async () => {
                 const CURRENT_SW = '/service-worker-v31.js';
-                const CURRENT_CACHE_PREFIX = 'nous-v30';
+                const CURRENT_CACHE_PREFIX = 'nous-v31';
 
                 try {
                     console.log('[PWA] Initializing service worker...');
@@ -266,7 +266,7 @@
                         const scriptURL = reg.active?.scriptURL || '';
                         if (scriptURL.includes('service-worker-v31.js')) {
                             hasCurrentVersion = true;
-                            console.log('[PWA] ✓ Service worker v30 already registered');
+                            console.log('[PWA] ✓ Service worker v31 already registered');
                         } else {
                             // Unregister old versions
                             console.log('[PWA] Unregistering old SW:', scriptURL);
@@ -285,7 +285,7 @@
 
                     // Register current version if not already registered
                     if (!hasCurrentVersion) {
-                        console.log('[PWA] Registering service worker v30...');
+                        console.log('[PWA] Registering service worker v31...');
                         const registration = await navigator.serviceWorker.register(CURRENT_SW, {
                             scope: '/'
                         });
@@ -302,7 +302,7 @@
                             });
                         }
 
-                        console.log('[PWA] ✓ Service worker v30 registered successfully');
+                        console.log('[PWA] ✓ Service worker v31 registered successfully');
 
                         // Check for updates every 5 minutes
                         setInterval(() => {
