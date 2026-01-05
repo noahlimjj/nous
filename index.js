@@ -1697,7 +1697,9 @@ const Dashboard = ({ db, userId, setNotification, activeTimers, setActiveTimers,
                             const remaining = habit.targetDuration - totalElapsed;
 
                             // Timer has reached or passed 0 - stop it!
+                            console.log(`[Countdown Debug] ${habit.name}: remaining=${remaining}ms, inSet=${completedTimersRef.current.has(habitId)}, isPaused=${timer.isPaused}`);
                             if (remaining <= 0 && !completedTimersRef.current.has(habitId)) {
+                                console.log(`[Countdown Complete] ${habit.name} - stopping timer and saving session!`);
                                 completedTimersRef.current.add(habitId);
 
                                 // IMMEDIATELY remove timer from state to stop the display
