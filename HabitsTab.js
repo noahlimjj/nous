@@ -98,6 +98,23 @@
         React.createElement('path', { d: "M12 2v2" })
     );
 
+    // Hourglass icon component for countdown/timer mode
+    const HourglassIcon = ({ size = 16 }) => React.createElement('svg', {
+        width: size,
+        height: size,
+        viewBox: "0 0 24 24",
+        fill: "none",
+        stroke: "currentColor",
+        strokeWidth: "2",
+        strokeLinecap: "round",
+        strokeLinejoin: "round"
+    },
+        React.createElement('path', { d: "M5 22h14" }),
+        React.createElement('path', { d: "M5 2h14" }),
+        React.createElement('path', { d: "M17 22v-4.172a2 2 0 0 0-.586-1.414L12 12l-4.414 4.414A2 2 0 0 0 7 17.828V22" }),
+        React.createElement('path', { d: "M7 2v4.172a2 2 0 0 0 .586 1.414L12 12l4.414-4.414A2 2 0 0 0 17 6.172V2" })
+    );
+
     const SysIcon = ({ name, size = 20 }) => {
         const paths = {
             check: "M20 6L9 17l-5-5",
@@ -969,12 +986,12 @@
 
                     // Controls
                     React.createElement("div", { className: "flex items-center gap-1.5 flex-nowrap" },
-                        // Timer Control/Toggle
+                        // Timer Control/Toggle - shows hourglass for timer mode, stopwatch for stopwatch mode
                         React.createElement("button", {
                             onClick: () => toggleTimerMode(h.id),
-                            className: "p-2 bg-indigo-50 text-indigo-600 rounded-full hover:bg-indigo-100 transition dark:bg-indigo-900/20 dark:text-indigo-400",
-                            title: h.timerMode === 'timer' ? "Click to switch to stopwatch" : "Click to switch to countdown"
-                        }, React.createElement(StopwatchIcon, { size: 20 })),
+                            className: `p-2 rounded-full hover:opacity-80 transition ${h.timerMode === 'timer' ? 'bg-blue-100 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400' : 'bg-indigo-50 text-indigo-600 dark:bg-indigo-900/20 dark:text-indigo-400'}`,
+                            title: h.timerMode === 'timer' ? "Countdown mode - Click to switch to stopwatch" : "Stopwatch mode - Click to switch to countdown"
+                        }, h.timerMode === 'timer' ? React.createElement(HourglassIcon, { size: 20 }) : React.createElement(StopwatchIcon, { size: 20 })),
                         // Start/Pause
                         isRunning ?
                             React.createElement("button", {
@@ -1022,15 +1039,13 @@
                             React.createElement("path", { d: "M3 21v-5h5" })
                         )),
 
-                        // Hide/Bin
+                        // Minimize/Hide timer focus
                         React.createElement("button", {
                             onClick: () => setSelectedHabitId(null),
-                            className: "p-2 bg-gray-100 text-gray-500 rounded-full hover:bg-gray-200 transition"
+                            className: "p-2 bg-gray-100 text-gray-500 rounded-full hover:bg-gray-200 transition",
+                            title: "Minimize timer"
                         }, React.createElement("svg", { width: 20, height: 20, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: 2, strokeLinecap: "round", strokeLinejoin: "round" },
-                            React.createElement("polyline", { points: "3 6 5 6 21 6" }),
-                            React.createElement("path", { d: "M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2-2h4a2 2 0 0 1 2-2h4a2 2 0 0 1 2-2h4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" }),
-                            React.createElement("line", { x1: 10, y1: 11, x2: 10, y2: 17 }),
-                            React.createElement("line", { x1: 14, y1: 11, x2: 14, y2: 17 })
+                            React.createElement("polyline", { points: "6 9 12 15 18 9" })
                         ))
                     )
                 );
@@ -1088,7 +1103,7 @@
                 },
                     // Main habit row
                     React.createElement("div", { style: rowStyle, className: "p-4" },
-                        // Timer toggle button - changed to Focus button
+                        // Timer toggle button - changed to Focus button - shows correct icon based on timer mode
                         React.createElement("button", {
                             onClick: () => {
                                 setSelectedHabitId(h.id);
@@ -1096,7 +1111,7 @@
                             },
                             className: `p-1.5 rounded-lg transition ${selectedHabitId === h.id ? 'bg-blue-100 text-blue-600' : 'text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'}`,
                             title: "Focus on this habit"
-                        }, React.createElement(StopwatchIcon, { size: 16 })),
+                        }, h.timerMode === 'timer' ? React.createElement(HourglassIcon, { size: 16 }) : React.createElement(StopwatchIcon, { size: 16 })),
                         React.createElement("div", { style: habitColStyle, className: "flex items-center gap-1" },
                             // Hide color icon on mobile to save space
                             !isMobile && React.createElement("div", {
