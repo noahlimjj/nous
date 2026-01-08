@@ -1761,7 +1761,7 @@ const Dashboard = ({ db, userId, setNotification, activeTimers, setActiveTimers,
                                         console.log('Timer completion audio prevented:', err);
                                     }
                                 };
-                                playBell(3);
+                                playBell(10); // Ring for 5 seconds (10 rings × 500ms = 5s)
 
                                 // Stop timer and save session
                                 (async () => {
