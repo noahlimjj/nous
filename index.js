@@ -1701,6 +1701,7 @@ const Dashboard = ({ db, userId, setNotification, activeTimers, setActiveTimers,
 
                         // Check if countdown timer has completed
                         const habit = habitsRef.current.find(h => h.id === habitId);
+                        console.log(`[Timer Debug] habitId=${habitId}, habit=${habit?.name}, timerMode=${habit?.timerMode}, targetDuration=${habit?.targetDuration}`);
                         if (habit && habit.timerMode === 'timer') {
                             // Handle both Firestore Timestamp (online) and regular timestamp (offline)
                             const startTimeMs = timer.startTime?.toMillis ? timer.startTime.toMillis() : timer.startTime;
@@ -1769,7 +1770,7 @@ const Dashboard = ({ db, userId, setNotification, activeTimers, setActiveTimers,
                                     }
                                 };
                                 playBell(10); // Ring for 5 seconds (10 rings × 500ms = 5s)
-                                
+
                                 // Also try browser notification as backup
                                 if ('Notification' in window && Notification.permission === 'granted') {
                                     new Notification('Timer Complete!', { body: habit.name + ' finished!', icon: '/icons/icon-192x192.png' });
