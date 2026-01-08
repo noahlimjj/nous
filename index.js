@@ -1721,21 +1721,27 @@ const Dashboard = ({ db, userId, setNotification, activeTimers, setActiveTimers,
                                     return newTimers;
                                 });
 
-                                // Play bell 3 times using Web Audio API
+                                // Play bell 10 times using Web Audio API (5 seconds total)
+                                console.log('[Audio] About to play bell sound for timer completion');
                                 const playBell = async (times, delay = 500) => {
+                                    console.log('[Audio] playBell called with times=' + times);
                                     try {
                                         // Get or create audio context
                                         if (!audioContextRef.current) {
+                                            console.log('[Audio] Creating new AudioContext');
                                             audioContextRef.current = new (window.AudioContext || window.webkitAudioContext)();
                                         }
 
                                         const audioContext = audioContextRef.current;
+                                        console.log('[Audio] AudioContext state:', audioContext.state);
 
                                         // Resume audio context if suspended
                                         if (audioContext.state === 'suspended') {
+                                            console.log('[Audio] Resuming suspended AudioContext');
                                             await audioContext.resume();
                                         }
 
+                                        console.log('[Audio] Playing ' + times + ' bell tones');
                                         for (let i = 0; i < times; i++) {
                                             const startTime = audioContext.currentTime + (i * delay / 1000);
 
@@ -1746,22 +1752,28 @@ const Dashboard = ({ db, userId, setNotification, activeTimers, setActiveTimers,
                                             oscillator.connect(gainNode);
                                             gainNode.connect(audioContext.destination);
 
-                                            oscillator.frequency.value = 800; // Bell frequency
+                                            oscillator.frequency.value = 880; // Higher frequency (A5) for more audible bell
                                             oscillator.type = 'sine';
 
-                                            // Envelope for bell sound
+                                            // Louder envelope for bell sound
                                             gainNode.gain.setValueAtTime(0, startTime);
-                                            gainNode.gain.linearRampToValueAtTime(0.5, startTime + 0.01);
-                                            gainNode.gain.exponentialRampToValueAtTime(0.01, startTime + 0.3);
+                                            gainNode.gain.linearRampToValueAtTime(0.8, startTime + 0.02); // Louder (0.8 vs 0.5)
+                                            gainNode.gain.exponentialRampToValueAtTime(0.01, startTime + 0.4); // Longer sustain
 
                                             oscillator.start(startTime);
-                                            oscillator.stop(startTime + 0.3);
+                                            oscillator.stop(startTime + 0.4);
                                         }
+                                        console.log('[Audio] Bell sounds scheduled successfully');
                                     } catch (err) {
-                                        console.log('Timer completion audio prevented:', err);
+                                        console.error('[Audio] Timer completion audio error:', err);
                                     }
                                 };
                                 playBell(10); // Ring for 5 seconds (10 rings × 500ms = 5s)
+                                
+                                // Also try browser notification as backup
+                                if ('Notification' in window && Notification.permission === 'granted') {
+                                    new Notification('Timer Complete!', { body: habit.name + ' finished!', icon: '/icons/icon-192x192.png' });
+                                }
 
                                 // Stop timer and save session
                                 (async () => {
