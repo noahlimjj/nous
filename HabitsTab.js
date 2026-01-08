@@ -244,7 +244,100 @@
         // Use timer tick hook - this will cause re-renders only when timers are running
         const timerTick = useTimerTick(timers);
 
+        // Audio context ref for bell sound
+        const audioContextRef = React.useRef(null);
 
+        // Track which countdown timers have already completed (to prevent duplicate triggers)
+        const completedCountdownsRef = React.useRef(new Set());
+
+        // Play bell sound using Web Audio API
+        const playBell = async (times = 10, delay = 500) => {
+            console.log('[HabitsTab Audio] playBell called with times=' + times);
+            try {
+                // Get or create audio context
+                if (!audioContextRef.current) {
+                    console.log('[HabitsTab Audio] Creating new AudioContext');
+                    audioContextRef.current = new (window.AudioContext || window.webkitAudioContext)();
+                }
+
+                const audioContext = audioContextRef.current;
+                console.log('[HabitsTab Audio] AudioContext state:', audioContext.state);
+
+                // Resume audio context if suspended (required for autoplay policy)
+                if (audioContext.state === 'suspended') {
+                    console.log('[HabitsTab Audio] Resuming suspended AudioContext');
+                    await audioContext.resume();
+                }
+
+                // Play bell sound multiple times
+                for (let i = 0; i < times; i++) {
+                    console.log('[HabitsTab Audio] Playing bell ' + (i + 1) + '/' + times);
+
+                    // Create oscillator for bell-like sound
+                    const oscillator = audioContext.createOscillator();
+                    const gainNode = audioContext.createGain();
+
+                    oscillator.connect(gainNode);
+                    gainNode.connect(audioContext.destination);
+
+                    // Bell-like frequency (E5 note = ~659 Hz)
+                    oscillator.frequency.setValueAtTime(659, audioContext.currentTime);
+                    oscillator.type = 'sine';
+
+                    // Envelope for bell-like decay
+                    gainNode.gain.setValueAtTime(0.5, audioContext.currentTime);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.4);
+
+                    oscillator.start(audioContext.currentTime);
+                    oscillator.stop(audioContext.currentTime + 0.4);
+
+                    // Wait before next bell
+                    if (i < times - 1) {
+                        await new Promise(resolve => setTimeout(resolve, delay));
+                    }
+                }
+                console.log('[HabitsTab Audio] Bell sequence complete');
+            } catch (error) {
+                console.error('[HabitsTab Audio] Error playing bell:', error);
+            }
+        };
+
+        // Effect to detect countdown timer completion
+        useEffect(() => {
+            // Check all running countdown timers
+            habits.forEach(habit => {
+                if (habit.timerMode !== 'timer') return; // Only check countdown timers
+
+                const timer = timers[habit.id];
+                if (!timer || !timer.isRunning) return;
+
+                // Calculate remaining time
+                const elapsed = (Date.now() - timer.startTime) + (timer.elapsedTime || 0);
+                const remaining = (habit.targetDuration || 0) - elapsed;
+
+                // Only log when close to completion (last 5 seconds)
+                if (remaining <= 5000 && remaining > 0) {
+                    console.log(`[HabitsTab Countdown] ${habit.title}: remaining=${Math.round(remaining)}ms`);
+                }
+
+                // Timer has completed!
+                if (remaining <= 0 && !completedCountdownsRef.current.has(habit.id)) {
+                    console.log(`[HabitsTab Countdown] Timer completed for ${habit.title}!`);
+                    completedCountdownsRef.current.add(habit.id);
+
+                    // Play bell sound
+                    playBell(10, 500);
+
+                    // Auto-stop the timer
+                    stopTimer(habit.id, true);
+
+                    // Clean up completed ref after a delay
+                    setTimeout(() => {
+                        completedCountdownsRef.current.delete(habit.id);
+                    }, 2000);
+                }
+            });
+        }, [timerTick, habits, timers]); // Runs on every tick
 
         useEffect(() => {
             if (!db || !userId) return;
