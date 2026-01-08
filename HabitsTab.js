@@ -450,6 +450,23 @@
         // Timer functions
         const startTimer = (habitId) => {
             const habit = habits.find(h => h.id === habitId);
+
+            // CRITICAL: Initialize AudioContext during user interaction (click)
+            // This unlocks audio playback for when the timer auto-completes
+            if (habit && habit.timerMode === 'timer') {
+                console.log('[HabitsTab Audio] Initializing AudioContext during user interaction');
+                if (!audioContextRef.current) {
+                    audioContextRef.current = new (window.AudioContext || window.webkitAudioContext)();
+                    console.log('[HabitsTab Audio] AudioContext created, state:', audioContextRef.current.state);
+                }
+                // Resume if suspended - this is allowed during user gesture
+                if (audioContextRef.current.state === 'suspended') {
+                    audioContextRef.current.resume().then(() => {
+                        console.log('[HabitsTab Audio] AudioContext resumed during start, state:', audioContextRef.current.state);
+                    });
+                }
+            }
+
             setTimers(prev => ({
                 ...prev,
                 [habitId]: {
