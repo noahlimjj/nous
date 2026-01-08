@@ -250,9 +250,9 @@
         // Track which countdown timers have already completed (to prevent duplicate triggers)
         const completedCountdownsRef = React.useRef(new Set());
 
-        // Play bell sound using Web Audio API
-        const playBell = async (times = 10, delay = 500) => {
-            console.log('[HabitsTab Audio] playBell called with times=' + times);
+        // Play premium completion chime using Web Audio API
+        const playCompletionChime = async () => {
+            console.log('[HabitsTab Audio] playCompletionChime called');
             try {
                 // Get or create audio context
                 if (!audioContextRef.current) {
@@ -263,42 +263,71 @@
                 const audioContext = audioContextRef.current;
                 console.log('[HabitsTab Audio] AudioContext state:', audioContext.state);
 
-                // Resume audio context if suspended (required for autoplay policy)
+                // Resume audio context if suspended
                 if (audioContext.state === 'suspended') {
                     console.log('[HabitsTab Audio] Resuming suspended AudioContext');
                     await audioContext.resume();
                 }
 
-                // Play bell sound multiple times
-                for (let i = 0; i < times; i++) {
-                    console.log('[HabitsTab Audio] Playing bell ' + (i + 1) + '/' + times);
+                // Play a premium two-tone chime 3 times
+                const playChime = (startOffset = 0) => {
+                    // First note - C6 (1047 Hz)
+                    const osc1 = audioContext.createOscillator();
+                    const gain1 = audioContext.createGain();
+                    osc1.connect(gain1);
+                    gain1.connect(audioContext.destination);
+                    osc1.frequency.setValueAtTime(1047, audioContext.currentTime + startOffset);
+                    osc1.type = 'sine';
+                    gain1.gain.setValueAtTime(0.3, audioContext.currentTime + startOffset);
+                    gain1.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + startOffset + 0.6);
+                    osc1.start(audioContext.currentTime + startOffset);
+                    osc1.stop(audioContext.currentTime + startOffset + 0.6);
 
-                    // Create oscillator for bell-like sound
-                    const oscillator = audioContext.createOscillator();
-                    const gainNode = audioContext.createGain();
+                    // Second note - E6 (1319 Hz) with slight delay for chord effect
+                    const osc2 = audioContext.createOscillator();
+                    const gain2 = audioContext.createGain();
+                    osc2.connect(gain2);
+                    gain2.connect(audioContext.destination);
+                    osc2.frequency.setValueAtTime(1319, audioContext.currentTime + startOffset + 0.05);
+                    osc2.type = 'sine';
+                    gain2.gain.setValueAtTime(0.25, audioContext.currentTime + startOffset + 0.05);
+                    gain2.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + startOffset + 0.65);
+                    osc2.start(audioContext.currentTime + startOffset + 0.05);
+                    osc2.stop(audioContext.currentTime + startOffset + 0.65);
 
-                    oscillator.connect(gainNode);
-                    gainNode.connect(audioContext.destination);
+                    // High harmonic for shimmer - G6 (1568 Hz)
+                    const osc3 = audioContext.createOscillator();
+                    const gain3 = audioContext.createGain();
+                    osc3.connect(gain3);
+                    gain3.connect(audioContext.destination);
+                    osc3.frequency.setValueAtTime(1568, audioContext.currentTime + startOffset + 0.1);
+                    osc3.type = 'sine';
+                    gain3.gain.setValueAtTime(0.15, audioContext.currentTime + startOffset + 0.1);
+                    gain3.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + startOffset + 0.7);
+                    osc3.start(audioContext.currentTime + startOffset + 0.1);
+                    osc3.stop(audioContext.currentTime + startOffset + 0.7);
+                };
 
-                    // Bell-like frequency (E5 note = ~659 Hz)
-                    oscillator.frequency.setValueAtTime(659, audioContext.currentTime);
-                    oscillator.type = 'sine';
+                // Play chime 3 times with gaps
+                playChime(0);
+                playChime(0.8);
+                playChime(1.6);
 
-                    // Envelope for bell-like decay
-                    gainNode.gain.setValueAtTime(0.5, audioContext.currentTime);
-                    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.4);
-
-                    oscillator.start(audioContext.currentTime);
-                    oscillator.stop(audioContext.currentTime + 0.4);
-
-                    // Wait before next bell
-                    if (i < times - 1) {
-                        await new Promise(resolve => setTimeout(resolve, delay));
+                // Wait for chimes to finish, then speak
+                setTimeout(() => {
+                    if ('speechSynthesis' in window) {
+                        const utterance = new SpeechSynthesisUtterance('Timer complete');
+                        utterance.rate = 0.9;
+                        utterance.pitch = 1.1;
+                        utterance.volume = 0.8;
+                        window.speechSynthesis.speak(utterance);
+                        console.log('[HabitsTab Audio] Spoke "Timer complete"');
                     }
-                }
-                console.log('[HabitsTab Audio] Bell sequence complete');
+                }, 2500);
+
+                console.log('[HabitsTab Audio] Chime sequence complete');
             } catch (error) {
-                console.error('[HabitsTab Audio] Error playing bell:', error);
+                console.error('[HabitsTab Audio] Error playing chime:', error);
             }
         };
 
@@ -325,8 +354,8 @@
                     console.log(`[HabitsTab Countdown] Timer completed for ${habit.title}!`);
                     completedCountdownsRef.current.add(habit.id);
 
-                    // Play bell sound
-                    playBell(10, 500);
+                    // Play completion chime and announce
+                    playCompletionChime();
 
                     // Auto-stop the timer
                     stopTimer(habit.id, true);
