@@ -2115,6 +2115,21 @@ const Dashboard = ({ db, userId, setNotification, activeTimers, setActiveTimers,
     }, []);
 
     const startTimer = useCallback(async (habitId) => {
+        // IMPORTANT: Initialize audio context on user interaction (timer start)
+        // This ensures the bell sound can play when countdown timer completes
+        // Browsers require user interaction before allowing audio playback
+        try {
+            if (!audioContextRef.current) {
+                audioContextRef.current = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            if (audioContextRef.current.state === 'suspended') {
+                await audioContextRef.current.resume();
+            }
+            console.log('[Audio] AudioContext initialized and resumed on timer start');
+        } catch (err) {
+            console.log('[Audio] Could not initialize audio context:', err);
+        }
+
         const habit = habits.find(h => h.id === habitId);
         if (!habit) return;
 
