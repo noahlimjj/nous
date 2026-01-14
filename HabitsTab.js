@@ -643,6 +643,16 @@
                 // Fallback: Timer not found in Offline Manager (e.g. cross-device, cache cleared)
                 console.warn("Timer not found in OfflineManager, attempting fallback save...");
 
+                // Sanity check: if elapsed time is more than 24 hours, discard as orphaned
+                const MAX_TIMER_AGE = 24 * 60 * 60 * 1000;
+                if (elapsed > MAX_TIMER_AGE) {
+                    console.error(`Timer duration exceeds 24h (${Math.round(elapsed / 3600000)}h), discarding as orphaned`);
+                    setTimers(prev => ({ ...prev, [habitId]: null }));
+                    stoppedTimersRef.current.delete(habitId);
+                    showNotif("timer data discarded (too old)");
+                    return;
+                }
+
                 if (navigator.onLine && db && userId) {
                     try {
                         const hoursTracked = elapsed / (1000 * 60 * 60);
@@ -1052,7 +1062,7 @@
                     ),
 
                     // Main Content
-                    React.createElement("div", { className: "flex-grow" },
+                    React.createElement("div", { className: "flex-grow flex flex-col" },
                         // Title Row (with Dropdown)
                         React.createElement("div", { className: "flex items-center gap-3 mb-2" },
                             // Dropdown Trigger (styled as h3 per snippet)
@@ -1120,6 +1130,36 @@
                                     React.createElement("span", { key: "ms", className: "milliseconds text-3xl sm:text-4xl text-gray-300 dark:text-gray-600 font-thin ml-1" }, `.${msTime}`)
                                 ];
                             })()
+                        ),
+
+                        // Progress bar for daily completion (below timer)
+                        React.createElement("div", { className: "mt-4 w-full" },
+                            (() => {
+                                const todayStr = toLocalDateString(new Date());
+                                const completedToday = habits.filter(habit =>
+                                    (habit.completionDates || []).includes(todayStr)
+                                ).length;
+                                const totalHabits = habits.length;
+                                const percentage = totalHabits > 0
+                                    ? Math.round((completedToday / totalHabits) * 100)
+                                    : 0;
+
+                                return React.createElement("div", null,
+                                    // Progress bar
+                                    React.createElement("div", {
+                                        className: "h-2 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden"
+                                    },
+                                        React.createElement("div", {
+                                            className: "h-full bg-gradient-to-r from-green-400 to-green-500 rounded-full transition-all duration-500",
+                                            style: { width: `${percentage}%` }
+                                        })
+                                    ),
+                                    // Label
+                                    React.createElement("div", {
+                                        className: "text-xs text-gray-400 mt-1 text-center"
+                                    }, `${completedToday}/${totalHabits} habits • ${percentage}%`)
+                                );
+                            })()
                         )
                     ),
 
@@ -1178,14 +1218,12 @@
                             React.createElement("path", { d: "M3 21v-5h5" })
                         )),
 
-                        // Minimize/Hide timer focus
+                        // Delete habit
                         React.createElement("button", {
-                            onClick: () => setSelectedHabitId(null),
-                            className: "p-2 bg-gray-100 text-gray-500 rounded-full hover:bg-gray-200 transition",
-                            title: "Minimize timer"
-                        }, React.createElement("svg", { width: 20, height: 20, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: 2, strokeLinecap: "round", strokeLinejoin: "round" },
-                            React.createElement("polyline", { points: "6 9 12 15 18 9" })
-                        ))
+                            onClick: () => deleteHabit(h.id),
+                            className: "p-2 bg-red-50 text-red-500 rounded-full hover:bg-red-100 transition",
+                            title: "Delete habit"
+                        }, React.createElement(SysIcon, { name: "trash", size: 20 }))
                     )
                 );
             })(),
