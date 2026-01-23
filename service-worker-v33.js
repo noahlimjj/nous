@@ -1,4 +1,6 @@
-// Service Worker v33 - Timer sync fix + habit reorder by touch\nconst CACHE_VERSION = 'nous-v33-2026-01-23';\nconst CACHE_NAME = CACHE_VERSION;
+// Service Worker v33 - Timer sync fix + habit reorder by touch
+const CACHE_VERSION = 'nous-v33-2026-01-23';
+const CACHE_NAME = CACHE_VERSION;
 
 // Critical files for offline functionality
 // NOTE: manifest.json is NOT critical for offline app functionality
