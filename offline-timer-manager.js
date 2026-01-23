@@ -6,6 +6,33 @@
 
     const OFFLINE_TIMERS_KEY = 'nous_offline_timers';
     const OFFLINE_QUEUE_KEY = 'nous_offline_sync_queue';
+    const MAX_TIMER_AGE_MS = 24 * 60 * 60 * 1000; // 24 hours - timers older than this are considered orphaned
+
+    // Clean up orphaned/stale timers on load
+    function cleanupOrphanedTimers() {
+        const timers = getOfflineTimers();
+        const now = Date.now();
+        let cleaned = 0;
+        
+        Object.keys(timers).forEach(habitId => {
+            const timer = timers[habitId];
+            const elapsed = timer.isRunning ? (now - timer.startTime) + timer.elapsedTime : timer.elapsedTime;
+            
+            // If timer has been running for more than 24 hours, it's orphaned
+            if (elapsed > MAX_TIMER_AGE_MS) {
+                console.warn(`[Offline Timer] Cleaning up orphaned timer: ${timer.habitName} (${Math.round(elapsed / 3600000)}h elapsed)`);
+                delete timers[habitId];
+                cleaned++;
+            }
+        });
+        
+        if (cleaned > 0) {
+            saveOfflineTimers(timers);
+            console.log(`[Offline Timer] Cleaned up ${cleaned} orphaned timer(s)`);
+        }
+        
+        return cleaned;
+    }
 
     // Get offline timers from localStorage
     function getOfflineTimers() {
@@ -163,6 +190,15 @@
 
         const now = Date.now();
         const elapsed = timer.isRunning ? (now - timer.startTime) + timer.elapsedTime : timer.elapsedTime;
+        
+        // Sanity check: if elapsed time is more than 24 hours, something went wrong
+        if (elapsed > MAX_TIMER_AGE_MS) {
+            console.warn(`[Offline Timer] Timer duration exceeds 24h (${Math.round(elapsed / 3600000)}h), discarding as orphaned`);
+            delete timers[habitId];
+            saveOfflineTimers(timers);
+            return null;
+        }
+        
         const hoursTracked = elapsed / (1000 * 60 * 60); // Convert to hours
 
         // Queue this session for sync
@@ -337,8 +373,12 @@
         clearQueue: clearSyncQueue,
 
         // Utilities
-        isOffline: () => !navigator.onLine
+        isOffline: () => !navigator.onLine,
+        cleanup: cleanupOrphanedTimers
     };
+
+    // Clean up any orphaned timers on load
+    cleanupOrphanedTimers();
 
     console.log('✓ Offline Timer Manager initialized');
 })();

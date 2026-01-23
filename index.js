@@ -1722,10 +1722,10 @@ const Dashboard = ({ db, userId, setNotification, activeTimers, setActiveTimers,
                                     return newTimers;
                                 });
 
-                                // Play bell 10 times using Web Audio API (5 seconds total)
-                                console.log('[Audio] About to play bell sound for timer completion');
-                                const playBell = async (times, delay = 500) => {
-                                    console.log('[Audio] playBell called with times=' + times);
+                                // Play pleasant completion chime using Web Audio API
+                                console.log('[Audio] About to play completion chime');
+                                const playCompletionChime = async () => {
+                                    console.log('[Audio] playCompletionChime called');
                                     try {
                                         // Get or create audio context
                                         if (!audioContextRef.current) {
@@ -1742,34 +1742,56 @@ const Dashboard = ({ db, userId, setNotification, activeTimers, setActiveTimers,
                                             await audioContext.resume();
                                         }
 
-                                        console.log('[Audio] Playing ' + times + ' bell tones');
-                                        for (let i = 0; i < times; i++) {
-                                            const startTime = audioContext.currentTime + (i * delay / 1000);
+                                        // Play a pleasant three-tone chord chime 3 times
+                                        const playChime = (startOffset = 0) => {
+                                            // C5 (523 Hz) - soft base note
+                                            const osc1 = audioContext.createOscillator();
+                                            const gain1 = audioContext.createGain();
+                                            osc1.connect(gain1);
+                                            gain1.connect(audioContext.destination);
+                                            osc1.frequency.setValueAtTime(523, audioContext.currentTime + startOffset);
+                                            osc1.type = 'sine';
+                                            gain1.gain.setValueAtTime(0.25, audioContext.currentTime + startOffset);
+                                            gain1.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + startOffset + 0.8);
+                                            osc1.start(audioContext.currentTime + startOffset);
+                                            osc1.stop(audioContext.currentTime + startOffset + 0.8);
 
-                                            // Create a bell tone
-                                            const oscillator = audioContext.createOscillator();
-                                            const gainNode = audioContext.createGain();
+                                            // E5 (659 Hz) - harmony note with slight delay
+                                            const osc2 = audioContext.createOscillator();
+                                            const gain2 = audioContext.createGain();
+                                            osc2.connect(gain2);
+                                            gain2.connect(audioContext.destination);
+                                            osc2.frequency.setValueAtTime(659, audioContext.currentTime + startOffset + 0.05);
+                                            osc2.type = 'sine';
+                                            gain2.gain.setValueAtTime(0.2, audioContext.currentTime + startOffset + 0.05);
+                                            gain2.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + startOffset + 0.85);
+                                            osc2.start(audioContext.currentTime + startOffset + 0.05);
+                                            osc2.stop(audioContext.currentTime + startOffset + 0.85);
 
-                                            oscillator.connect(gainNode);
-                                            gainNode.connect(audioContext.destination);
+                                            // G5 (784 Hz) - top note for shimmer
+                                            const osc3 = audioContext.createOscillator();
+                                            const gain3 = audioContext.createGain();
+                                            osc3.connect(gain3);
+                                            gain3.connect(audioContext.destination);
+                                            osc3.frequency.setValueAtTime(784, audioContext.currentTime + startOffset + 0.1);
+                                            osc3.type = 'sine';
+                                            gain3.gain.setValueAtTime(0.15, audioContext.currentTime + startOffset + 0.1);
+                                            gain3.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + startOffset + 0.9);
+                                            osc3.start(audioContext.currentTime + startOffset + 0.1);
+                                            osc3.stop(audioContext.currentTime + startOffset + 0.9);
+                                        };
 
-                                            oscillator.frequency.value = 880; // Higher frequency (A5) for more audible bell
-                                            oscillator.type = 'sine';
+                                        // Play chime 3 times with 1 second gaps
+                                        playChime(0);
+                                        playChime(1.0);
+                                        playChime(2.0);
 
-                                            // Louder envelope for bell sound
-                                            gainNode.gain.setValueAtTime(0, startTime);
-                                            gainNode.gain.linearRampToValueAtTime(0.8, startTime + 0.02); // Louder (0.8 vs 0.5)
-                                            gainNode.gain.exponentialRampToValueAtTime(0.01, startTime + 0.4); // Longer sustain
-
-                                            oscillator.start(startTime);
-                                            oscillator.stop(startTime + 0.4);
-                                        }
-                                        console.log('[Audio] Bell sounds scheduled successfully');
+                                        console.log('[Audio] Pleasant chime scheduled successfully');
                                     } catch (err) {
                                         console.error('[Audio] Timer completion audio error:', err);
                                     }
                                 };
-                                playBell(10); // Ring for 5 seconds (10 rings × 500ms = 5s)
+                                playCompletionChime();
 
                                 // Also try browser notification as backup
                                 if ('Notification' in window && Notification.permission === 'granted') {

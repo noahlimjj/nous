@@ -237,6 +237,16 @@
         const [countdownSeconds, setCountdownSeconds] = useState('0');
         const [showHabitSelector, setShowHabitSelector] = useState(false);
         const [draggedHabit, setDraggedHabit] = useState(null);
+
+        // Touch-based reordering state (for PWA)
+        const [touchDragHabit, setTouchDragHabit] = useState(null);
+        const [touchStartY, setTouchStartY] = useState(0);
+        const touchTimerRef = React.useRef(null);
+        const habitRefsMap = React.useRef({});
+
+        // BroadcastChannel for cross-tab timer sync
+        const timerBroadcastRef = React.useRef(null);
+
         // Dashboard state
         // Track heaters checks
         const stoppedTimersRef = React.useRef(new Set());
@@ -474,6 +484,49 @@
             return () => window.removeEventListener('online', handleOnline);
         }, [db, userId, appId]);
 
+        // BroadcastChannel for cross-tab timer sync (PWA <-> Web App)
+        useEffect(() => {
+            if (typeof BroadcastChannel === 'undefined') {
+                console.log('[HabitsTab] BroadcastChannel not supported');
+                return;
+            }
+
+            timerBroadcastRef.current = new BroadcastChannel('nous-timer-sync');
+            console.log('[HabitsTab] BroadcastChannel "nous-timer-sync" initialized');
+
+            timerBroadcastRef.current.onmessage = (event) => {
+                const { type, habitId, userId: msgUserId } = event.data;
+
+                // Only process messages for the same user
+                if (msgUserId && msgUserId !== userId) return;
+
+                console.log(`[HabitsTab] BroadcastChannel received: ${type} for ${habitId}`);
+
+                if (type === 'timer-stop' || type === 'timer-reset') {
+                    // Clear local timer state from another tab
+                    setTimers(prev => {
+                        if (prev[habitId]) {
+                            console.log(`[HabitsTab] Clearing timer ${habitId} from BroadcastChannel`);
+                            return { ...prev, [habitId]: null };
+                        }
+                        return prev;
+                    });
+
+                    // Clear from OfflineTimerManager
+                    if (window.OfflineTimerManager) {
+                        window.OfflineTimerManager.reset(habitId);
+                    }
+                }
+            };
+
+            return () => {
+                if (timerBroadcastRef.current) {
+                    timerBroadcastRef.current.close();
+                    timerBroadcastRef.current = null;
+                }
+            };
+        }, [userId]);
+
         const showNotif = (msg) => { setNotification(msg); setTimeout(() => setNotification(null), 3000); };
 
         // Timer functions
@@ -699,6 +752,13 @@
             }
 
             setTimers(prev => ({ ...prev, [habitId]: null }));
+
+            // Broadcast timer stop to other tabs/PWA
+            if (timerBroadcastRef.current) {
+                timerBroadcastRef.current.postMessage({ type: 'timer-stop', habitId, userId });
+                console.log(`[HabitsTab] Broadcast timer-stop for ${habitId}`);
+            }
+
             // Clean up the stopped ref after a short delay
             setTimeout(() => {
                 stoppedTimersRef.current.delete(habitId);
@@ -717,6 +777,12 @@
                     activeTimer: window.deleteField ? window.deleteField() : null
                 }).then(() => console.log(`[HabitsTab] Cleared activeTimer for ${habitId} in DB`))
                     .catch(e => console.error("Error clearing on reset:", e));
+            }
+
+            // Broadcast timer reset to other tabs/PWA
+            if (timerBroadcastRef.current) {
+                timerBroadcastRef.current.postMessage({ type: 'timer-reset', habitId, userId });
+                console.log(`[HabitsTab] Broadcast timer-reset for ${habitId}`);
             }
         };
 
@@ -954,6 +1020,96 @@
             } catch (err) {
                 console.error("Order save failed:", err);
                 showNotif("failed to save order");
+            }
+        };
+
+        // Touch-based reordering for mobile/PWA (press and hold)
+        const handleTouchStart = (e, habit) => {
+            // Clear any existing timer
+            if (touchTimerRef.current) clearTimeout(touchTimerRef.current);
+
+            const touch = e.touches[0];
+            setTouchStartY(touch.clientY);
+
+            // Start long-press detection timer (500ms)
+            touchTimerRef.current = setTimeout(() => {
+                console.log(`[HabitsTab] Long press detected on ${habit.title}`);
+                setTouchDragHabit(habit);
+                // Haptic feedback if available
+                if (navigator.vibrate) navigator.vibrate(50);
+                showNotif("drag to reorder");
+            }, 500);
+        };
+
+        const handleTouchMove = (e, habit) => {
+            // If we're not in drag mode yet, check if finger moved too much (cancel long-press)
+            if (!touchDragHabit) {
+                const touch = e.touches[0];
+                const deltaY = Math.abs(touch.clientY - touchStartY);
+                // If moved more than 10px, cancel the long-press timer (user is scrolling)
+                if (deltaY > 10 && touchTimerRef.current) {
+                    clearTimeout(touchTimerRef.current);
+                    touchTimerRef.current = null;
+                }
+                return;
+            }
+
+            // In drag mode - prevent scrolling
+            e.preventDefault();
+        };
+
+        const handleTouchEnd = async (e, habit) => {
+            // Clear long-press timer
+            if (touchTimerRef.current) {
+                clearTimeout(touchTimerRef.current);
+                touchTimerRef.current = null;
+            }
+
+            // If we were dragging, find the drop target and reorder
+            if (touchDragHabit) {
+                const touch = e.changedTouches[0];
+                const dropY = touch.clientY;
+
+                // Find the habit element under the drop point
+                let targetHabit = null;
+                habits.forEach(h => {
+                    const el = habitRefsMap.current[h.id];
+                    if (el) {
+                        const rect = el.getBoundingClientRect();
+                        if (dropY >= rect.top && dropY <= rect.bottom) {
+                            targetHabit = h;
+                        }
+                    }
+                });
+
+                // Perform reorder if valid target
+                if (targetHabit && targetHabit.id !== touchDragHabit.id) {
+                    const updatedHabits = [...habits];
+                    const sourceIndex = updatedHabits.findIndex(h => h.id === touchDragHabit.id);
+                    const targetIndex = updatedHabits.findIndex(h => h.id === targetHabit.id);
+
+                    updatedHabits.splice(sourceIndex, 1);
+                    updatedHabits.splice(targetIndex, 0, touchDragHabit);
+
+                    setHabits(updatedHabits);
+
+                    // Persist to Firestore
+                    const batch = window.writeBatch(db);
+                    updatedHabits.forEach((h, index) => {
+                        const ref = window.doc(db, `/artifacts/${appId}/users/${userId}/habits/${h.id}`);
+                        batch.update(ref, { order: index });
+                    });
+
+                    try {
+                        await batch.commit();
+                        showNotif("habit reordered");
+                    } catch (err) {
+                        console.error("Touch reorder save failed:", err);
+                        showNotif("failed to save order");
+                    }
+                }
+
+                setTouchDragHabit(null);
             }
         };
 
@@ -1270,13 +1426,17 @@
 
                 return React.createElement("div", {
                     key: h.id,
-                    className: "mb-3 rounded-xl bg-white dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700 overflow-hidden touch-none", // touch-none might help with dnd vs scroll?
+                    ref: (el) => { if (el) habitRefsMap.current[h.id] = el; },
+                    className: `mb-3 rounded-xl bg-white dark:bg-gray-800/50 border overflow-hidden transition-all ${touchDragHabit?.id === h.id ? 'border-blue-400 ring-2 ring-blue-200 scale-105 opacity-80' : 'border-gray-100 dark:border-gray-700'}`,
                     draggable: true,
                     onDragStart: (e) => handleDragStart(e, h),
                     onDragEnd: handleDragEnd,
                     onDragOver: (e) => handleDragOver(e, h),
                     onDrop: (e) => handleDrop(e, h),
-                    style: { cursor: 'grab' }
+                    onTouchStart: (e) => handleTouchStart(e, h),
+                    onTouchMove: (e) => handleTouchMove(e, h),
+                    onTouchEnd: (e) => handleTouchEnd(e, h),
+                    style: { cursor: touchDragHabit ? 'grabbing' : 'grab' }
                 },
                     // Main habit row
                     React.createElement("div", { style: rowStyle, className: "p-4" },
