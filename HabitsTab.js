@@ -240,6 +240,7 @@
 
         // Touch-based reordering state (for PWA)
         const [touchDragHabit, setTouchDragHabit] = useState(null);
+        const [touchDragTargetId, setTouchDragTargetId] = useState(null);
         const [touchStartY, setTouchStartY] = useState(0);
         const touchTimerRef = React.useRef(null);
         const habitRefsMap = React.useRef({});
@@ -1054,8 +1055,28 @@
                 return;
             }
 
-            // In drag mode - prevent scrolling
+            // In drag mode - prevent scrolling and update drop target
             e.preventDefault();
+
+            // Find which habit element is under the current touch point
+            const touch = e.touches[0];
+            const touchY = touch.clientY;
+
+            let newTargetId = null;
+            habits.forEach(h => {
+                const el = habitRefsMap.current[h.id];
+                if (el) {
+                    const rect = el.getBoundingClientRect();
+                    if (touchY >= rect.top && touchY <= rect.bottom && h.id !== touchDragHabit.id) {
+                        newTargetId = h.id;
+                    }
+                }
+            });
+
+            // Only update if target changed (to minimize re-renders)
+            if (newTargetId !== touchDragTargetId) {
+                setTouchDragTargetId(newTargetId);
+            }
         };
 
         const handleTouchEnd = async (e, habit) => {
@@ -1110,6 +1131,7 @@
                 }
 
                 setTouchDragHabit(null);
+                setTouchDragTargetId(null);
             }
         };
 
@@ -1427,7 +1449,7 @@
                 return React.createElement("div", {
                     key: h.id,
                     ref: (el) => { if (el) habitRefsMap.current[h.id] = el; },
-                    className: `mb-3 rounded-xl bg-white dark:bg-gray-800/50 border overflow-hidden transition-all ${touchDragHabit?.id === h.id ? 'border-blue-400 ring-2 ring-blue-200 scale-105 opacity-80' : 'border-gray-100 dark:border-gray-700'}`,
+                    className: `mb-3 rounded-xl bg-white dark:bg-gray-800/50 border overflow-hidden transition-all ${touchDragHabit?.id === h.id ? 'border-blue-400 ring-2 ring-blue-200 scale-105 opacity-80' : touchDragTargetId === h.id ? 'border-green-400 ring-2 ring-green-200 bg-green-50 dark:bg-green-900/20' : 'border-gray-100 dark:border-gray-700'}`,
                     draggable: true,
                     onDragStart: (e) => handleDragStart(e, h),
                     onDragEnd: handleDragEnd,
