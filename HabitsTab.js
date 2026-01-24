@@ -1054,12 +1054,27 @@
         // We track if we're awaiting a long-press to prevent scroll
         const [awaitingLongPress, setAwaitingLongPress] = useState(false);
 
+        // Refs to store current state for use in native event handlers
+        const touchDragHabitRef = React.useRef(null);
+        const touchStartYRef = React.useRef(0);
+        const awaitingLongPressRef = React.useRef(false);
+
+        // Keep refs in sync with state
+        React.useEffect(() => {
+            touchDragHabitRef.current = touchDragHabit;
+        }, [touchDragHabit]);
+
+        React.useEffect(() => {
+            awaitingLongPressRef.current = awaitingLongPress;
+        }, [awaitingLongPress]);
+
         const handleTouchStart = (e, habit) => {
             // Clear any existing timer
             if (touchTimerRef.current) clearTimeout(touchTimerRef.current);
 
             const touch = e.touches[0];
             setTouchStartY(touch.clientY);
+            touchStartYRef.current = touch.clientY;
             setAwaitingLongPress(true);
 
             // Start long-press detection timer (500ms)
@@ -1073,43 +1088,66 @@
             }, 500);
         };
 
-        const handleTouchMove = (e, habit) => {
+        // Native touchmove handler with { passive: false } - attached via useEffect
+        const handleNativeTouchMove = React.useCallback((e) => {
             const touch = e.touches[0];
-            const deltaY = Math.abs(touch.clientY - touchStartY);
+            const deltaY = Math.abs(touch.clientY - touchStartYRef.current);
 
             // If we're in drag mode, prevent scrolling and update target
-            if (touchDragHabit) {
+            if (touchDragHabitRef.current) {
                 e.preventDefault();
+                e.stopPropagation();
 
                 // Find which habit element is under the current touch point
                 const touchY = touch.clientY;
 
                 let newTargetId = null;
-                habits.forEach(h => {
-                    const el = habitRefsMap.current[h.id];
-                    if (el) {
+                Object.entries(habitRefsMap.current).forEach(([habitId, el]) => {
+                    if (el && habitId !== touchDragHabitRef.current.id) {
                         const rect = el.getBoundingClientRect();
-                        if (touchY >= rect.top && touchY <= rect.bottom && h.id !== touchDragHabit.id) {
-                            newTargetId = h.id;
+                        if (touchY >= rect.top && touchY <= rect.bottom) {
+                            newTargetId = habitId;
                         }
                     }
                 });
 
-                // Only update if target changed (to minimize re-renders)
-                if (newTargetId !== touchDragTargetId) {
-                    setTouchDragTargetId(newTargetId);
-                }
+                setTouchDragTargetId(prev => prev !== newTargetId ? newTargetId : prev);
                 return;
             }
 
             // If we're awaiting long-press and user moved too much, cancel it (user is scrolling)
-            if (awaitingLongPress && deltaY > 10) {
+            if (awaitingLongPressRef.current && deltaY > 10) {
                 if (touchTimerRef.current) {
                     clearTimeout(touchTimerRef.current);
                     touchTimerRef.current = null;
                 }
                 setAwaitingLongPress(false);
             }
+        }, []);
+
+        // Attach non-passive touch event listeners to habit elements
+        React.useEffect(() => {
+            const elements = Object.values(habitRefsMap.current);
+
+            elements.forEach(el => {
+                if (el) {
+                    el.addEventListener('touchmove', handleNativeTouchMove, { passive: false });
+                }
+            });
+
+            return () => {
+                elements.forEach(el => {
+                    if (el) {
+                        el.removeEventListener('touchmove', handleNativeTouchMove);
+                    }
+                });
+            };
+        }, [habits, handleNativeTouchMove]);
+
+        // React touchmove handler (fallback, but passive - won't prevent scroll)
+        const handleTouchMove = (e, habit) => {
+            // This is now handled by native event listener above
+            // Keep this for compatibility but actual prevention happens in handleNativeTouchMove
         };
 
         const handleTouchEnd = async (e, habit) => {
@@ -1496,8 +1534,8 @@
                     onTouchEnd: (e) => handleTouchEnd(e, h),
                     style: {
                         cursor: touchDragHabit ? 'grabbing' : 'grab',
-                        // Prevent browser scroll when in drag mode
-                        touchAction: touchDragHabit ? 'none' : 'auto'
+                        // Always prevent browser scroll on habit items - we handle it ourselves
+                        touchAction: 'none'
                     }
                 },
                     // Main habit row
