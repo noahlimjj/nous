@@ -464,6 +464,32 @@
             }
         }, []);
 
+        // Auto-select habit with active timer on load/refresh
+        // This ensures the running timer appears on top when the app is opened
+        useEffect(() => {
+            // Only auto-select if no habit is currently selected
+            if (selectedHabitId !== null) return;
+
+            // Find any habit with an active (running) timer
+            const activeTimerHabitId = Object.keys(timers).find(habitId => {
+                const timer = timers[habitId];
+                return timer && timer.isRunning;
+            });
+
+            // Also check for paused timers (has elapsed time but not running)
+            const pausedTimerHabitId = !activeTimerHabitId ? Object.keys(timers).find(habitId => {
+                const timer = timers[habitId];
+                return timer && !timer.isRunning && timer.elapsedTime > 0;
+            }) : null;
+
+            const habitIdToSelect = activeTimerHabitId || pausedTimerHabitId;
+
+            if (habitIdToSelect && habits.some(h => h.id === habitIdToSelect)) {
+                console.log(`[HabitsTab] Auto-selecting habit with active timer: ${habitIdToSelect}`);
+                setSelectedHabitId(habitIdToSelect);
+            }
+        }, [timers, habits, selectedHabitId]);
+
         // Listen for online status to sync
         useEffect(() => {
             if (db && userId) {
@@ -1025,17 +1051,22 @@
         };
 
         // Touch-based reordering for mobile/PWA (press and hold)
+        // We track if we're awaiting a long-press to prevent scroll
+        const [awaitingLongPress, setAwaitingLongPress] = useState(false);
+
         const handleTouchStart = (e, habit) => {
             // Clear any existing timer
             if (touchTimerRef.current) clearTimeout(touchTimerRef.current);
 
             const touch = e.touches[0];
             setTouchStartY(touch.clientY);
+            setAwaitingLongPress(true);
 
             // Start long-press detection timer (500ms)
             touchTimerRef.current = setTimeout(() => {
                 console.log(`[HabitsTab] Long press detected on ${habit.title}`);
                 setTouchDragHabit(habit);
+                setAwaitingLongPress(false);
                 // Haptic feedback if available
                 if (navigator.vibrate) navigator.vibrate(50);
                 showNotif("drag to reorder");
@@ -1043,39 +1074,41 @@
         };
 
         const handleTouchMove = (e, habit) => {
-            // If we're not in drag mode yet, check if finger moved too much (cancel long-press)
-            if (!touchDragHabit) {
-                const touch = e.touches[0];
-                const deltaY = Math.abs(touch.clientY - touchStartY);
-                // If moved more than 10px, cancel the long-press timer (user is scrolling)
-                if (deltaY > 10 && touchTimerRef.current) {
-                    clearTimeout(touchTimerRef.current);
-                    touchTimerRef.current = null;
+            const touch = e.touches[0];
+            const deltaY = Math.abs(touch.clientY - touchStartY);
+
+            // If we're in drag mode, prevent scrolling and update target
+            if (touchDragHabit) {
+                e.preventDefault();
+
+                // Find which habit element is under the current touch point
+                const touchY = touch.clientY;
+
+                let newTargetId = null;
+                habits.forEach(h => {
+                    const el = habitRefsMap.current[h.id];
+                    if (el) {
+                        const rect = el.getBoundingClientRect();
+                        if (touchY >= rect.top && touchY <= rect.bottom && h.id !== touchDragHabit.id) {
+                            newTargetId = h.id;
+                        }
+                    }
+                });
+
+                // Only update if target changed (to minimize re-renders)
+                if (newTargetId !== touchDragTargetId) {
+                    setTouchDragTargetId(newTargetId);
                 }
                 return;
             }
 
-            // In drag mode - prevent scrolling and update drop target
-            e.preventDefault();
-
-            // Find which habit element is under the current touch point
-            const touch = e.touches[0];
-            const touchY = touch.clientY;
-
-            let newTargetId = null;
-            habits.forEach(h => {
-                const el = habitRefsMap.current[h.id];
-                if (el) {
-                    const rect = el.getBoundingClientRect();
-                    if (touchY >= rect.top && touchY <= rect.bottom && h.id !== touchDragHabit.id) {
-                        newTargetId = h.id;
-                    }
+            // If we're awaiting long-press and user moved too much, cancel it (user is scrolling)
+            if (awaitingLongPress && deltaY > 10) {
+                if (touchTimerRef.current) {
+                    clearTimeout(touchTimerRef.current);
+                    touchTimerRef.current = null;
                 }
-            });
-
-            // Only update if target changed (to minimize re-renders)
-            if (newTargetId !== touchDragTargetId) {
-                setTouchDragTargetId(newTargetId);
+                setAwaitingLongPress(false);
             }
         };
 
@@ -1085,6 +1118,9 @@
                 clearTimeout(touchTimerRef.current);
                 touchTimerRef.current = null;
             }
+
+            // Reset awaiting state
+            setAwaitingLongPress(false);
 
             // If we were dragging, find the drop target and reorder
             if (touchDragHabit) {
@@ -1458,7 +1494,11 @@
                     onTouchStart: (e) => handleTouchStart(e, h),
                     onTouchMove: (e) => handleTouchMove(e, h),
                     onTouchEnd: (e) => handleTouchEnd(e, h),
-                    style: { cursor: touchDragHabit ? 'grabbing' : 'grab' }
+                    style: {
+                        cursor: touchDragHabit ? 'grabbing' : 'grab',
+                        // Prevent browser scroll when in drag mode
+                        touchAction: touchDragHabit ? 'none' : 'auto'
+                    }
                 },
                     // Main habit row
                     React.createElement("div", { style: rowStyle, className: "p-4" },

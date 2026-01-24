@@ -233,15 +233,15 @@
 </head>
 
 <body>
-    <!-- PWA Service Worker Registration - v34 -->
+    <!-- PWA Service Worker Registration - v36 -->
     <script>
         // --- NUCLEAR CACHE CLEARING ---
         // Force unregister old service workers to ensure immediate update
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.getRegistrations().then(function (registrations) {
                 for (let registration of registrations) {
-                    if (registration.active && (registration.active.scriptURL.includes('v28') || registration.active.scriptURL.includes('v29') || registration.active.scriptURL.includes('v31') || registration.active.scriptURL.includes('v32') || registration.active.scriptURL.includes('v33'))) {
-                        console.log('Force unregistering old SW (v28/v29/v31/v32/v33)');
+                    if (registration.active && (registration.active.scriptURL.includes('v28') || registration.active.scriptURL.includes('v29') || registration.active.scriptURL.includes('v31') || registration.active.scriptURL.includes('v32') || registration.active.scriptURL.includes('v33') || registration.active.scriptURL.includes('v34') || registration.active.scriptURL.includes('v35'))) {
+                        console.log('Force unregistering old SW (v28/v29/v31/v32/v33/v34/v35)');
                         registration.unregister();
                     }
                 }
@@ -252,8 +252,8 @@
         // Smart service worker registration with improved error handling
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', async () => {
-                const CURRENT_SW = '/service-worker-v34.js';
-                const CURRENT_CACHE_PREFIX = 'nous-v34';
+                const CURRENT_SW = '/service-worker-v36.js';
+                const CURRENT_CACHE_PREFIX = 'nous-v36';
 
                 try {
                     console.log('[PWA] Initializing service worker...');
@@ -264,9 +264,9 @@
 
                     for (const reg of registrations) {
                         const scriptURL = reg.active?.scriptURL || '';
-                        if (scriptURL.includes('service-worker-v34.js')) {
+                        if (scriptURL.includes('service-worker-v36.js')) {
                             hasCurrentVersion = true;
-                            console.log('[PWA] ✓ Service worker v34 already registered');
+                            console.log('[PWA] ✓ Service worker v36 already registered');
                         } else {
                             // Unregister old versions
                             console.log('[PWA] Unregistering old SW:', scriptURL);
@@ -285,7 +285,7 @@
 
                     // Register current version if not already registered
                     if (!hasCurrentVersion) {
-                        console.log('[PWA] Registering service worker v34...');
+                        console.log('[PWA] Registering service worker v36...');
                         const registration = await navigator.serviceWorker.register(CURRENT_SW, {
                             scope: '/'
                         });
@@ -302,7 +302,7 @@
                             });
                         }
 
-                        console.log('[PWA] ✓ Service worker v34 registered successfully');
+                        console.log('[PWA] ✓ Service worker v36 registered successfully');
 
                         // Check for updates every 5 minutes
                         setInterval(() => {
@@ -358,7 +358,7 @@
     <div class="shooting-star"></div>
     <div class="shooting-star"></div>
 
-    <script src="HabitsTab.js?v=69"></script>
+    <script src="HabitsTab.js?v=71"></script>
     <script src="components/CalendarChecklist.js?v=4"></script>
     <script src="index.js?v=33&t=1766813000"></script>
 
