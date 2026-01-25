@@ -906,7 +906,11 @@
             const days = [];
             const today = new Date();
             const monday = new Date(today);
-            monday.setDate(today.getDate() - today.getDay() + 1 + (weekOffset * 7));
+            // Fix for Sunday: getDay() returns 0 for Sunday, so we need to go back 6 days
+            // For other days, we go back (getDay() - 1) days to reach Monday
+            const dayOfWeek = today.getDay();
+            const daysSinceMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+            monday.setDate(today.getDate() - daysSinceMonday + (weekOffset * 7));
             for (let i = 0; i < 7; i++) {
                 const d = new Date(monday);
                 d.setDate(monday.getDate() + i);
