@@ -5,7 +5,8 @@ module.exports = {
     "./index.html",
     "./index.js",
     "./script.js",
-    "./HabitsTab.js"
+    "./HabitsTab.js",
+    "./MoodTrackerTab.js"
   ],
   theme: {
     extend: {

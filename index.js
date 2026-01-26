@@ -446,6 +446,23 @@ const SwordIcon = () => React.createElement('svg', {
 }, React.createElement('polyline', { points: "14.5 17.5 3 6 6 3 17.5 14.5" }), React.createElement('line', { x1: "13", y1: "19", x2: "19", y2: "13" }), React.createElement('line', { x1: "16", y1: "16", x2: "20", y2: "20" }), React.createElement('line', { x1: "19", y1: "21", x2: "21", y2: "19" }));
 
 
+
+const MoodIcon = () => React.createElement('svg', {
+    xmlns: "http://www.w3.org/2000/svg",
+    width: "24",
+    height: "24",
+    viewBox: "0 0 24 24",
+    fill: "none",
+    stroke: "currentColor",
+    strokeWidth: "2",
+    strokeLinecap: "round",
+    strokeLinejoin: "round"
+},
+    // Brain Icon (Thinker)
+    React.createElement('path', { d: "M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96.44 2.5 2.5 0 0 1-2.96-3.08 3 3 0 0 1-.34-5.58 2.5 2.5 0 0 1 1.32-4.24 2.5 2.5 0 0 1 3.94-2A2.5 2.5 0 0 1 9.5 2Z" }),
+    React.createElement('path', { d: "M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96.44 2.5 2.5 0 0 0 2.96-3.08 3 3 0 0 0 .34-5.58 2.5 2.5 0 0 0-1.32-4.24 2.5 2.5 0 0 0-3.94-2A2.5 2.5 0 0 0 14.5 2Z" })
+);
+
 // Logo component with circular flow around 'n'
 const NousLogo = ({ size = "medium" }) => {
     const sizes = {
@@ -920,6 +937,15 @@ const Header = ({ setCurrentPage, currentPage, onNavigateToHabits, onNavigateToR
                         style: { color: currentPage === 'dashboard' ? '#6B8DD6' : '#7d8ca8' }
                     },
                         React.createElement(HomeIcon)
+                    ),
+                    // Moved Mood Button here
+                    React.createElement('button', {
+                        onClick: () => setCurrentPage('mood'),
+                        title: "Mood Tracker",
+                        className: `p-2 rounded-full transition ${currentPage === 'mood' ? 'bg-calm-100 text-accent-blue' : 'text-calm-600 hover:bg-calm-50'}`,
+                        style: { color: currentPage === 'mood' ? '#6B8DD6' : '#7d8ca8' }
+                    },
+                        React.createElement(MoodIcon)
                     ),
                     React.createElement('button', {
                         onClick: () => setCurrentPage('goals'),
@@ -7625,6 +7651,7 @@ function App() {
                     currentPage === 'friends' && React.createElement(Friends, { db, userId, setNotification, userProfile }),
                     currentPage === 'leaderboard' && React.createElement(Leaderboard, { db, userId, setNotification, userProfile }),
                     currentPage === 'reports' && React.createElement(Reports, { db, userId, setNotification }),
+                    currentPage === 'mood' && React.createElement(window.MoodTrackerTab, { user: { id: userId, ...userProfile }, db, appId }),
                     // About page removed - content is in Settings
                     currentPage === 'settings' && React.createElement(Settings, { auth, userId, db, userProfile, setNotification, isNightMode, setIsNightMode })
                 )
