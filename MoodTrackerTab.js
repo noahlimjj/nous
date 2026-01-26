@@ -66,17 +66,17 @@
             { id: 'improve', label: 'what would you change?' }
         ];
 
-        return React.createElement('div', { className: "space-y-8 mb-10 font-sans w-full" },
+        return React.createElement('div', { className: "space-y-6 mb-10 w-full" },
             questions.map(q =>
                 React.createElement('div', { key: q.id, className: "group relative" },
-                    React.createElement('label', { className: "block text-sm font-medium text-gray-400 mb-3 pl-1 lowercase tracking-wide transition-colors group-hover:text-gray-600" }, q.label),
+                    React.createElement('label', { className: "block text-lg text-calm-700 mb-2", style: { fontWeight: 400 } }, q.label),
                     React.createElement('textarea', {
                         value: journal[q.id] || '',
                         onChange: (e) => handleChange(q.id, e.target.value),
                         disabled: disabled,
-                        className: "w-full p-5 rounded-[2rem] bg-gray-50/80 border border-transparent focus:bg-white focus:border-gray-100 focus:shadow-lg focus:ring-0 transition-all duration-300 outline-none resize-none h-28 text-base font-normal text-gray-700 placeholder-gray-300",
-                        placeholder: "type here...",
-                        style: { lineHeight: '1.6' }
+                        className: "w-full px-4 py-3 border border-calm-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-calm-400 focus:outline-none transition text-calm-800 placeholder-calm-400",
+                        placeholder: "write anything here...",
+                        style: { minHeight: '100px', fontWeight: 300, resize: 'vertical' }
                     })
                 )
             )
