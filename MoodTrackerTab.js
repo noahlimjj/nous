@@ -180,7 +180,7 @@
                 style: { display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '10px' }
             },
                 weekDays.map((d, i) =>
-                    React.createElement('div', { key: i, className: "text-center text-[10px] text-gray-300 font-bold lowercase tracking-widest mb-2" }, d)
+                    React.createElement('div', { key: i, className: "text-center text-xs sm:text-sm text-gray-400 font-bold lowercase tracking-widest mb-2" }, d)
                 ),
 
                 calendarData.map((day, i) => {
