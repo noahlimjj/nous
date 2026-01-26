@@ -5436,11 +5436,8 @@ const Goals = ({ db, userId, setNotification }) => {
     }
 
     return React.createElement('div', { className: "max-w-4xl mx-auto p-4 sm:p-6 lg:p-8" },
-        // Notebook section
-        React.createElement(Notebook, { db, userId, setNotification }),
-
-        // Mood Check-in section (embedded)
-        React.createElement('div', { className: "mb-12 mt-8" },
+        // Mood Check-in section (at the top)
+        React.createElement('div', { className: "mb-12" },
             window.MoodTrackerTab && React.createElement(window.MoodTrackerTab, {
                 user: { id: userId },
                 db: db,
@@ -5449,6 +5446,9 @@ const Goals = ({ db, userId, setNotification }) => {
                 embedded: true
             })
         ),
+
+        // Notebook section
+        React.createElement(Notebook, { db, userId, setNotification }),
 
         React.createElement('h2', { className: "text-3xl text-calm-800 mb-6", style: { fontWeight: 300 } }, "goals"),
 
