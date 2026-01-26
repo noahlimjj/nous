@@ -83,6 +83,7 @@
         );
     };
 
+    // Exportable MoodStats component for use in Reports
     const MoodStats = ({ history }) => {
         const getAverage = (days) => {
             const now = new Date();
@@ -116,6 +117,9 @@
             )
         );
     };
+
+    // Expose MoodStats for Reports page
+    window.MoodStats = MoodStats;
 
     const MoodCalendar = ({ history, onDateSelect, selectedDate }) => {
         const [currentDate, setCurrentDate] = useState(new Date());
@@ -213,7 +217,8 @@
         );
     };
 
-    const MoodTrackerTab = ({ user, db, appId }) => {
+    // Main component - accepts showStats prop to conditionally render stats
+    const MoodTrackerTab = ({ user, db, appId, showStats = true, embedded = false }) => {
         const [selectedDate, setSelectedDate] = useState(() => {
             const d = new Date();
             return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
@@ -291,6 +296,54 @@
             return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
         })());
 
+        // Embedded mode: more compact, no full-page wrapper
+        if (embedded) {
+            return React.createElement('div', { className: "w-full font-sans mb-12" },
+                // Header
+                React.createElement('header', { className: "text-center mb-8" },
+                    React.createElement('h2', { className: "text-2xl font-light text-gray-800 mb-2 tracking-tight lowercase" }, "mood check-in"),
+                    React.createElement('div', { className: "flex items-center justify-center gap-3 text-sm text-gray-400 font-medium tracking-widest lowercase" },
+                        React.createElement('span', null, new Date(selectedDate).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })),
+                        !isToday && React.createElement('span', { className: "bg-gray-200 text-gray-600 px-3 py-1 rounded-full text-[10px] font-bold" }, "history")
+                    )
+                ),
+
+                React.createElement('div', { className: "flex flex-col gap-8" },
+                    // Mood Input
+                    React.createElement(MoodInput, {
+                        value: moodRating,
+                        onChange: setMoodRating,
+                        disabled: isSubmitting
+                    }),
+
+                    // Journal Input
+                    React.createElement('div', { className: "animate-fade-in" },
+                        React.createElement(JournalInput, {
+                            journal: journal,
+                            onChange: setJournal,
+                            disabled: isSubmitting
+                        }),
+
+                        // Save Button
+                        React.createElement('div', { className: "flex justify-center mt-6" },
+                            React.createElement('button', {
+                                onClick: handleSave,
+                                disabled: isSubmitting || !moodRating,
+                                className: `w-full px-10 py-4 rounded-2xl font-bold text-sm lowercase tracking-[0.2em] shadow-xl transform transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl ${isSubmitting ? 'bg-gray-200 text-gray-400 cursor-not-allowed' : 'bg-gray-900 text-white hover:bg-black border border-transparent dark:border-gray-700'
+                                    }`
+                            }, isSubmitting ? 'saving...' : (history.find(h => h.date === selectedDate) ? 'update entry' : 'save entry'))
+                        )
+                    ),
+
+                    // Calendar
+                    React.createElement('div', { className: "pt-8 border-t border-gray-100" },
+                        React.createElement(MoodCalendar, { history, onDateSelect: handleDateSelect, selectedDate })
+                    )
+                )
+            );
+        }
+
+        // Standalone mode (full page)
         return React.createElement('div', { className: "w-full min-h-screen bg-[#fafafa] dark:bg-gray-900" },
             React.createElement('div', { className: "max-w-4xl mx-auto p-6 md:p-12 pb-32 font-sans" },
                 // Header
@@ -302,12 +355,8 @@
                     )
                 ),
 
-                // Stats
-                React.createElement(MoodStats, { history }),
-
-                // Layout: Inputs top, Calendar bottom for focus on writing
-                // Or side-by-side? User said "Reduce space used a bit". Side-by-side might be too wide if I reduce max-w.
-                // Let's stick to a clean vertical stack for max-w-4xl to ensure focus.
+                // Stats (only show if showStats is true)
+                showStats && React.createElement(MoodStats, { history }),
 
                 React.createElement('div', { className: "flex flex-col gap-12" },
 
@@ -326,7 +375,7 @@
                             disabled: isSubmitting
                         }),
 
-                        // Save Button (Fixed visibility - darker background)
+                        // Save Button
                         React.createElement('div', { className: "flex justify-center mt-8" },
                             React.createElement('button', {
                                 onClick: handleSave,
@@ -337,7 +386,7 @@
                         )
                     ),
 
-                    // Calendar at bottom (Full width in this container)
+                    // Calendar at bottom
                     React.createElement('div', { className: "pt-10 border-t border-gray-100" },
                         React.createElement(MoodCalendar, { history, onDateSelect: handleDateSelect, selectedDate })
                     )
