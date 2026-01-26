@@ -20,7 +20,7 @@
 
         return React.createElement('div', { className: "mb-10 font-sans w-full" },
             // Label
-            React.createElement('div', { className: "text-center mb-6 text-xs font-bold text-gray-400 opacity-60 lowercase tracking-[0.2em]" }, "select your mood"),
+
 
             // Buttons Container
             React.createElement('div', { className: "flex justify-between items-center w-full gap-2 px-1 overflow-x-auto pb-4 no-scrollbar" },
@@ -31,8 +31,8 @@
                         disabled: disabled,
                         // Oval shape
                         className: `group relative flex items-center justify-center flex-shrink-0 transition-all duration-300 ease-out border-2 ${value === mood.r
-                            ? 'w-14 h-10 sm:w-16 sm:h-12 shadow-lg scale-110 border-transparent'
-                            : 'w-10 h-8 sm:w-12 sm:h-9 hover:w-14 hover:h-10 bg-white border-gray-100 hover:border-transparent hover:shadow-md'
+                            ? 'w-16 h-12 sm:w-20 sm:h-14 shadow-lg scale-110 border-transparent'
+                            : 'w-12 h-10 sm:w-14 sm:h-11 hover:w-16 hover:h-12 bg-white border-gray-100 hover:border-transparent hover:shadow-md'
                             } rounded-full ${disabled ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'}`,
                         style: {
                             backgroundColor: value === mood.r ? mood.color : undefined,
@@ -42,13 +42,13 @@
                     },
                         // Number inside
                         React.createElement('span', {
-                            className: `text-base sm:text-lg font-bold`
+                            className: `text-lg sm:text-xl font-bold`
                         }, mood.r)
                     )
                 )
             ),
             // Range Labels (Only start and end)
-            React.createElement('div', { className: "flex justify-between text-[10px] text-gray-300 px-2 mt-4 font-bold lowercase tracking-widest w-full" },
+            React.createElement('div', { className: "flex justify-between text-sm text-calm-500 px-3 mt-2 font-bold lowercase tracking-widest w-full opacity-70" },
                 React.createElement('span', null, "awful"),
                 React.createElement('span', null, "perfect")
             )
@@ -66,7 +66,7 @@
             { id: 'improve', label: 'what would you change?' }
         ];
 
-        return React.createElement('div', { className: "space-y-6 mb-10 w-full" },
+        return React.createElement('div', { className: "space-y-6 mb-10 w-full pl-4" },
             questions.map(q =>
                 React.createElement('div', { key: q.id, className: "group relative" },
                     React.createElement('label', { className: "block text-lg text-calm-700 mb-2", style: { fontWeight: 400 } }, q.label),

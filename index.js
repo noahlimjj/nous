@@ -5303,14 +5303,14 @@ const Notebook = ({ db, userId, setNotification }) => {
                         onChange: (e) => setNewTodo(e.target.value),
                         onKeyPress: (e) => e.key === 'Enter' && handleAddTodo(),
                         placeholder: "add a to-do item...",
-                        className: "flex-grow px-4 py-2 border border-calm-300 rounded-lg focus:ring-2 focus:ring-calm-400 focus:outline-none transition",
+                        className: "flex-grow px-4 py-3 border border-calm-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-calm-400 focus:outline-none transition text-calm-800 placeholder-calm-400",
                         style: { fontWeight: 300 }
                     }),
                     React.createElement('button', {
                         onClick: handleAddTodo,
-                        className: "px-4 py-2 bg-calm-600 text-white rounded-lg hover:bg-calm-700 transition",
+                        className: "px-6 py-3 bg-calm-600 text-white rounded-lg hover:bg-calm-700 transition font-medium shadow-sm hover:shadow-md",
                         style: { fontWeight: 400 }
-                    }, "+ add")
+                    }, "add")
                 ),
                 React.createElement('div', { className: "space-y-2" },
                     todos.length > 0 ? todos.map(todo =>
@@ -5322,7 +5322,7 @@ const Notebook = ({ db, userId, setNotification }) => {
                                 type: "checkbox",
                                 checked: todo.completed,
                                 onChange: () => handleToggleTodo(todo.id),
-                                className: "w-5 h-5 rounded border-calm-400 cursor-pointer"
+                                className: "w-5 h-5 rounded-md border-2 border-calm-300 text-calm-600 focus:ring-calm-400 cursor-pointer transition-colors"
                             }),
                             React.createElement('span', {
                                 className: `flex-grow text-calm-800 ${todo.completed ? 'line-through text-calm-500' : ''}`,
