@@ -938,15 +938,7 @@ const Header = ({ setCurrentPage, currentPage, onNavigateToHabits, onNavigateToR
                     },
                         React.createElement(HomeIcon)
                     ),
-                    // Moved Mood Button here
-                    React.createElement('button', {
-                        onClick: () => setCurrentPage('mood'),
-                        title: "Mood Tracker",
-                        className: `p-2 rounded-full transition ${currentPage === 'mood' ? 'bg-calm-100 text-accent-blue' : 'text-calm-600 hover:bg-calm-50'}`,
-                        style: { color: currentPage === 'mood' ? '#6B8DD6' : '#7d8ca8' }
-                    },
-                        React.createElement(MoodIcon)
-                    ),
+                    // Mood tab removed - now embedded in Goals page
                     React.createElement('button', {
                         onClick: () => setCurrentPage('goals'),
                         title: "Goals",
@@ -3575,13 +3567,15 @@ const Dashboard = ({ db, userId, setNotification, activeTimers, setActiveTimers,
             )
         ),
 
-        // Right/Side Column: Growth Tree & Recent Sessions
-        React.createElement('div', { className: "lg:col-span-1 space-y-6" },
-            // Growth Tree
-            React.createElement(GrowthTree, { sessions, db, userId, setNotification }),
+        // Tree & Recent Sessions - Side by Side
+        React.createElement('div', { className: "lg:col-span-3 grid grid-cols-1 lg:grid-cols-3 gap-6" },
+            // Growth Tree (takes 2 columns on large screens)
+            React.createElement('div', { className: "lg:col-span-2" },
+                React.createElement(GrowthTree, { sessions, db, userId, setNotification })
+            ),
 
-            // Recent Sessions
-            React.createElement('div', null,
+            // Recent Sessions (takes 1 column on large screens)
+            React.createElement('div', { className: "lg:col-span-1" },
                 React.createElement('h2', { className: "text-2xl text-gray-800 mb-4", style: { fontWeight: 300 } }, "recent sessions"),
                 React.createElement('div', { className: "bg-white p-4 rounded-lg shadow-sm space-y-3 max-h-[600px] overflow-y-auto" },
                     sessions.length > 0 ? sessions.slice(0, 15).map(session =>
@@ -3682,6 +3676,73 @@ const Dashboard = ({ db, userId, setNotification, activeTimers, setActiveTimers,
                             }`,
                         style: { fontWeight: 400 }
                     }, "Send Invites")
+                )
+            )
+        )
+    );
+};
+
+// Mood Insights Section for Reports page
+const MoodInsights = ({ db, userId, appId }) => {
+    const [moodHistory, setMoodHistory] = useState([]);
+    const [isLoading, setIsLoading] = useState(true);
+
+    useEffect(() => {
+        if (!db || !userId) return;
+
+        const fetchMoodLogs = async () => {
+            try {
+                const logsRef = window.collection(db, `/artifacts/${appId}/users/${userId}/mood_logs`);
+                const snapshot = await window.getDocs(logsRef);
+                const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                setMoodHistory(data);
+            } catch (e) {
+                console.error("Error fetching mood logs for reports:", e);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        fetchMoodLogs();
+    }, [db, userId, appId]);
+
+    const getAverage = (days) => {
+        const now = new Date();
+        const cutoff = new Date();
+        cutoff.setDate(cutoff.getDate() - days);
+
+        const logs = moodHistory.filter(h => {
+            const d = new Date(h.date);
+            return d >= cutoff && d <= now;
+        });
+
+        if (logs.length === 0) return 0;
+        const sum = logs.reduce((acc, curr) => acc + curr.rating, 0);
+        return (sum / logs.length).toFixed(1);
+    };
+
+    if (isLoading) {
+        return React.createElement('div', { className: "stat-card mt-8" },
+            React.createElement('h3', { className: "text-lg font-medium text-gray-900 dark:text-white mb-4 lowercase" }, "mood insights"),
+            React.createElement('div', { className: "text-center py-4 text-gray-400" }, "loading...")
+        );
+    }
+
+    const weeklyAvg = getAverage(7);
+    const monthlyAvg = getAverage(30);
+    const totalLogs = moodHistory.length;
+
+    return React.createElement('div', { className: "stat-card mt-8" },
+        React.createElement('h3', { className: "text-lg font-medium text-gray-900 dark:text-white mb-6 lowercase" }, "mood insights"),
+        React.createElement('div', { className: "flex justify-center gap-12 sm:gap-24" },
+            [
+                { label: '7-day avg', value: weeklyAvg },
+                { label: '30-day avg', value: monthlyAvg },
+                { label: 'total logs', value: totalLogs }
+            ].map(stat =>
+                React.createElement('div', { key: stat.label, className: "text-center flex flex-col items-center" },
+                    React.createElement('div', { className: "text-3xl font-light text-gray-800 dark:text-white mb-1 tracking-tighter" }, stat.value),
+                    React.createElement('div', { className: "text-[10px] text-gray-400 font-bold lowercase tracking-[0.2em]" }, stat.label)
                 )
             )
         )
@@ -4002,7 +4063,10 @@ const Reports = ({ db, userId, setNotification }) => {
                             )
                         ) : React.createElement('p', { className: "text-gray-500 text-center py-4" }, "No usage data for this period")
                     )
-                )
+                ),
+
+                // Mood Insights Section (uses MoodStats from MoodTrackerTab)
+                React.createElement(MoodInsights, { db, userId, appId })
             )
     );
 };
@@ -5371,9 +5435,22 @@ const Goals = ({ db, userId, setNotification }) => {
         );
     }
 
+    const appId = typeof __app_id !== 'undefined' ? __app_id : 'study-tracker-app';
+
     return React.createElement('div', { className: "max-w-4xl mx-auto p-4 sm:p-6 lg:p-8" },
         // Notebook section
         React.createElement(Notebook, { db, userId, setNotification }),
+
+        // Mood Check-in section (embedded)
+        React.createElement('div', { className: "mb-12 mt-8" },
+            window.MoodTrackerTab && React.createElement(window.MoodTrackerTab, {
+                user: { id: userId },
+                db: db,
+                appId: appId,
+                showStats: false,
+                embedded: true
+            })
+        ),
 
         React.createElement('h2', { className: "text-3xl text-calm-800 mb-6", style: { fontWeight: 300 } }, "goals"),
 
@@ -7651,7 +7728,7 @@ function App() {
                     currentPage === 'friends' && React.createElement(Friends, { db, userId, setNotification, userProfile }),
                     currentPage === 'leaderboard' && React.createElement(Leaderboard, { db, userId, setNotification, userProfile }),
                     currentPage === 'reports' && React.createElement(Reports, { db, userId, setNotification }),
-                    currentPage === 'mood' && React.createElement(window.MoodTrackerTab, { user: { id: userId, ...userProfile }, db, appId }),
+                    // Mood tab removed - embedded in Goals page
                     // About page removed - content is in Settings
                     currentPage === 'settings' && React.createElement(Settings, { auth, userId, db, userProfile, setNotification, isNightMode, setIsNightMode })
                 )
