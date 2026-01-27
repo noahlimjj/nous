@@ -29,10 +29,10 @@
                         key: mood.r,
                         onClick: () => !disabled && onChange(mood.r),
                         disabled: disabled,
-                        // Oval shape
-                        className: `group relative flex items-center justify-center flex-shrink-0 transition-all duration-300 ease-out border-2 ${value === mood.r
-                            ? 'w-16 h-12 sm:w-20 sm:h-14 shadow-lg scale-110 border-transparent'
-                            : 'w-12 h-10 sm:w-14 sm:h-11 hover:w-16 hover:h-12 bg-white border-gray-100 hover:border-transparent hover:shadow-md'
+                        // Oval shape - consistent sizing, only color changes on selection
+                        className: `group relative flex items-center justify-center flex-shrink-0 transition-all duration-300 ease-out border-2 w-12 h-10 sm:w-14 sm:h-12 ${value === mood.r
+                            ? 'shadow-lg border-transparent'
+                            : 'bg-white border-gray-200 hover:border-gray-300 hover:shadow-md'
                             } rounded-full ${disabled ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'}`,
                         style: {
                             backgroundColor: value === mood.r ? mood.color : undefined,
@@ -49,8 +49,8 @@
             ),
             // Range Labels (Only start and end)
             React.createElement('div', { className: "flex justify-between text-sm text-calm-500 px-3 mt-2 font-bold lowercase tracking-widest w-full opacity-70" },
-                React.createElement('span', null, "awful"),
-                React.createElement('span', null, "perfect")
+                React.createElement('span', null, "low"),
+                React.createElement('span', null, "high")
             )
         );
     };
@@ -193,19 +193,19 @@
                     return React.createElement('div', {
                         key: day ? day.toISOString() : `empty-${i}`,
                         onClick: () => day && onDateSelect(day),
-                        className: `aspect-square rounded-xl flex items-center justify-center text-xs font-medium transition-all duration-300 cursor-pointer relative group 
+                        className: `aspect-square rounded-xl flex items-center justify-center text-base sm:text-lg font-semibold transition-all duration-300 cursor-pointer relative group 
                             ${selected ? 'ring-2 ring-gray-900 z-10 scale-105' : ''} 
                             ${!selected && isToday ? 'bg-gray-100 text-gray-900' : ''}
                             hover:scale-105
                         `,
                         style: {
                             backgroundColor: log ? getMoodColor(log.rating) : (!selected && isToday ? undefined : 'transparent'),
-                            color: log ? 'white' : (isToday ? undefined : '#d1d5db'),
-                            border: (!log && !isToday && !selected) ? '1px solid #f9fafb' : 'none'
+                            color: log ? 'white' : (isToday ? undefined : '#9ca3af'),
+                            border: (!log && !isToday && !selected) ? '1px solid #e5e7eb' : 'none'
                         },
                         title: log ? `rating: ${log.rating}/10` : 'no log'
                     },
-                        React.createElement('span', { className: "z-10 relative" }, day.getDate()),
+                        React.createElement('span', { className: "z-10 relative text-inherit" }, day.getDate()),
 
                         // Tooltip
                         log && React.createElement('div', {
