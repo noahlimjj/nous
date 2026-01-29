@@ -398,6 +398,11 @@
                     const next = { ...prev };
                     habitsData.forEach(h => {
                         if (h.activeTimer) {
+                            // Clear any stale reset marker when valid timer arrives from Firestore
+                            try {
+                                localStorage.removeItem(`nous_timer_reset_${h.id}`);
+                            } catch (e) { /* ignore localStorage errors */ }
+
                             next[h.id] = {
                                 isRunning: h.activeTimer.isRunning,
                                 startTime: h.activeTimer.startTime?.toMillis ? h.activeTimer.startTime.toMillis() : h.activeTimer.startTime, // Convert to ms
@@ -406,11 +411,25 @@
                             };
                         } else if (prev[h.id] && prev[h.id].isRunning) {
                             // CONFLICT: Local timer is running, but Firestore says it's not.
-                            // This usually happens if the user just started the timer, closed the tab, 
-                            // and the network request to save `activeTimer` failed or hasn't arrived.
-                            // In this case, we TRUST LOCAL (persistence) and restore it to Firestore.
+                            // Check if this timer was recently reset on any device (within last 10 seconds)
+                            let wasRecentlyReset = false;
+                            try {
+                                const resetTimestamp = localStorage.getItem(`nous_timer_reset_${h.id}`);
+                                wasRecentlyReset = resetTimestamp && (Date.now() - parseInt(resetTimestamp)) < 10000;
+                            } catch (e) { /* ignore localStorage errors */ }
 
-                            if (window.OfflineTimerManager && window.OfflineTimerManager.getTimers()[h.id]) {
+                            if (wasRecentlyReset) {
+                                // Timer was intentionally reset - trust Firestore, clear local state
+                                console.log(`[HabitsTab] Timer ${h.id} was recently reset, clearing local state`);
+                                next[h.id] = null;
+                                if (window.OfflineTimerManager) {
+                                    window.OfflineTimerManager.reset(h.id);
+                                }
+                                try {
+                                    localStorage.removeItem(`nous_timer_reset_${h.id}`);
+                                } catch (e) { /* ignore localStorage errors */ }
+                            } else if (window.OfflineTimerManager && window.OfflineTimerManager.getTimers()[h.id]) {
+                                // Not a recent reset + exists in OfflineManager = restore to Firestore
                                 console.log(`[HabitsTab] Restoring missing activeTimer for ${h.id} from local state`);
                                 // Keep local state running
                                 const localTimer = prev[h.id];
@@ -530,6 +549,13 @@
                 console.log(`[HabitsTab] BroadcastChannel received: ${type} for ${habitId}`);
 
                 if (type === 'timer-stop' || type === 'timer-reset') {
+                    // Set reset timestamp to prevent restoration by conflict resolution
+                    if (type === 'timer-reset') {
+                        try {
+                            localStorage.setItem(`nous_timer_reset_${habitId}`, Date.now().toString());
+                        } catch (e) { /* ignore localStorage errors */ }
+                    }
+
                     // Clear local timer state from another tab
                     setTimers(prev => {
                         if (prev[habitId]) {
@@ -795,6 +821,16 @@
         const resetTimer = (habitId) => {
             console.log(`[HabitsTab] Resetting timer for ${habitId}`);
             setTimers(prev => ({ ...prev, [habitId]: null }));
+
+            // Track reset timestamp to prevent other devices from restoring this timer
+            // This is critical for cross-device sync - prevents the conflict resolution
+            // from accidentally restoring a timer that was intentionally reset
+            try {
+                localStorage.setItem(`nous_timer_reset_${habitId}`, Date.now().toString());
+            } catch (e) {
+                console.warn('[HabitsTab] Could not save reset timestamp:', e);
+            }
+
             if (window.OfflineTimerManager) {
                 window.OfflineTimerManager.reset(habitId);
             }

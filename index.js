@@ -1972,6 +1972,13 @@ const Dashboard = ({ db, userId, setNotification, activeTimers, setActiveTimers,
     const handleResetTimer = async (habitId, habitName) => {
         console.log('[Reset Timer Debug] Called with:', habitId, habitName);
         try {
+            // Track reset timestamp to prevent cross-device restoration
+            try {
+                localStorage.setItem(`nous_timer_reset_${habitId}`, Date.now().toString());
+            } catch (e) {
+                console.warn('[Reset Timer] Could not save reset timestamp:', e);
+            }
+
             // OFFLINE MODE: Use offline timer manager
             if (!navigator.onLine && window.OfflineTimerManager) {
                 console.log('[Offline] Resetting timer locally');
