@@ -1,5 +1,5 @@
-// Service Worker v39 - Fixed cross-device timer reset sync issue
-const CACHE_VERSION = 'nous-v39-2026-01-29';
+// Service Worker v40 - Fixed Satoshi font caching for iOS PWA
+const CACHE_VERSION = 'nous-v40-2026-02-04';
 const CACHE_NAME = CACHE_VERSION;
 
 // Critical files for offline functionality
@@ -93,8 +93,33 @@ self.addEventListener('fetch', (event) => {
         return;
     }
 
-    // Skip external requests (Firebase, Google APIs, etc.)
-    if (url.hostname !== self.location.hostname) {
+    // Skip most external requests (Firebase, Google APIs, etc.)
+    // BUT allow fontshare.com for Satoshi font (needed for iOS PWA)
+    if (url.hostname !== self.location.hostname && !url.hostname.includes('fontshare.com')) {
+        return;
+    }
+
+    // Handle font requests - cache them for offline/PWA use
+    if (url.hostname.includes('fontshare.com')) {
+        event.respondWith(
+            caches.match(request).then(cachedResponse => {
+                if (cachedResponse) {
+                    return cachedResponse;
+                }
+                return fetch(request).then(networkResponse => {
+                    if (networkResponse.ok) {
+                        const responseClone = networkResponse.clone();
+                        caches.open(CACHE_NAME).then(cache => {
+                            cache.put(request, responseClone);
+                        });
+                    }
+                    return networkResponse;
+                }).catch(() => {
+                    // Font failed to load - browser will use fallback
+                    return new Response('', { status: 408 });
+                });
+            })
+        );
         return;
     }
 

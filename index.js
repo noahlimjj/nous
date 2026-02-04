@@ -2003,6 +2003,15 @@ const Dashboard = ({ db, userId, setNotification, activeTimers, setActiveTimers,
                 // If timer is running, stop and delete it
                 const timerDocRef = window.doc(db, `/artifacts/${appId}/users/${userId}/activeTimers/${habitId}`);
                 await window.deleteDoc(timerDocRef);
+
+                // CRITICAL FIX: Also clear activeTimer field on habit document
+                // HabitsTab.js uses this field and would restore the timer otherwise
+                const habitDocRef = window.doc(db, `/artifacts/${appId}/users/${userId}/habits/${habitId}`);
+                await window.updateDoc(habitDocRef, {
+                    activeTimer: window.deleteField ? window.deleteField() : null
+                });
+                console.log('[Reset Timer] Cleared both activeTimers collection and habit.activeTimer field');
+
                 // Also clear from local state immediately
                 setActiveTimers(prev => {
                     const newTimers = { ...prev };
@@ -2011,6 +2020,17 @@ const Dashboard = ({ db, userId, setNotification, activeTimers, setActiveTimers,
                 });
                 setNotification({ type: 'success', message: `Timer reset for ${habitName}.` });
             } else {
+                // Even if no active timer in Dashboard state, try to clear habit.activeTimer field
+                // in case HabitsTab has a timer running
+                try {
+                    const habitDocRef = window.doc(db, `/artifacts/${appId}/users/${userId}/habits/${habitId}`);
+                    await window.updateDoc(habitDocRef, {
+                        activeTimer: window.deleteField ? window.deleteField() : null
+                    });
+                    console.log('[Reset Timer] Cleared habit.activeTimer field (no Dashboard timer)');
+                } catch (e) {
+                    console.warn('[Reset Timer] Could not clear habit.activeTimer:', e);
+                }
                 setNotification({ type: 'info', message: `No active timer for ${habitName}.` });
             }
         } catch (error) {

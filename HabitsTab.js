@@ -834,8 +834,14 @@
             if (window.OfflineTimerManager) {
                 window.OfflineTimerManager.reset(habitId);
             }
-            // Clear active timer from Firestore on reset too
+            // Clear active timer from BOTH Firestore locations on reset
             if (db && userId) {
+                // 1. Delete from activeTimers collection (used by Dashboard/index.js)
+                window.deleteDoc(window.doc(db, `/artifacts/${appId}/users/${userId}/activeTimers/${habitId}`))
+                    .then(() => console.log(`[HabitsTab] Deleted activeTimers/${habitId}`))
+                    .catch(e => console.warn("Error deleting from activeTimers:", e));
+
+                // 2. Clear activeTimer field on habit document
                 window.updateDoc(window.doc(db, `/artifacts/${appId}/users/${userId}/habits/${habitId}`), {
                     activeTimer: window.deleteField ? window.deleteField() : null
                 }).then(() => console.log(`[HabitsTab] Cleared activeTimer for ${habitId} in DB`))

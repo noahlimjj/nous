@@ -50,7 +50,7 @@
         body {
             background-color: var(--sk-bg);
             margin: 0;
-            font-family: -apple-system, sans-serif;
+            font-family: "Satoshi", -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
         }
 
         .skeleton-container {
@@ -240,7 +240,7 @@
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.getRegistrations().then(function (registrations) {
                 for (let registration of registrations) {
-                    if (registration.active && (registration.active.scriptURL.includes('v28') || registration.active.scriptURL.includes('v29') || registration.active.scriptURL.includes('v31') || registration.active.scriptURL.includes('v32') || registration.active.scriptURL.includes('v33') || registration.active.scriptURL.includes('v34') || registration.active.scriptURL.includes('v35') || registration.active.scriptURL.includes('v36') || registration.active.scriptURL.includes('v37') || registration.active.scriptURL.includes('v38'))) {
+                    if (registration.active && (registration.active.scriptURL.includes('v28') || registration.active.scriptURL.includes('v29') || registration.active.scriptURL.includes('v31') || registration.active.scriptURL.includes('v32') || registration.active.scriptURL.includes('v33') || registration.active.scriptURL.includes('v34') || registration.active.scriptURL.includes('v35') || registration.active.scriptURL.includes('v36') || registration.active.scriptURL.includes('v37') || registration.active.scriptURL.includes('v38') || registration.active.scriptURL.includes('v39'))) {
                         console.log('Force unregistering old SW');
                         registration.unregister();
                     }
@@ -252,8 +252,8 @@
         // Smart service worker registration with improved error handling
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', async () => {
-                const CURRENT_SW = '/service-worker-v39.js';
-                const CURRENT_CACHE_PREFIX = 'nous-v39';
+                const CURRENT_SW = '/service-worker-v40.js';
+                const CURRENT_CACHE_PREFIX = 'nous-v40';
 
                 try {
                     console.log('[PWA] Initializing service worker...');
@@ -264,9 +264,9 @@
 
                     for (const reg of registrations) {
                         const scriptURL = reg.active?.scriptURL || '';
-                        if (scriptURL.includes('service-worker-v39.js')) {
+                        if (scriptURL.includes('service-worker-v40.js')) {
                             hasCurrentVersion = true;
-                            console.log('[PWA] ✓ Service worker v39 already registered');
+                            console.log('[PWA] ✓ Service worker v40 already registered');
                         } else {
                             // Unregister old versions
                             console.log('[PWA] Unregistering old SW:', scriptURL);
@@ -285,7 +285,7 @@
 
                     // Register current version if not already registered
                     if (!hasCurrentVersion) {
-                        console.log('[PWA] Registering service worker v39...');
+                        console.log('[PWA] Registering service worker v40...');
                         const registration = await navigator.serviceWorker.register(CURRENT_SW, {
                             scope: '/'
                         });
@@ -302,7 +302,7 @@
                             });
                         }
 
-                        console.log('[PWA] ✓ Service worker v39 registered successfully');
+                        console.log('[PWA] ✓ Service worker v40 registered successfully');
 
                         // Check for updates every 5 minutes
                         setInterval(() => {
