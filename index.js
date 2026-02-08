@@ -3777,10 +3777,12 @@ const MoodInsights = ({ db, userId, appId }) => {
 };
 
 const Reports = ({ db, userId, setNotification }) => {
-    const [viewMode, setViewMode] = useState('week'); // 'week' | 'day'
+    const [viewMode, setViewMode] = useState('week'); // 'week' | 'day' | 'month'
     const [selectedDate, setSelectedDate] = useState(new Date());
     const [sessions, setSessions] = useState([]);
     const [isLoading, setIsLoading] = useState(false);
+    const [selectedHabit, setSelectedHabit] = useState('all'); // 'all' or habitId
+    const [allHabits, setAllHabits] = useState([]); // List of user's habits for dropdown
     const [stats, setStats] = useState({
         totalDuration: 0,
         dailyAverage: 0,
@@ -3796,7 +3798,15 @@ const Reports = ({ db, userId, setNotification }) => {
     const getPeriodRange = (date, mode) => {
         const start = new Date(date);
 
-        if (mode === 'week') {
+        if (mode === 'month') {
+            start.setDate(1); // First day of month
+            start.setHours(0, 0, 0, 0);
+            const end = new Date(start);
+            end.setMonth(end.getMonth() + 1);
+            end.setDate(0); // Last day of month
+            end.setHours(23, 59, 59, 999);
+            return { start, end };
+        } else if (mode === 'week') {
             const day = start.getDay();
             const diff = start.getDate() - day + (day === 0 ? -6 : 1); // Adjust when day is sunday
             start.setDate(diff); // Monday
@@ -3816,7 +3826,9 @@ const Reports = ({ db, userId, setNotification }) => {
 
     const navigateDate = (direction) => {
         const newDate = new Date(selectedDate);
-        if (viewMode === 'week') {
+        if (viewMode === 'month') {
+            newDate.setMonth(newDate.getMonth() + direction);
+        } else if (viewMode === 'week') {
             newDate.setDate(newDate.getDate() + (direction * 7));
         } else {
             newDate.setDate(newDate.getDate() + direction);
@@ -3829,10 +3841,30 @@ const Reports = ({ db, userId, setNotification }) => {
         if (viewMode === 'day') {
             if (start.toDateString() === new Date().toDateString()) return 'Today';
             return start.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
+        } else if (viewMode === 'month') {
+            return start.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
         } else {
             return `${start.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} – ${end.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`;
         }
     };
+
+    // Fetch habits for dropdown
+    useEffect(() => {
+        if (!db || !userId) return;
+
+        const fetchHabits = async () => {
+            try {
+                const habitsRef = window.collection(db, `/artifacts/${appId}/users/${userId}/habits`);
+                const snapshot = await window.getDocs(habitsRef);
+                const habits = snapshot.docs.map(doc => ({ id: doc.id, name: doc.data().name || doc.data().title }));
+                setAllHabits(habits);
+            } catch (error) {
+                console.error("Error fetching habits for reports:", error);
+            }
+        };
+
+        fetchHabits();
+    }, [db, userId, appId]);
 
     // Data Fetching
     useEffect(() => {
@@ -3862,16 +3894,25 @@ const Reports = ({ db, userId, setNotification }) => {
         };
 
         fetchData();
-    }, [db, userId, selectedDate, viewMode, appId]);
+    }, [db, userId, selectedDate, viewMode, appId, selectedHabit]);
 
     const processData = (data, start, end) => {
+        // Filter by selected habit if not 'all'
+        let filteredData = data;
+        if (selectedHabit !== 'all') {
+            const selectedHabitObj = allHabits.find(h => h.id === selectedHabit);
+            if (selectedHabitObj) {
+                filteredData = data.filter(s => s.habitName === selectedHabitObj.name);
+            }
+        }
+
         // 1. Calculate Total Duration
-        const totalMs = data.reduce((acc, s) => acc + (s.duration || 0), 0);
+        const totalMs = filteredData.reduce((acc, s) => acc + (s.duration || 0), 0);
 
         // 2. Habit Breakdown
         const habitMap = {};
         const habitCountMap = {};
-        data.forEach(s => {
+        filteredData.forEach(s => {
             habitMap[s.habitName] = (habitMap[s.habitName] || 0) + (s.duration || 0);
             habitCountMap[s.habitName] = (habitCountMap[s.habitName] || 0) + 1;
         });
@@ -3885,21 +3926,43 @@ const Reports = ({ db, userId, setNotification }) => {
         setHabitBreakdown(sortedHabits);
 
         // 3. Stats
+        let daysCount = viewMode === 'week' ? 7 : viewMode === 'month' ? end.getDate() : 1;
         setStats({
             totalDuration: totalMs,
-            dailyAverage: viewMode === 'week' ? totalMs / 7 : totalMs, // For day view, avg is total
+            dailyAverage: totalMs / daysCount,
             mostUsedHabit: sortedHabits[0] || null,
             mostFrequentHabit: sortedByCount[0] || null
         });
 
         // 4. Chart Data
         let chart = [];
-        if (viewMode === 'week') {
+        if (viewMode === 'month') {
+            // Days in month (e.g., 28-31 days)
+            const daysInMonth = end.getDate();
+            const dayBuckets = Array(daysInMonth).fill(0);
+
+            filteredData.forEach(s => {
+                const d = new Date(s.startTime.toMillis());
+                const dayIdx = d.getDate() - 1; // 0-indexed
+                if (dayIdx >= 0 && dayIdx < daysInMonth) {
+                    dayBuckets[dayIdx] += s.duration;
+                }
+            });
+
+            const maxVal = Math.max(...dayBuckets, 1);
+            const today = new Date();
+            chart = dayBuckets.map((val, idx) => ({
+                label: (idx + 1) % 7 === 1 || idx === 0 ? `${idx + 1}` : '', // Show label every 7 days + first day
+                value: val,
+                heightPct: (val / maxVal) * 100,
+                isToday: today.getMonth() === start.getMonth() && today.getFullYear() === start.getFullYear() && today.getDate() === idx + 1
+            }));
+        } else if (viewMode === 'week') {
             // 7 days
             const days = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
             const dayBuckets = Array(7).fill(0);
 
-            data.forEach(s => {
+            filteredData.forEach(s => {
                 const d = new Date(s.startTime.toMillis());
                 // Get day index (Mon=0, Sun=6)
                 let dayIdx = d.getDay() - 1;
@@ -3917,7 +3980,7 @@ const Reports = ({ db, userId, setNotification }) => {
         } else {
             // 24 hours (4-hour buckets for simplicity or 24 bars)
             const hourBuckets = Array(24).fill(0);
-            data.forEach(s => {
+            filteredData.forEach(s => {
                 // Convert to Singapore time (UTC+8) or local?
                 // Using local based on browser for visual consistency with logic elsewhere
                 const d = new Date(s.startTime.toMillis());
@@ -3964,8 +4027,22 @@ const Reports = ({ db, userId, setNotification }) => {
                     React.createElement('button', {
                         className: viewMode === 'week' ? 'active' : '',
                         onClick: () => setViewMode('week')
-                    }, "Week")
+                    }, "Week"),
+                    React.createElement('button', {
+                        className: viewMode === 'month' ? 'active' : '',
+                        onClick: () => setViewMode('month')
+                    }, "Month")
                 )
+            ),
+
+            // Habit Selector Dropdown
+            React.createElement('select', {
+                value: selectedHabit,
+                onChange: (e) => setSelectedHabit(e.target.value),
+                className: "habit-selector px-3 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-700 dark:text-gray-200 focus:ring-2 focus:ring-blue-500 focus:outline-none cursor-pointer transition"
+            },
+                React.createElement('option', { value: 'all' }, "All Habits"),
+                allHabits.map(h => React.createElement('option', { key: h.id, value: h.id }, h.name))
             )
         ),
 
@@ -3989,7 +4066,7 @@ const Reports = ({ db, userId, setNotification }) => {
                     React.createElement('div', { className: "flex justify-between items-end mb-6" },
                         React.createElement('div', null,
                             React.createElement('p', { className: "text-gray-500 dark:text-gray-400 text-sm font-medium uppercase tracking-wide mb-1" },
-                                viewMode === 'week' ? "Weekly Total" : "Daily Total"
+                                viewMode === 'week' ? "Weekly Total" : viewMode === 'month' ? "Monthly Total" : "Daily Total"
                             ),
                             React.createElement('h3', { className: "text-4xl font-light text-gray-900 dark:text-white" },
                                 formatDurationHrs(stats.totalDuration)
@@ -4004,11 +4081,11 @@ const Reports = ({ db, userId, setNotification }) => {
                     ),
 
                     // Bar Chart
-                    React.createElement('div', { className: "h-48 flex justify-between gap-2 pt-4 border-t border-gray-100 dark:border-gray-700" },
+                    React.createElement('div', { className: `h-48 flex justify-between ${viewMode === 'month' ? 'gap-0.5' : 'gap-2'} pt-4 border-t border-gray-100 dark:border-gray-700` },
                         chartData.length > 0 ? chartData.map((bar, idx) =>
                             React.createElement('div', { key: idx, className: "chart-bar-container flex-1 group" },
                                 React.createElement('div', {
-                                    className: `chart-bar w-full max-w-[30px] rounded-t-md mx-auto ${bar.isToday ? 'bg-blue-600 dark:bg-blue-500' : 'bg-indigo-300 dark:bg-indigo-600'} group-hover:bg-blue-400 transition-all`,
+                                    className: `chart-bar w-full ${viewMode === 'month' ? 'max-w-[8px]' : 'max-w-[30px]'} rounded-t-md mx-auto ${bar.isToday ? 'bg-blue-600 dark:bg-blue-500' : 'bg-indigo-300 dark:bg-indigo-600'} group-hover:bg-blue-400 transition-all`,
                                     style: {
                                         height: `${Math.max(bar.heightPct, 4)}%`,
                                         opacity: bar.value === 0 ? 0.5 : 1
