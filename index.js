@@ -4035,14 +4035,22 @@ const Reports = ({ db, userId, setNotification }) => {
                 )
             ),
 
-            // Habit Selector Dropdown
-            React.createElement('select', {
-                value: selectedHabit,
-                onChange: (e) => setSelectedHabit(e.target.value),
-                className: "habit-selector px-3 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-700 dark:text-gray-200 focus:ring-2 focus:ring-blue-500 focus:outline-none cursor-pointer transition"
-            },
-                React.createElement('option', { value: 'all' }, "All Habits"),
-                allHabits.map(h => React.createElement('option', { key: h.id, value: h.id }, h.name))
+            // Habit Selector Dropdown - styled to match segmented control
+            React.createElement('div', { className: "relative inline-flex" },
+                React.createElement('select', {
+                    value: selectedHabit,
+                    onChange: (e) => setSelectedHabit(e.target.value),
+                    className: "habit-selector appearance-none pl-3 pr-8 py-1 bg-gray-200 dark:bg-slate-800 rounded-lg text-sm font-medium text-gray-600 dark:text-slate-300 border border-gray-200/50 dark:border-slate-700 hover:bg-gray-300 dark:hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/50 cursor-pointer transition-all duration-200"
+                },
+                    React.createElement('option', { value: 'all' }, "All Habits"),
+                    allHabits.map(h => React.createElement('option', { key: h.id, value: h.id }, h.name))
+                ),
+                // Subtle dropdown arrow
+                React.createElement('div', { className: "absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none" },
+                    React.createElement('svg', { className: "w-4 h-4 text-gray-500 dark:text-slate-400", fill: "none", stroke: "currentColor", viewBox: "0 0 24 24" },
+                        React.createElement('path', { strokeLinecap: "round", strokeLinejoin: "round", strokeWidth: "2", d: "M19 9l-7 7-7-7" })
+                    )
+                )
             )
         ),
 
