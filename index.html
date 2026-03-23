@@ -252,7 +252,7 @@
         // Smart service worker registration with improved error handling
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', async () => {
-                const CURRENT_SW = '/service-worker-v42.js';
+                const CURRENT_SW = '/service-worker-v43.js';
                 const CURRENT_CACHE_PREFIX = 'nous-v42';
 
                 try {
@@ -264,7 +264,7 @@
 
                     for (const reg of registrations) {
                         const scriptURL = reg.active?.scriptURL || '';
-                        if (scriptURL.includes('service-worker-v42.js')) {
+                        if (scriptURL.includes('service-worker-v43.js')) {
                             hasCurrentVersion = true;
                             console.log('[PWA] ✓ Service worker v42 already registered');
                         } else {

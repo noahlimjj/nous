@@ -230,6 +230,7 @@
         const [showManualSession, setShowManualSession] = useState(null); // habitId for which to show modal
         const [manualHours, setManualHours] = useState('0');
         const [manualMinutes, setManualMinutes] = useState('0');
+        const [manualSessionDate, setManualSessionDate] = useState(null); // dateStr for the target date
         // Duration picker state for countdown mode
         const [showDurationPicker, setShowDurationPicker] = useState(null); // habitId for duration picker
         const [countdownHours, setCountdownHours] = useState('0');
@@ -1043,7 +1044,7 @@
 
             // If marking as done (not unchecking), open manual session modal to ask for duration
             if (!done) {
-                openManualSession(habitId);
+                openManualSession(habitId, dateStr);
             }
             // No confetti on habit completion - only on reward claims
         };
@@ -1256,10 +1257,11 @@
         };
 
         // Manual session handlers
-        const openManualSession = (habitId) => {
+        const openManualSession = (habitId, dateStr) => {
             setShowManualSession(habitId);
             setManualHours('0');
             setManualMinutes('0');
+            setManualSessionDate(dateStr || toLocalDateString(new Date()));
         };
 
         const saveManualSession = async (habitId) => {
@@ -1277,8 +1279,9 @@
 
             // Save the session to Firestore
             try {
-                const sessionDate = new Date();
-                const dateStr = toLocalDateString(sessionDate);
+                const dateStr = manualSessionDate || toLocalDateString(new Date());
+                const [year, month, day] = dateStr.split('-').map(Number);
+                const sessionDate = new Date(year, month - 1, day, 12, 0, 0); // noon on target date
 
                 // Update habit completion dates if not already present
                 const currentDates = habit.completionDates || [];
@@ -1292,10 +1295,10 @@
                     habitId: habitId,
                     habitName: habit.title,
                     duration: totalMs,
-                    startTime: window.Timestamp.now(),
-                    endTime: window.Timestamp.now(),
+                    startTime: window.Timestamp.fromDate(sessionDate),
+                    endTime: window.Timestamp.fromDate(new Date(sessionDate.getTime() + totalMs)),
                     isManual: true,
-                    localDate: dateStr // Optional: store local date string for easy debugging
+                    localDate: dateStr
                 });
                 showNotif(`manual session saved: ${hours > 0 ? hours + 'h ' : ''}${minutes}m`);
                 setShowManualSession(null);
@@ -1496,7 +1499,7 @@
 
                         // Manual Session
                         React.createElement("button", {
-                            onClick: () => setShowManualSession(h.id),
+                            onClick: () => openManualSession(h.id, toLocalDateString(new Date())),
                             className: "p-2 bg-blue-100 text-blue-600 rounded-full hover:bg-blue-200 transition"
                         }, React.createElement("svg", { width: 20, height: 20, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: 2, strokeLinecap: "round", strokeLinejoin: "round" },
                             React.createElement("circle", { cx: 12, cy: 12, r: 10 }),
@@ -1869,7 +1872,7 @@
                         )
                     ),
                     React.createElement("p", { className: "text-sm text-gray-500 mb-4 lowercase" },
-                        `for: ${habits.find(h => h.id === showManualSession)?.title || 'habit'}`
+                        `for: ${habits.find(h => h.id === showManualSession)?.title || 'habit'} • ${manualSessionDate ? (() => { const [y,m,d] = manualSessionDate.split('-').map(Number); const dt = new Date(y, m-1, d); return dt.toLocaleDateString('en-US', { weekday: 'short', day: 'numeric', month: 'short' }).toLowerCase(); })() : 'today'}`
                     ),
                     React.createElement("div", { className: "flex items-center gap-3 mb-4" },
                         React.createElement("div", { className: "flex-1" },
