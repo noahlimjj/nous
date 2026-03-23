@@ -4965,34 +4965,31 @@ const GrowthTree = ({ sessions, db, userId, setNotification }) => {
     );
 };
 
-// GoalSection component - moved outside Goals to prevent re-creation on each render
-const GoalSection = ({ type, title, color, placeholder, activeGoals, newGoalText, setNewGoalText, handleAddGoal, handleToggleGoal, handleDeleteGoal }) => {
-    const sectionGoals = activeGoals.filter(g => g.type === type);
-
+// GoalSection component - unified single goals section
+const GoalSection = ({ activeGoals, newGoalText, setNewGoalText, handleAddGoal, handleToggleGoal, handleDeleteGoal }) => {
     return React.createElement('div', { className: "bg-white rounded-xl soft-shadow p-6" },
-        React.createElement('h3', { className: "text-xl font-light mb-4", style: { color, fontWeight: 300 } }, title),
 
         // Goal input
         React.createElement('div', { className: "flex gap-2 mb-4" },
             React.createElement('input', {
                 type: "text",
-                value: newGoalText[type],
-                onChange: (e) => setNewGoalText({ ...newGoalText, [type]: e.target.value }),
-                onKeyPress: (e) => e.key === 'Enter' && handleAddGoal(type),
-                placeholder,
+                value: newGoalText,
+                onChange: (e) => setNewGoalText(e.target.value),
+                onKeyPress: (e) => e.key === 'Enter' && handleAddGoal(),
+                placeholder: "what do you want to accomplish?",
                 className: "flex-grow px-4 py-2 border border-calm-300 rounded-xl focus:ring-2 focus:outline-none transition",
                 style: { borderColor: '#d1d7e3', fontWeight: 300 }
             }),
             React.createElement('button', {
-                onClick: () => handleAddGoal(type),
+                onClick: () => handleAddGoal(),
                 className: "px-4 py-2 rounded-xl soft-shadow hover:opacity-90 transition text-white",
-                style: { backgroundColor: color, fontWeight: 400 }
+                style: { backgroundColor: '#5FA8A3', fontWeight: 400 }
             }, "+")
         ),
 
         // Goal list
         React.createElement('div', { className: "space-y-2" },
-            sectionGoals.map(goal =>
+            activeGoals.length > 0 ? activeGoals.map(goal =>
                 React.createElement('div', {
                     key: goal.id,
                     className: "flex items-center gap-3 p-2 rounded-lg hover:bg-calm-50 transition group"
@@ -5013,7 +5010,7 @@ const GoalSection = ({ type, title, color, placeholder, activeGoals, newGoalText
                         style: { fontSize: '0.9rem' }
                     }, "×")
                 )
-            )
+            ) : React.createElement('p', { className: "text-calm-500 text-sm", style: { fontWeight: 300 } }, "no goals yet. add one above!")
         )
     );
 };
@@ -5467,7 +5464,7 @@ const Notebook = ({ db, userId, setNotification }) => {
 
 const Goals = ({ db, userId, setNotification }) => {
     const [goals, setGoals] = useState([]);
-    const [newGoalText, setNewGoalText] = useState({ daily: '', weekly: '', monthly: '', yearly: '' });
+    const [newGoalText, setNewGoalText] = useState('');
     const [isLoading, setIsLoading] = useState(true);
 
     const appId = typeof __app_id !== 'undefined' ? __app_id : 'study-tracker-app';
@@ -5490,19 +5487,19 @@ const Goals = ({ db, userId, setNotification }) => {
         return () => unsubscribe();
     }, [db, userId, appId, setNotification]);
 
-    const handleAddGoal = async (type) => {
-        const text = newGoalText[type].trim();
+    const handleAddGoal = async () => {
+        const text = newGoalText.trim();
         if (!text) return;
 
         try {
             const goalsCol = window.collection(db, `/artifacts/${appId}/users/${userId}/goals`);
             await window.addDoc(goalsCol, {
                 text,
-                type,
+                type: 'general',
                 completed: false,
                 createdAt: window.Timestamp.now()
             });
-            setNewGoalText({ ...newGoalText, [type]: '' });
+            setNewGoalText('');
             setNotification({ type: 'success', message: 'Goal added!' });
         } catch (error) {
             console.error("Error adding goal:", error);
@@ -5548,64 +5545,11 @@ const Goals = ({ db, userId, setNotification }) => {
     }
 
     return React.createElement('div', { className: "max-w-4xl mx-auto p-4 sm:p-6 lg:p-8" },
-        // Mood Check-in section (at the top)
-        React.createElement('div', { className: "mb-12" },
-            window.MoodTrackerTab && React.createElement(window.MoodTrackerTab, {
-                user: { id: userId },
-                db: db,
-                appId: appId,
-                showStats: false,
-                embedded: true
-            })
-        ),
-
-        // Notebook section
-        React.createElement(Notebook, { db, userId, setNotification }),
-
+        // Goals section (at the top)
         React.createElement('h2', { className: "text-3xl text-calm-800 mb-6", style: { fontWeight: 300 } }, "goals"),
 
-        React.createElement('div', { className: "space-y-6" },
+        React.createElement('div', { className: "space-y-6 mb-12" },
             React.createElement(GoalSection, {
-                type: 'daily',
-                title: 'daily goals',
-                color: '#5FA8A3',
-                placeholder: "what do you want to accomplish today?",
-                activeGoals,
-                newGoalText,
-                setNewGoalText,
-                handleAddGoal,
-                handleToggleGoal,
-                handleDeleteGoal
-            }),
-            React.createElement(GoalSection, {
-                type: 'weekly',
-                title: 'weekly goals',
-                color: '#6B8DD6',
-                placeholder: "what do you want to accomplish this week?",
-                activeGoals,
-                newGoalText,
-                setNewGoalText,
-                handleAddGoal,
-                handleToggleGoal,
-                handleDeleteGoal
-            }),
-            React.createElement(GoalSection, {
-                type: 'monthly',
-                title: 'monthly goals',
-                color: '#8B7FB8',
-                placeholder: "what do you want to accomplish this month?",
-                activeGoals,
-                newGoalText,
-                setNewGoalText,
-                handleAddGoal,
-                handleToggleGoal,
-                handleDeleteGoal
-            }),
-            React.createElement(GoalSection, {
-                type: 'yearly',
-                title: 'yearly goals',
-                color: '#7d8ca8',
-                placeholder: "what do you want to accomplish this year?",
                 activeGoals,
                 newGoalText,
                 setNewGoalText,
@@ -5647,7 +5591,21 @@ const Goals = ({ db, userId, setNotification }) => {
                     )
                 )
             )
-        )
+        ),
+
+        // Mood Check-in section (below goals)
+        React.createElement('div', { className: "mb-12" },
+            window.MoodTrackerTab && React.createElement(window.MoodTrackerTab, {
+                user: { id: userId },
+                db: db,
+                appId: appId,
+                showStats: false,
+                embedded: true
+            })
+        ),
+
+        // Notebook section
+        React.createElement(Notebook, { db, userId, setNotification })
     );
 };
 
