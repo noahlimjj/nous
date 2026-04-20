@@ -2,6 +2,13 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
+    // Mail collection (for Firebase Trigger Email extension)
+    // Cloud Functions write to this via admin SDK (bypasses rules)
+    // No client-side access needed
+    match /mail/{emailId} {
+      allow read, write: if false; // Admin SDK only
+    }
+
     // Users Collection
     match /users/{userId} {
       // Users can read their own profile and other users' profiles
@@ -163,6 +170,14 @@ service cloud.firestore {
         // Active timers subcollection - users can only access their own timers
         match /activeTimers/{timerId} {
           allow read, write: if request.auth != null && request.auth.uid == userId;
+        }
+
+        // Reports subcollection - AI-generated study reports
+        match /reports/{reportId} {
+          allow read: if request.auth != null && request.auth.uid == userId;
+          // Write access for Cloud Functions (admin SDK bypasses rules)
+          // and for the user themselves
+          allow write: if request.auth != null && request.auth.uid == userId;
         }
 
         // Catch-all for any other artifacts subcollections

@@ -4193,11 +4193,389 @@ const Settings = ({ auth, userId, db, userProfile, setNotification, isNightMode,
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     const [showAbout, setShowAbout] = useState(false);
 
+    // Email report preferences state
+    const [reportWeekly, setReportWeekly] = useState(false);
+    const [reportMonthly, setReportMonthly] = useState(false);
+    const [reportEnabled, setReportEnabled] = useState(false);
+    const [isGeneratingReport, setIsGeneratingReport] = useState(false);
+    const [reportPreview, setReportPreview] = useState(null);
+    const [isSavingPrefs, setIsSavingPrefs] = useState(false);
+
     useEffect(() => {
         if (userProfile?.username) {
             setUsername(userProfile.username);
         }
+        // Load report preferences
+        if (userProfile?.reportPreferences) {
+            setReportEnabled(userProfile.reportPreferences.enabled || false);
+            setReportWeekly(userProfile.reportPreferences.weekly || false);
+            setReportMonthly(userProfile.reportPreferences.monthly || false);
+        }
     }, [userProfile]);
+
+    // Save report preferences to Firestore
+    const handleSaveReportPrefs = async (enabled, weekly, monthly) => {
+        setIsSavingPrefs(true);
+        try {
+            const userDocRef = window.doc(db, 'users', userId);
+            await window.setDoc(userDocRef, {
+                reportPreferences: {
+                    enabled: enabled,
+                    weekly: weekly,
+                    monthly: monthly,
+                    updatedAt: new Date()
+                },
+                // Store email from auth for Cloud Functions to use
+                reportEmail: auth.currentUser?.email || null
+            }, { merge: true });
+            setNotification({ type: 'success', message: 'report preferences saved!' });
+        } catch (error) {
+            console.error('Error saving report prefs:', error);
+            setNotification({ type: 'error', message: 'Failed to save preferences.' });
+        } finally {
+            setIsSavingPrefs(false);
+        }
+    };
+
+    // Generate and preview a test report (client-side, no Cloud Functions needed)
+    const handleGenerateTestReport = async (periodType = 'weekly') => {
+        setIsGeneratingReport(true);
+        setReportPreview(null);
+        try {
+            const appId = typeof __app_id !== 'undefined' ? __app_id : 'study-tracker-app';
+            const now = new Date();
+            let startDate, endDate, periodLabel;
+
+            if (periodType === 'weekly') {
+                startDate = new Date(now);
+                startDate.setDate(startDate.getDate() - 7);
+                startDate.setHours(0, 0, 0, 0);
+                endDate = new Date(now);
+                endDate.setHours(23, 59, 59, 999);
+                periodLabel = `${startDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} – ${endDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`;
+            } else {
+                startDate = new Date(now);
+                startDate.setDate(startDate.getDate() - 30);
+                startDate.setHours(0, 0, 0, 0);
+                endDate = new Date(now);
+                endDate.setHours(23, 59, 59, 999);
+                periodLabel = `${startDate.toLocaleDateString('en-US', { month: 'long' })} – ${endDate.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}`;
+            }
+
+            // 1. Fetch sessions
+            console.log('[Report] Fetching sessions...');
+            const sessionsQuery = window.query(
+                window.collection(db, `/artifacts/${appId}/users/${userId}/sessions`),
+                window.where('startTime', '>=', window.Timestamp.fromDate(startDate)),
+                window.where('startTime', '<=', window.Timestamp.fromDate(endDate))
+            );
+            const sessionsSnap = await window.getDocs(sessionsQuery);
+            const sessions = sessionsSnap.docs.map(doc => {
+                const d = doc.data();
+                return {
+                    habitName: d.habitName || 'Unknown',
+                    duration: d.duration || 0,
+                    startTime: d.startTime?.toDate?.() || new Date()
+                };
+            });
+            console.log(`[Report] Found ${sessions.length} sessions`);
+
+            // 2. Fetch habits
+            const habitsSnap = await window.getDocs(window.collection(db, `/artifacts/${appId}/users/${userId}/habits`));
+            const habits = habitsSnap.docs.map(doc => {
+                const d = doc.data();
+                const completionDates = d.completionDates || [];
+                return {
+                    id: doc.id,
+                    title: d.title || d.name || 'Unknown',
+                    totalHours: d.totalHours || 0,
+                    completionDates,
+                    streak: calcStreakLocal(completionDates)
+                };
+            });
+
+            // 3. Fetch mood logs
+            const moodSnap = await window.getDocs(window.collection(db, `/artifacts/${appId}/users/${userId}/mood_logs`));
+            const moodLogs = moodSnap.docs
+                .map(doc => ({ id: doc.id, ...doc.data() }))
+                .filter(log => {
+                    if (!log.date) return false;
+                    const logDate = new Date(log.date);
+                    return logDate >= startDate && logDate <= endDate;
+                });
+
+            // 4. Calculate stats
+            const stats = calcReportStats(sessions, habits, moodLogs, periodType);
+
+            // 5. Fetch previous period for comparison
+            let prevStart, prevEnd;
+            if (periodType === 'weekly') {
+                prevEnd = new Date(startDate);
+                prevEnd.setDate(prevEnd.getDate() - 1);
+                prevStart = new Date(prevEnd);
+                prevStart.setDate(prevStart.getDate() - 6);
+            } else {
+                prevEnd = new Date(startDate);
+                prevEnd.setDate(prevEnd.getDate() - 1);
+                prevStart = new Date(prevEnd);
+                prevStart.setDate(prevStart.getDate() - 29);
+            }
+            prevStart.setHours(0, 0, 0, 0);
+            prevEnd.setHours(23, 59, 59, 999);
+
+            const prevQuery = window.query(
+                window.collection(db, `/artifacts/${appId}/users/${userId}/sessions`),
+                window.where('startTime', '>=', window.Timestamp.fromDate(prevStart)),
+                window.where('startTime', '<=', window.Timestamp.fromDate(prevEnd))
+            );
+            const prevSnap = await window.getDocs(prevQuery);
+            const prevTotalMs = prevSnap.docs.reduce((sum, doc) => sum + (doc.data().duration || 0), 0);
+            const prevTotalHours = Math.round((prevTotalMs / (1000 * 60 * 60)) * 10) / 10;
+
+            const comparison = {
+                prevTotalHours,
+                changePercent: prevTotalHours > 0
+                    ? Math.round(((stats.totalHours - prevTotalHours) / prevTotalHours) * 100)
+                    : (stats.totalHours > 0 ? 100 : 0),
+                direction: stats.totalHours > prevTotalHours ? 'up' : stats.totalHours < prevTotalHours ? 'down' : 'same'
+            };
+
+            // 6. Call DeepSeek API for AI narrative
+            console.log('[Report] Calling DeepSeek API...');
+            let aiNarrative;
+            try {
+                aiNarrative = await callDeepSeekForReport({
+                    username: userProfile?.username || 'there',
+                    periodType, periodLabel, stats, comparison
+                });
+            } catch (apiErr) {
+                console.warn('[Report] DeepSeek API failed, using fallback:', apiErr);
+                aiNarrative = generateFallbackNarrative({
+                    username: userProfile?.username || 'there',
+                    periodType, stats, comparison
+                });
+            }
+
+            // 7. Build HTML email
+            const htmlPreview = buildReportEmail({ periodType, periodLabel, stats, comparison }, aiNarrative);
+
+            // 8. Save report to Firestore
+            try {
+                await window.addDoc(window.collection(db, `/artifacts/${appId}/users/${userId}/reports`), {
+                    periodType,
+                    periodLabel,
+                    stats,
+                    comparison,
+                    aiNarrative,
+                    createdAt: window.serverTimestamp ? window.serverTimestamp() : new Date()
+                });
+
+                // Trigger Firebase Email Extension
+                const targetEmail = auth.currentUser?.email || userProfile?.reportEmail;
+                if (targetEmail) {
+                    await window.addDoc(window.collection(db, 'mail'), {
+                        to: targetEmail,
+                        message: {
+                            subject: `Your ${periodType} study report from Nous`,
+                            html: htmlPreview
+                        }
+                    });
+                    console.log(`[Report] Added to mail collection for ${targetEmail}`);
+                }
+            } catch (saveErr) {
+                console.warn('[Report] Could not save report or trigger email:', saveErr);
+            }
+
+            setReportPreview({
+                success: true,
+                periodType,
+                periodLabel,
+                stats,
+                comparison,
+                aiNarrative,
+                htmlPreview
+            });
+            setNotification({ type: 'success', message: `${periodType} report generated! ✨` });
+
+        } catch (error) {
+            console.error('Error generating report:', error);
+            setNotification({ type: 'error', message: 'Failed to generate report: ' + (error.message || 'Unknown error') });
+        } finally {
+            setIsGeneratingReport(false);
+        }
+    };
+
+    // Helper: Calculate streak from completion dates
+    function calcStreakLocal(dates) {
+        if (!dates || dates.length === 0) return 0;
+        const sorted = [...dates].sort().reverse();
+        const today = new Date();
+        const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+        const yesterday = new Date(Date.now() - 86400000);
+        const yesterdayStr = `${yesterday.getFullYear()}-${String(yesterday.getMonth() + 1).padStart(2, '0')}-${String(yesterday.getDate()).padStart(2, '0')}`;
+        if (sorted[0] !== todayStr && sorted[0] !== yesterdayStr) return 0;
+        let streak = 1;
+        for (let i = 1; i < sorted.length; i++) {
+            const prev = new Date(sorted[i - 1]);
+            const curr = new Date(sorted[i]);
+            if ((prev - curr) / 86400000 === 1) streak++;
+            else break;
+        }
+        return streak;
+    }
+
+    // Helper: Calculate report statistics
+    function calcReportStats(sessions, habits, moodLogs, periodType) {
+        const totalMs = sessions.reduce((sum, s) => sum + s.duration, 0);
+        const totalHours = Math.round((totalMs / (1000 * 60 * 60)) * 10) / 10;
+        const daysInPeriod = periodType === 'weekly' ? 7 : 30;
+        const dailyAvgHours = Math.round((totalHours / daysInPeriod) * 10) / 10;
+
+        const habitMap = {};
+        sessions.forEach(s => {
+            if (!habitMap[s.habitName]) habitMap[s.habitName] = { totalMs: 0, count: 0 };
+            habitMap[s.habitName].totalMs += s.duration;
+            habitMap[s.habitName].count += 1;
+        });
+
+        const habitBreakdown = Object.entries(habitMap)
+            .map(([name, data]) => ({
+                name,
+                hours: Math.round((data.totalMs / (1000 * 60 * 60)) * 10) / 10,
+                sessions: data.count,
+                percentOfTotal: totalMs > 0 ? Math.round((data.totalMs / totalMs) * 100) : 0
+            }))
+            .sort((a, b) => b.hours - a.hours);
+
+        const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+        const dayDist = [0, 0, 0, 0, 0, 0, 0];
+        sessions.forEach(s => { dayDist[new Date(s.startTime).getDay()] += s.duration; });
+        const bestDay = sessions.length > 0 ? dayNames[dayDist.indexOf(Math.max(...dayDist))] : null;
+
+        const hourDist = new Array(24).fill(0);
+        sessions.forEach(s => { hourDist[new Date(s.startTime).getHours()] += s.duration; });
+        const peakIdx = hourDist.indexOf(Math.max(...hourDist));
+        const peakHour = sessions.length > 0 ? `${peakIdx}:00–${peakIdx + 1}:00` : null;
+
+        const avgMood = moodLogs.length > 0
+            ? Math.round((moodLogs.reduce((sum, l) => sum + (l.rating || 0), 0) / moodLogs.length) * 10) / 10
+            : null;
+
+        const topStreaks = habits.filter(h => h.streak > 0).sort((a, b) => b.streak - a.streak).slice(0, 3);
+        const studyDays = new Set(sessions.map(s => new Date(s.startTime).toDateString())).size;
+
+        return { totalHours, totalSessions: sessions.length, dailyAvgHours, habitBreakdown, bestDay, peakHour, avgMood, topStreaks, studyDays, daysInPeriod };
+    }
+
+    // Helper: Call DeepSeek API for AI narrative
+    async function callDeepSeekForReport(data) {
+        const DEEPSEEK_API_KEY = 'sk-62f463e71ae3402d9aa3b06bc25db0d2';
+        const { username, periodType, periodLabel, stats, comparison } = data;
+
+        const prompt = `You are a warm, encouraging study coach writing a brief ${periodType} progress report for a student named "${username}".
+
+Here is their data for this period (${periodLabel}):
+
+STUDY STATS:
+- Total study time: ${stats.totalHours} hours across ${stats.totalSessions} sessions
+- Daily average: ${stats.dailyAvgHours} hours/day
+- Active study days: ${stats.studyDays} out of ${stats.daysInPeriod} days
+- Best study day: ${stats.bestDay || 'N/A'}
+- Peak study hour: ${stats.peakHour || 'N/A'}
+
+HABIT BREAKDOWN:
+${stats.habitBreakdown.map(h => `- ${h.name}: ${h.hours}h (${h.sessions} sessions, ${h.percentOfTotal}%)`).join('\n') || 'No sessions this period'}
+
+COMPARISON VS PREVIOUS ${periodType.toUpperCase()}:
+- Previous period: ${comparison.prevTotalHours}h → This period: ${stats.totalHours}h
+- Change: ${comparison.changePercent > 0 ? '+' : ''}${comparison.changePercent}% (${comparison.direction})
+
+ACTIVE STREAKS:
+${stats.topStreaks.length > 0 ? stats.topStreaks.map(s => `- ${s.title}: ${s.streak}-day streak`).join('\n') : 'No active streaks'}
+
+MOOD:
+${stats.avgMood ? `Average mood: ${stats.avgMood}/10` : 'No mood data this period'}
+
+Write a SHORT, personal email body (3-4 paragraphs, ~150 words max). Be specific with their data. Use a conversational, warm tone. Include:
+1. A warm greeting and highlight of their top achievement this period
+2. A specific, data-backed observation
+3. One actionable suggestion for next ${periodType === 'weekly' ? 'week' : 'month'}
+4. An encouraging sign-off
+
+Use lowercase text for habit names to match the app's aesthetic, but you may use normal capitalization for sentences. No markdown formatting — just plain text with line breaks.`;
+
+        const response = await fetch('https://api.deepseek.com/chat/completions', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${DEEPSEEK_API_KEY}`
+            },
+            body: JSON.stringify({
+                model: 'deepseek-chat',
+                messages: [
+                    { role: 'system', content: 'You are a helpful, warm study coach. Be concise and data-driven. Use normal capitalization.' },
+                    { role: 'user', content: prompt }
+                ],
+                max_tokens: 500,
+                temperature: 0.7
+            })
+        });
+
+        if (!response.ok) {
+            const errText = await response.text();
+            throw new Error(`DeepSeek API error ${response.status}: ${errText}`);
+        }
+
+        const result = await response.json();
+        return result.choices?.[0]?.message?.content || generateFallbackNarrative(data);
+    }
+
+    // Helper: Fallback narrative when AI is unavailable
+    function generateFallbackNarrative(data) {
+        const { username, stats, comparison, periodType } = data;
+        const topHabit = stats.habitBreakdown[0];
+        const periodName = periodType === 'weekly' ? 'week' : 'month';
+        let text = `hey ${username},\n\n`;
+
+        if (stats.totalSessions === 0) {
+            text += `looks like it was a quiet ${periodName}. no sessions logged — that's okay, we all need breaks.\n\n`;
+            text += `whenever you're ready, your habits are right where you left them.\n\n`;
+        } else {
+            text += `you put in ${stats.totalHours} hours across ${stats.totalSessions} sessions this ${periodName}`;
+            if (comparison.direction === 'up' && comparison.changePercent > 0) text += ` — ${comparison.changePercent}% more than last ${periodName}! 📈`;
+            text += '\n\n';
+            if (topHabit) text += `top focus: ${topHabit.name} at ${topHabit.hours}h. `;
+            if (stats.topStreaks.length > 0) text += `you're on a ${stats.topStreaks[0].streak}-day streak with ${stats.topStreaks[0].title} 🔥`;
+            text += '\n\n';
+        }
+        text += 'keep showing up. — nous';
+        return text;
+    }
+
+    // Helper: Build HTML email
+    function buildReportEmail(data, aiNarrative) {
+        const { periodType, periodLabel, stats, comparison } = data;
+        const colors = ['#6B8DD6', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#14b8a6'];
+
+        const habitBarsHTML = stats.habitBreakdown.slice(0, 6).map((h, i) => {
+            const barWidth = stats.totalHours > 0 ? Math.max(8, (h.hours / stats.totalHours) * 100) : 0;
+            return `<tr><td style="padding:8px 12px 8px 0;font-size:14px;color:#4b5563;white-space:nowrap;">${h.name}</td><td style="padding:8px 0;width:100%;"><div style="background:#f3f4f6;border-radius:6px;height:24px;overflow:hidden;"><div style="background:${colors[i % colors.length]};height:100%;width:${barWidth}%;border-radius:6px;min-width:24px;"></div></div></td><td style="padding:8px 0 8px 12px;font-size:14px;color:#374151;font-weight:500;white-space:nowrap;text-align:right;">${h.hours}h</td></tr>`;
+        }).join('');
+
+        const streakHTML = stats.topStreaks.map(s =>
+            `<span style="display:inline-block;background:#fef3c7;color:#92400e;padding:4px 12px;border-radius:20px;font-size:13px;margin:0 4px 4px 0;font-weight:500;">🔥 ${s.title}: ${s.streak}d</span>`
+        ).join('');
+
+        const trendColor = comparison.direction === 'up' ? '#059669' : comparison.direction === 'down' ? '#dc2626' : '#6b7280';
+        const trendIcon = comparison.direction === 'up' ? '📈' : comparison.direction === 'down' ? '📉' : '➡️';
+        const trendText = comparison.changePercent !== 0
+            ? `<span style="color:${trendColor};font-weight:600;">${trendIcon} ${comparison.changePercent > 0 ? '+' : ''}${comparison.changePercent}%</span> vs last ${periodType === 'weekly' ? 'week' : 'month'}`
+            : `same as last ${periodType === 'weekly' ? 'week' : 'month'}`;
+
+        const narrativeHTML = aiNarrative.split('\n\n').map(p => `<p style="margin:0 0 16px 0;font-size:15px;line-height:1.7;color:#374151;">${p.replace(/\n/g, '<br>')}</p>`).join('');
+
+        return `<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>nous — ${periodType} report</title></head><body style="margin:0;padding:0;background-color:#f8f9fb;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;"><div style="max-width:560px;margin:0 auto;padding:40px 20px;"><div style="text-align:center;margin-bottom:32px;"><div style="display:inline-block;width:48px;height:48px;border:2px solid #5d6b86;border-radius:50%;line-height:48px;text-align:center;font-size:24px;color:#5d6b86;font-weight:300;font-family:Georgia,serif;">n</div><p style="margin:12px 0 0 0;font-size:13px;color:#9ca3af;text-transform:uppercase;letter-spacing:3px;font-weight:600;">${periodType} report</p><p style="margin:4px 0 0 0;font-size:14px;color:#6b7280;">${periodLabel}</p></div><div style="background:#ffffff;border-radius:20px;padding:32px;box-shadow:0 1px 3px rgba(0,0,0,0.06);margin-bottom:20px;"><div style="text-align:center;padding-bottom:24px;border-bottom:1px solid #f3f4f6;margin-bottom:24px;"><p style="margin:0;font-size:48px;font-weight:200;color:#1f2937;letter-spacing:-2px;">${stats.totalHours}h</p><p style="margin:4px 0 0 0;font-size:14px;color:#9ca3af;">total study time</p><p style="margin:8px 0 0 0;font-size:13px;color:#6b7280;">${trendText}</p></div><table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px;"><tr><td style="text-align:center;padding:12px;"><p style="margin:0;font-size:28px;font-weight:300;color:#1f2937;">${stats.totalSessions}</p><p style="margin:4px 0 0 0;font-size:12px;color:#9ca3af;text-transform:uppercase;letter-spacing:1px;">sessions</p></td><td style="text-align:center;padding:12px;border-left:1px solid #f3f4f6;border-right:1px solid #f3f4f6;"><p style="margin:0;font-size:28px;font-weight:300;color:#1f2937;">${stats.dailyAvgHours}h</p><p style="margin:4px 0 0 0;font-size:12px;color:#9ca3af;text-transform:uppercase;letter-spacing:1px;">daily avg</p></td><td style="text-align:center;padding:12px;"><p style="margin:0;font-size:28px;font-weight:300;color:#1f2937;">${stats.studyDays}/${stats.daysInPeriod}</p><p style="margin:4px 0 0 0;font-size:12px;color:#9ca3af;text-transform:uppercase;letter-spacing:1px;">active days</p></td></tr></table>${stats.habitBreakdown.length > 0 ? `<div style="margin-bottom:24px;"><p style="margin:0 0 12px 0;font-size:12px;color:#9ca3af;text-transform:uppercase;letter-spacing:2px;font-weight:600;">habit breakdown</p><table width="100%" cellpadding="0" cellspacing="0">${habitBarsHTML}</table></div>` : ''}${streakHTML ? `<div style="margin-bottom:24px;"><p style="margin:0 0 8px 0;font-size:12px;color:#9ca3af;text-transform:uppercase;letter-spacing:2px;font-weight:600;">active streaks</p><div>${streakHTML}</div></div>` : ''}${stats.avgMood ? `<div style="margin-bottom:24px;padding:16px;background:#f0fdf4;border-radius:12px;"><p style="margin:0;font-size:14px;color:#15803d;">🧠 average mood: <strong>${stats.avgMood}/10</strong></p></div>` : ''}</div><div style="background:#ffffff;border-radius:20px;padding:32px;box-shadow:0 1px 3px rgba(0,0,0,0.06);margin-bottom:20px;"><p style="margin:0 0 16px 0;font-size:12px;color:#9ca3af;text-transform:uppercase;letter-spacing:2px;font-weight:600;">✨ your personal insights</p>${narrativeHTML}</div><div style="text-align:center;padding:20px;"><p style="margin:0;font-size:13px;color:#9ca3af;">sent with 💙 by nous</p></div></div></body></html>`;
+    }
 
     const handleSaveUsername = async () => {
         if (!username.trim() || username === userProfile?.username) {
@@ -4416,6 +4794,234 @@ const Settings = ({ auth, userId, db, userProfile, setNotification, isNightMode,
                                     React.createElement('line', { x1: "18.36", y1: "5.64", x2: "19.78", y2: "4.22" })
                                 )
                         )
+                    )
+                )
+            )
+        ),
+
+        // Email Reports Section
+        React.createElement('div', { className: "bg-white rounded-lg shadow-sm p-6 mb-6" },
+            React.createElement('div', { className: "flex items-start gap-3 mb-4" },
+                React.createElement('div', { className: "flex-shrink-0 mt-0.5" },
+                    React.createElement('svg', {
+                        xmlns: "http://www.w3.org/2000/svg",
+                        width: "24",
+                        height: "24",
+                        viewBox: "0 0 24 24",
+                        fill: "none",
+                        stroke: "#6B8DD6",
+                        strokeWidth: "2",
+                        strokeLinecap: "round",
+                        strokeLinejoin: "round"
+                    },
+                        React.createElement('rect', { x: "2", y: "4", width: "20", height: "16", rx: "2" }),
+                        React.createElement('path', { d: "m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" })
+                    )
+                ),
+                React.createElement('div', null,
+                    React.createElement('h3', { className: "text-xl text-gray-700", style: { fontWeight: 400 } }, "email reports"),
+                    React.createElement('p', { className: "text-sm text-gray-500 mt-1", style: { fontWeight: 300 } },
+                        "receive AI-powered study reports with personalized insights"
+                    )
+                )
+            ),
+
+            // Enable toggle
+            React.createElement('div', { className: "space-y-4" },
+                React.createElement('div', { className: "flex justify-between items-center py-3 border-b border-gray-100" },
+                    React.createElement('div', null,
+                        React.createElement('span', { className: "text-gray-700", style: { fontWeight: 400 } }, "enable email reports"),
+                        React.createElement('p', { className: "text-xs text-gray-400 mt-0.5" },
+                            auth.currentUser?.email ? `sends to ${auth.currentUser.email}` : 'sign in with Google to enable'
+                        )
+                    ),
+                    React.createElement('button', {
+                        onClick: () => {
+                            const newVal = !reportEnabled;
+                            setReportEnabled(newVal);
+                            if (!newVal) {
+                                setReportWeekly(false);
+                                setReportMonthly(false);
+                                handleSaveReportPrefs(false, false, false);
+                            } else {
+                                setReportWeekly(true);
+                                handleSaveReportPrefs(true, true, reportMonthly);
+                            }
+                        },
+                        disabled: !auth.currentUser?.email,
+                        className: "relative inline-flex items-center rounded-full transition-all duration-300",
+                        style: {
+                            cursor: auth.currentUser?.email ? 'pointer' : 'not-allowed',
+                            width: '52px',
+                            height: '28px',
+                            backgroundColor: reportEnabled ? '#6B8DD6' : '#e5e7eb',
+                            padding: '2px',
+                            opacity: auth.currentUser?.email ? 1 : 0.5
+                        }
+                    },
+                        React.createElement('div', {
+                            className: "rounded-full bg-white shadow-md transition-all duration-300",
+                            style: {
+                                width: '24px',
+                                height: '24px',
+                                transform: reportEnabled ? 'translateX(24px)' : 'translateX(0px)'
+                            }
+                        })
+                    )
+                ),
+
+                // Weekly toggle
+                reportEnabled && React.createElement('div', { className: "flex justify-between items-center py-3 border-b border-gray-100 pl-4" },
+                    React.createElement('div', null,
+                        React.createElement('span', { className: "text-gray-600", style: { fontWeight: 400 } }, "weekly report"),
+                        React.createElement('p', { className: "text-xs text-gray-400 mt-0.5" }, "every sunday evening")
+                    ),
+                    React.createElement('button', {
+                        onClick: () => {
+                            const newVal = !reportWeekly;
+                            setReportWeekly(newVal);
+                            handleSaveReportPrefs(reportEnabled, newVal, reportMonthly);
+                        },
+                        className: "relative inline-flex items-center rounded-full transition-all duration-300",
+                        style: {
+                            cursor: 'pointer',
+                            width: '44px',
+                            height: '24px',
+                            backgroundColor: reportWeekly ? '#6B8DD6' : '#e5e7eb',
+                            padding: '2px'
+                        }
+                    },
+                        React.createElement('div', {
+                            className: "rounded-full bg-white shadow-sm transition-all duration-300",
+                            style: {
+                                width: '20px',
+                                height: '20px',
+                                transform: reportWeekly ? 'translateX(20px)' : 'translateX(0px)'
+                            }
+                        })
+                    )
+                ),
+
+                // Monthly toggle
+                reportEnabled && React.createElement('div', { className: "flex justify-between items-center py-3 border-b border-gray-100 pl-4" },
+                    React.createElement('div', null,
+                        React.createElement('span', { className: "text-gray-600", style: { fontWeight: 400 } }, "monthly report"),
+                        React.createElement('p', { className: "text-xs text-gray-400 mt-0.5" }, "1st of every month")
+                    ),
+                    React.createElement('button', {
+                        onClick: () => {
+                            const newVal = !reportMonthly;
+                            setReportMonthly(newVal);
+                            handleSaveReportPrefs(reportEnabled, reportWeekly, newVal);
+                        },
+                        className: "relative inline-flex items-center rounded-full transition-all duration-300",
+                        style: {
+                            cursor: 'pointer',
+                            width: '44px',
+                            height: '24px',
+                            backgroundColor: reportMonthly ? '#6B8DD6' : '#e5e7eb',
+                            padding: '2px'
+                        }
+                    },
+                        React.createElement('div', {
+                            className: "rounded-full bg-white shadow-sm transition-all duration-300",
+                            style: {
+                                width: '20px',
+                                height: '20px',
+                                transform: reportMonthly ? 'translateX(20px)' : 'translateX(0px)'
+                            }
+                        })
+                    )
+                ),
+
+                // Generate Test Report buttons
+                React.createElement('div', { className: "pt-4 space-y-4" },
+                    React.createElement('p', { className: "text-xs text-gray-400 uppercase tracking-wider font-semibold" }, "preview & send"),
+                    React.createElement('div', { className: "flex flex-col sm:flex-row gap-3" },
+                        React.createElement('button', {
+                            onClick: () => handleGenerateTestReport('weekly'),
+                            disabled: isGeneratingReport,
+                            className: "flex-1 py-3 px-6 rounded-xl text-base font-medium transition-all duration-200 flex items-center justify-center gap-2 shadow-sm",
+                            style: {
+                                background: isGeneratingReport ? '#f3f4f6' : 'linear-gradient(135deg, #6B8DD6 0%, #8B5CF6 100%)',
+                                color: isGeneratingReport ? '#9ca3af' : 'white',
+                                cursor: isGeneratingReport ? 'not-allowed' : 'pointer',
+                                border: 'none'
+                            }
+                        },
+                            isGeneratingReport && React.createElement(LoaderIcon),
+                            isGeneratingReport ? 'generating...' : '✨ generate weekly report'
+                        ),
+                        React.createElement('button', {
+                            onClick: () => handleGenerateTestReport('monthly'),
+                            disabled: isGeneratingReport,
+                            className: "flex-1 py-3 px-6 rounded-xl text-base font-medium transition-all duration-200 border shadow-sm flex items-center justify-center",
+                            style: {
+                                background: 'white',
+                                color: '#6B8DD6',
+                                borderColor: '#e5e7eb',
+                                cursor: isGeneratingReport ? 'not-allowed' : 'pointer',
+                                opacity: isGeneratingReport ? 0.5 : 1
+                            }
+                        }, 'monthly report')
+                    )
+                ),
+
+                // Report Preview
+                reportPreview && React.createElement('div', { className: "mt-4" },
+                    React.createElement('div', { className: "bg-gradient-to-br from-blue-50 to-purple-50 rounded-2xl p-6 border border-blue-100" },
+                        React.createElement('div', { className: "flex justify-between items-start mb-4" },
+                            React.createElement('div', null,
+                                React.createElement('h4', { className: "text-lg text-gray-800", style: { fontWeight: 500 } }, `${reportPreview.periodType} report`),
+                                React.createElement('p', { className: "text-sm text-gray-500" }, reportPreview.periodLabel)
+                            ),
+                            React.createElement('button', {
+                                onClick: () => setReportPreview(null),
+                                className: "p-1 hover:bg-white/50 rounded-full transition",
+                                style: { background: 'none', border: 'none', cursor: 'pointer' }
+                            }, React.createElement(XIcon))
+                        ),
+
+                        // Stats summary
+                        React.createElement('div', { className: "grid grid-cols-3 gap-4 mb-4" },
+                            React.createElement('div', { className: "text-center bg-white rounded-xl p-3" },
+                                React.createElement('p', { className: "text-2xl font-light text-gray-800" }, `${reportPreview.stats?.totalHours || 0}h`),
+                                React.createElement('p', { className: "text-xs text-gray-400 uppercase tracking-wider" }, 'total')
+                            ),
+                            React.createElement('div', { className: "text-center bg-white rounded-xl p-3" },
+                                React.createElement('p', { className: "text-2xl font-light text-gray-800" }, reportPreview.stats?.totalSessions || 0),
+                                React.createElement('p', { className: "text-xs text-gray-400 uppercase tracking-wider" }, 'sessions')
+                            ),
+                            React.createElement('div', { className: "text-center bg-white rounded-xl p-3" },
+                                React.createElement('p', { className: "text-2xl font-light", style: {
+                                    color: reportPreview.comparison?.direction === 'up' ? '#059669' :
+                                           reportPreview.comparison?.direction === 'down' ? '#dc2626' : '#6b7280'
+                                } },
+                                    `${reportPreview.comparison?.changePercent > 0 ? '+' : ''}${reportPreview.comparison?.changePercent || 0}%`
+                                ),
+                                React.createElement('p', { className: "text-xs text-gray-400 uppercase tracking-wider" }, 'vs last')
+                            )
+                        ),
+
+                        // AI narrative
+                        reportPreview.aiNarrative && React.createElement('div', {
+                            className: "bg-white rounded-xl p-4 text-sm text-gray-600 leading-relaxed",
+                            style: { fontWeight: 300, whiteSpace: 'pre-wrap' }
+                        },
+                            React.createElement('p', { className: "text-xs text-gray-400 uppercase tracking-wider font-semibold mb-2" }, '✨ ai insights'),
+                            reportPreview.aiNarrative
+                        ),
+
+                        // Email preview button
+                        reportPreview.htmlPreview && React.createElement('button', {
+                            onClick: () => {
+                                const w = window.open('', '_blank');
+                                w.document.write(reportPreview.htmlPreview);
+                                w.document.close();
+                            },
+                            className: "w-full mt-4 py-2 px-4 rounded-xl text-sm font-medium transition bg-white hover:bg-gray-50 text-gray-600 border border-gray-200",
+                            style: { cursor: 'pointer' }
+                        }, '📧 preview full email')
                     )
                 )
             )

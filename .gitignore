@@ -74,3 +74,7 @@ tests/
 
 # Test scripts (not to be pushed)
 create-test-friend.js
+
+# Cloud Functions secrets
+functions/.env
+functions/test-report-output.html
