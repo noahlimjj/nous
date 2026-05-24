@@ -1,6 +1,5 @@
-const { onRequest, onCall } = require("firebase-functions/v2/https");
+const { onCall } = require("firebase-functions/v2/https");
 const { onSchedule } = require("firebase-functions/v2/scheduler");
-const { defineSecret } = require("firebase-functions/params");
 const admin = require("firebase-admin");
 
 admin.initializeApp();
@@ -10,9 +9,10 @@ const db = admin.firestore();
 const APP_ID = "study-tracker-app";
 const DEEPSEEK_API_URL = "https://api.deepseek.com/chat/completions";
 
-// Secret management - set via: firebase functions:secrets:set DEEPSEEK_API_KEY
-// For local testing, set in .env file in functions/
-const DEEPSEEK_API_KEY = defineSecret("DEEPSEEK_API_KEY");
+// API key read from .env (locally) or Firebase environment variable (deployed)
+// To set for production: firebase functions:config:set deepseek.key="YOUR_KEY"
+// Or set DEEPSEEK_API_KEY in the Firebase console environment variables
+const getApiKey = () => process.env.DEEPSEEK_API_KEY || "";
 
 // ============================================================
 // HELPER: Gather user data for a given period
@@ -22,11 +22,14 @@ async function gatherReportData(userId, periodType) {
     let startDate, endDate, periodLabel;
 
     if (periodType === "weekly") {
-        // Last 7 days
+        // Current calendar week: Monday 00:00 → Sunday 23:59
+        const day = now.getDay(); // 0=Sun, 1=Mon, ..., 6=Sat
+        const diffToMonday = day === 0 ? -6 : 1 - day;
         startDate = new Date(now);
-        startDate.setDate(startDate.getDate() - 7);
+        startDate.setDate(now.getDate() + diffToMonday);
         startDate.setHours(0, 0, 0, 0);
-        endDate = new Date(now);
+        endDate = new Date(startDate);
+        endDate.setDate(startDate.getDate() + 6); // Sunday
         endDate.setHours(23, 59, 59, 999);
         periodLabel = `${startDate.toLocaleDateString("en-US", { month: "short", day: "numeric" })} – ${endDate.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}`;
     } else {
@@ -94,10 +97,11 @@ async function gatherReportData(userId, periodType) {
     // 6. Fetch previous period data for comparison
     let prevStartDate, prevEndDate;
     if (periodType === "weekly") {
+        // Previous calendar week: Mon–Sun immediately before this week
         prevEndDate = new Date(startDate);
-        prevEndDate.setDate(prevEndDate.getDate() - 1);
+        prevEndDate.setDate(prevEndDate.getDate() - 1); // Last Sunday
         prevStartDate = new Date(prevEndDate);
-        prevStartDate.setDate(prevStartDate.getDate() - 6);
+        prevStartDate.setDate(prevStartDate.getDate() - 6); // Previous Monday
     } else {
         prevEndDate = new Date(startDate);
         prevEndDate.setDate(prevEndDate.getDate() - 1);
@@ -277,12 +281,14 @@ ${stats.avgMood ? `Average mood: ${stats.avgMood}/10` : "No mood data this perio
 
 Write a SHORT, personal email body (3-4 paragraphs, ~150 words max). Be specific with their data. Use a conversational, warm tone. Include:
 1. A warm greeting and highlight of their top achievement this period
-2. A specific, data-backed observation (trend, peak hours, consistency, etc.)
+2. A specific, data-backed observation (use the EXACT numbers provided above — do not round, estimate, or invent any figures)
 3. One actionable suggestion for next ${periodType === "weekly" ? "week" : "month"}
 4. An encouraging sign-off
 
+CRITICAL: Only reference the exact numbers provided above. Never invent, estimate, or approximate any hours, sessions, or percentages. If a value is 0, say so honestly.
 Do NOT use generic platitudes. Reference their actual numbers and habit names. Keep it brief and scannable.
 Use lowercase text to match the app's aesthetic. No markdown formatting — just plain text with line breaks.`;
+
 
     try {
         const response = await fetch(DEEPSEEK_API_URL, {
@@ -517,7 +523,7 @@ async function sendEmail(to, subject, htmlContent) {
 // CLOUD FUNCTION: Generate and send report (callable)
 // ============================================================
 exports.generateReport = onCall(
-    { secrets: [DEEPSEEK_API_KEY], cors: true },
+    { cors: true },
     async (request) => {
         // Authenticate
         if (!request.auth) {
@@ -535,7 +541,7 @@ exports.generateReport = onCall(
             const reportData = await gatherReportData(userId, periodType);
 
             // 2. Generate AI narrative
-            const apiKey = DEEPSEEK_API_KEY.value();
+            const apiKey = getApiKey();
             const aiNarrative = await generateAINarrative(reportData, apiKey);
 
             // 3. Build HTML email
@@ -600,8 +606,7 @@ exports.generateReport = onCall(
 exports.sendWeeklyReports = onSchedule(
     {
         schedule: "every sunday 20:00",
-        timeZone: "Asia/Singapore",
-        secrets: [DEEPSEEK_API_KEY]
+        timeZone: "Asia/Singapore"
     },
     async (event) => {
         console.log("📅 Running weekly report job...");
@@ -615,8 +620,7 @@ exports.sendWeeklyReports = onSchedule(
 exports.sendMonthlyReports = onSchedule(
     {
         schedule: "1 of month 09:00",
-        timeZone: "Asia/Singapore",
-        secrets: [DEEPSEEK_API_KEY]
+        timeZone: "Asia/Singapore"
     },
     async (event) => {
         console.log("📅 Running monthly report job...");
@@ -636,7 +640,7 @@ async function sendReportsToAllUsers(periodType) {
 
         console.log(`Found ${usersSnap.size} users with reports enabled`);
 
-        const apiKey = DEEPSEEK_API_KEY.value();
+        const apiKey = getApiKey();
         let successCount = 0;
         let failCount = 0;
 

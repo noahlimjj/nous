@@ -3039,10 +3039,13 @@ const Dashboard = ({ db, userId, setNotification, activeTimers, setActiveTimers,
     }
 
     return React.createElement('div', { className: "max-w-7xl mx-auto p-4 sm:p-6 lg:p-8 grid grid-cols-1 lg:grid-cols-3 gap-8" },
+        // Milestones Widget - full width at top
+        React.createElement('div', { className: "lg:col-span-3" },
+            React.createElement(MilestonesWidget, { db, userId })
+        ),
+
         // Habits Widget
         React.createElement("div", { className: "lg:col-span-3 mb-4" },
-            // Header OUTSIDE the white card (like timer section)
-            React.createElement("h2", { className: "text-3xl text-calm-800 mb-6", style: { fontWeight: 300 } }, "habit tracker"),
             React.createElement("div", { className: "bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-gray-100 dark:border-slate-800 overflow-hidden" },
                 React.createElement(window.HabitsTab, { user: { id: userId }, db, activeTimers, isWidget: true, appId, sharedTimers })
             )
@@ -3601,7 +3604,7 @@ const Dashboard = ({ db, userId, setNotification, activeTimers, setActiveTimers,
                 React.createElement(GrowthTree, { sessions, db, userId, setNotification })
             ),
 
-            // Recent Sessions (takes 1 column on large screens)
+            // Right column: Recent Sessions
             React.createElement('div', { className: "lg:col-span-1" },
                 React.createElement('h2', { className: "text-2xl text-gray-800 mb-4", style: { fontWeight: 300 } }, "recent sessions"),
                 React.createElement('div', { className: "bg-white p-4 rounded-lg shadow-sm space-y-3 max-h-[600px] overflow-y-auto" },
@@ -4247,10 +4250,14 @@ const Settings = ({ auth, userId, db, userProfile, setNotification, isNightMode,
             let startDate, endDate, periodLabel;
 
             if (periodType === 'weekly') {
+                // Current calendar week: Monday 00:00 → Sunday 23:59
+                const day = now.getDay(); // 0=Sun, 1=Mon...
+                const diffToMonday = day === 0 ? -6 : 1 - day;
                 startDate = new Date(now);
-                startDate.setDate(startDate.getDate() - 7);
+                startDate.setDate(now.getDate() + diffToMonday);
                 startDate.setHours(0, 0, 0, 0);
-                endDate = new Date(now);
+                endDate = new Date(startDate);
+                endDate.setDate(startDate.getDate() + 6); // Sunday
                 endDate.setHours(23, 59, 59, 999);
                 periodLabel = `${startDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} – ${endDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`;
             } else {
@@ -4310,10 +4317,11 @@ const Settings = ({ auth, userId, db, userProfile, setNotification, isNightMode,
             // 5. Fetch previous period for comparison
             let prevStart, prevEnd;
             if (periodType === 'weekly') {
+                // Previous calendar week: Mon–Sun immediately before this week's Monday
                 prevEnd = new Date(startDate);
-                prevEnd.setDate(prevEnd.getDate() - 1);
+                prevEnd.setDate(prevEnd.getDate() - 1); // Last Sunday
                 prevStart = new Date(prevEnd);
-                prevStart.setDate(prevStart.getDate() - 6);
+                prevStart.setDate(prevStart.getDate() - 6); // Previous Monday
             } else {
                 prevEnd = new Date(startDate);
                 prevEnd.setDate(prevEnd.getDate() - 1);
@@ -4498,11 +4506,13 @@ ${stats.avgMood ? `Average mood: ${stats.avgMood}/10` : 'No mood data this perio
 
 Write a SHORT, personal email body (3-4 paragraphs, ~150 words max). Be specific with their data. Use a conversational, warm tone. Include:
 1. A warm greeting and highlight of their top achievement this period
-2. A specific, data-backed observation
+2. A specific, data-backed observation (use the EXACT numbers provided above — do not round, estimate, or invent any figures)
 3. One actionable suggestion for next ${periodType === 'weekly' ? 'week' : 'month'}
 4. An encouraging sign-off
 
+CRITICAL: Only reference the exact numbers provided above. Never invent, estimate, or approximate any hours, sessions, or percentages. If a value is 0, say so honestly.
 Use lowercase text for habit names to match the app's aesthetic, but you may use normal capitalization for sentences. No markdown formatting — just plain text with line breaks.`;
+
 
         const response = await fetch('https://api.deepseek.com/chat/completions', {
             method: 'POST',
@@ -5570,6 +5580,421 @@ const GrowthTree = ({ sessions, db, userId, setNotification }) => {
         })()
     );
 };
+
+// MilestonesWidget - countdown cards for important upcoming dates (exams, deadlines, etc.)
+const MilestonesWidget = ({ db, userId }) => {
+    const [milestones, setMilestones] = useState([]);
+    const [showForm, setShowForm] = useState(false);
+    const [newName, setNewName] = useState('');
+    const [newDate, setNewDate] = useState('');
+    const [newEmoji, setNewEmoji] = useState('🎯');
+    const [isAdding, setIsAdding] = useState(false);
+    const [now, setNow] = useState(Date.now());
+    const [editingEmojiId, setEditingEmojiId] = useState(null);
+    const [editingId, setEditingId] = useState(null);
+    const [editName, setEditName] = useState('');
+    const [editDate, setEditDate] = useState('');
+    const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+
+    const appId = typeof __app_id !== 'undefined' ? __app_id : 'study-tracker-app';
+
+    // Tick every 30s + track viewport width for responsive layout
+    useEffect(() => {
+        const interval = setInterval(() => setNow(Date.now()), 30000);
+        const onResize = () => setIsMobile(window.innerWidth < 768);
+        window.addEventListener('resize', onResize);
+        return () => { clearInterval(interval); window.removeEventListener('resize', onResize); };
+    }, []);
+
+    // Firestore listener
+    useEffect(() => {
+        if (!db || !userId) return;
+        try {
+            const col = window.collection(db, `/artifacts/${appId}/users/${userId}/milestones`);
+            const unsub = window.onSnapshot(col, (snap) => {
+                const data = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+                data.sort((a, b) => {
+                    const aMs = a.date?.toMillis ? a.date.toMillis() : new Date(a.date).getTime();
+                    const bMs = b.date?.toMillis ? b.date.toMillis() : new Date(b.date).getTime();
+                    return aMs - bMs;
+                });
+                setMilestones(data);
+            }, (err) => {
+                console.error('[Milestones] snapshot error:', err);
+            });
+            return () => unsub();
+        } catch (e) {
+            console.error('[Milestones] setup error:', e);
+        }
+    }, [db, userId, appId]);
+
+    const handleAdd = async () => {
+        if (!newName.trim() || !newDate) return;
+        setIsAdding(true);
+        try {
+            const col = window.collection(db, `/artifacts/${appId}/users/${userId}/milestones`);
+            const [yr, mo, dy] = newDate.split('-').map(Number);
+            // Store at end of selected day (23:59:59)
+            const d = new Date(yr, mo - 1, dy, 23, 59, 59);
+            await window.addDoc(col, {
+                name: newName.trim(),
+                emoji: newEmoji,
+                date: window.Timestamp.fromDate(d),
+                createdAt: window.Timestamp.now()
+            });
+            setNewName(''); setNewDate(''); setNewEmoji('🎯'); setShowForm(false);
+        } catch (e) {
+            console.error('[Milestones] add error:', e);
+        } finally {
+            setIsAdding(false);
+        }
+    };
+
+    const handleDelete = async (id) => {
+        try {
+            await window.deleteDoc(window.doc(db, `/artifacts/${appId}/users/${userId}/milestones/${id}`));
+        } catch (e) {
+            console.error('[Milestones] delete error:', e);
+        }
+    };
+
+    const handleUpdateEmoji = async (id, emoji) => {
+        try {
+            await window.updateDoc(window.doc(db, `/artifacts/${appId}/users/${userId}/milestones/${id}`), { emoji });
+        } catch (e) {
+            console.error('[Milestones] update emoji error:', e);
+        }
+        setEditingEmojiId(null);
+    };
+
+    const startEdit = (m) => {
+        const dateMs = m.date?.toMillis ? m.date.toMillis() : new Date(m.date).getTime();
+        const d = new Date(dateMs);
+        const iso = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+        setEditName(m.name);
+        setEditDate(iso);
+        setEditingId(m.id);
+        setEditingEmojiId(null);
+    };
+
+    const handleUpdate = async (id) => {
+        if (!editName.trim() || !editDate) return;
+        try {
+            const [yr, mo, dy] = editDate.split('-').map(Number);
+            const d = new Date(yr, mo - 1, dy, 23, 59, 59);
+            await window.updateDoc(window.doc(db, `/artifacts/${appId}/users/${userId}/milestones/${id}`), {
+                name: editName.trim(),
+                date: window.Timestamp.fromDate(d)
+            });
+        } catch (e) {
+            console.error('[Milestones] update error:', e);
+        }
+        setEditingId(null);
+    };
+
+    // Returns { days, decimalDays, hours, minutes, totalMs } — negative totalMs means past
+    const getCountdown = (m) => {
+        const targetMs = m.date?.toMillis ? m.date.toMillis() : new Date(m.date).getTime();
+        const diffMs = targetMs - now;
+        if (diffMs <= 0) return { days: 0, decimalDays: '0.0', hours: 0, minutes: 0, totalMs: diffMs };
+        const days = Math.floor(diffMs / 86400000);
+        const hours = Math.floor((diffMs % 86400000) / 3600000);
+        const minutes = Math.floor((diffMs % 3600000) / 60000);
+        const decimalDays = (diffMs / 86400000).toFixed(1);
+        return { days, decimalDays, hours, minutes, totalMs: diffMs };
+    };
+
+    const urgencyStyle = (cd) => {
+        if (cd.totalMs <= 0) return { border: '#9ca3af', bg: 'rgba(249,250,251,0.8)', numColor: '#6b7280', labelColor: '#9ca3af', chip: '#e5e7eb', chipTxt: '#4b5563' };
+        if (cd.days <= 3)  return { border: '#ef4444', bg: 'rgba(254,242,242,0.9)', numColor: '#dc2626', labelColor: '#ef4444', chip: '#fee2e2', chipTxt: '#b91c1c' };
+        if (cd.days <= 7)  return { border: '#f97316', bg: 'rgba(255,247,237,0.9)', numColor: '#ea580c', labelColor: '#f97316', chip: '#ffedd5', chipTxt: '#c2410c' };
+        if (cd.days <= 30) return { border: '#f59e0b', bg: 'rgba(255,251,235,0.9)', numColor: '#d97706', labelColor: '#f59e0b', chip: '#fef3c7', chipTxt: '#92400e' };
+        return { border: '#10b981', bg: 'rgba(240,253,244,0.9)', numColor: '#059669', labelColor: '#10b981', chip: '#dcfce7', chipTxt: '#166534' };
+    };
+
+    const EMOJIS = ['🎯','📝','📚','🏆','💼','🎓','🔬','💡','⚡','🏅','🩺','🧪','📅','🧠','📊'];
+    const upcoming = milestones
+        .filter(m => getCountdown(m).totalMs >= 0)
+        .sort((a, b) => getCountdown(a).totalMs - getCountdown(b).totalMs); // most urgent first
+    const past = milestones
+        .filter(m => getCountdown(m).totalMs < 0)
+        .sort((a, b) => getCountdown(b).totalMs - getCountdown(a).totalMs); // most recently passed first
+
+    return React.createElement('div', { className: 'bg-white rounded-xl soft-shadow p-6' },
+        // Header
+        React.createElement('div', { className: 'flex items-center justify-between mb-5' },
+            React.createElement('div', { className: 'flex items-center gap-2' },
+                React.createElement('span', { style: { fontSize: '1.25rem' } }, '🎯'),
+                React.createElement('h2', { className: 'text-2xl text-calm-800', style: { fontWeight: 300 } }, 'milestones')
+            ),
+            React.createElement('button', {
+                id: 'milestone-add-btn',
+                onClick: () => setShowForm(!showForm),
+                className: 'px-4 py-2 rounded-xl text-sm transition',
+                style: { backgroundColor: showForm ? '#e2e8f0' : '#6B8DD6', color: showForm ? '#4a5568' : 'white', fontWeight: 400 }
+            }, showForm ? 'cancel' : '+ add milestone')
+        ),
+
+        // Add form
+        showForm && React.createElement('div', { className: 'mb-6 p-5 rounded-2xl space-y-3', style: { backgroundColor: '#f8f9fb', border: '1px solid #e8ecf3' } },
+            React.createElement('div', { className: 'flex gap-3' },
+                React.createElement('select', {
+                    value: newEmoji,
+                    onChange: e => setNewEmoji(e.target.value),
+                    className: 'px-3 py-2.5 border rounded-xl bg-white text-xl',
+                    style: { borderColor: '#d1d7e3', minWidth: '64px' }
+                }, EMOJIS.map(em => React.createElement('option', { key: em, value: em }, em))),
+                React.createElement('input', {
+                    type: 'text',
+                    value: newName,
+                    onChange: e => setNewName(e.target.value),
+                    onKeyPress: e => e.key === 'Enter' && handleAdd(),
+                    placeholder: 'e.g. Finals, MCAT, Project due…',
+                    className: 'flex-grow px-4 py-2.5 border rounded-xl focus:outline-none focus:ring-2',
+                    style: { borderColor: '#d1d7e3', fontWeight: 300, fontSize: '0.95rem' },
+                    autoFocus: true
+                })
+            ),
+            React.createElement('div', { className: 'flex gap-3 items-center' },
+                React.createElement('label', { className: 'text-sm text-calm-600 whitespace-nowrap', style: { fontWeight: 300 } }, 'target date'),
+                React.createElement('input', {
+                    type: 'date',
+                    value: newDate,
+                    onChange: e => setNewDate(e.target.value),
+                    min: new Date().toISOString().slice(0, 10),
+                    className: 'flex-grow px-4 py-2.5 border rounded-xl focus:outline-none focus:ring-2',
+                    style: { borderColor: '#d1d7e3', fontWeight: 300 }
+                }),
+                React.createElement('button', {
+                    onClick: handleAdd,
+                    disabled: !newName.trim() || !newDate || isAdding,
+                    className: 'px-5 py-2.5 rounded-xl text-white transition disabled:opacity-50',
+                    style: { backgroundColor: '#6B8DD6', fontWeight: 400, whiteSpace: 'nowrap' }
+                }, isAdding ? '…' : 'save')
+            )
+        ),
+
+        // Empty state
+        upcoming.length === 0 && !showForm
+            ? React.createElement('div', { className: 'text-center py-8' },
+                React.createElement('div', { style: { fontSize: '2.5rem', marginBottom: '8px' } }, '📅'),
+                React.createElement('p', { className: 'text-calm-500', style: { fontWeight: 300 } }, 'no upcoming milestones — add one to start counting down!')
+              )
+            : null,
+
+        // Milestone cards — compact on mobile/PWA, full on desktop
+        upcoming.length > 0 && (isMobile
+
+            // ── MOBILE / PWA: compact horizontal chips ──────────────────────
+            ? React.createElement('div', {
+                className: 'flex flex-col gap-2',
+              },
+                upcoming.map(m => {
+                    const cd = getCountdown(m);
+                    const u = urgencyStyle(cd);
+                    const dateShort = m.date?.toDate
+                        ? m.date.toDate().toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+                        : new Date(m.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                    const countdownText = cd.totalMs > 0
+                        ? `${cd.decimalDays} days`
+                        : 'today! 🎉';
+
+                    return React.createElement('div', {
+                        key: m.id,
+                        className: 'group relative flex items-center gap-3 rounded-xl px-3 py-2.5 transition',
+                        style: { background: u.bg, borderLeft: `3px solid ${u.border}` }
+                    },
+                        // Emoji
+                        React.createElement('span', { style: { fontSize: '1.2rem', flexShrink: 0 } }, m.emoji || '🎯'),
+
+                        // Name + date
+                        React.createElement('div', { style: { flex: 1, minWidth: 0 } },
+                            editingId === m.id
+                                // Compact inline edit on mobile
+                                ? React.createElement('div', { className: 'flex flex-col gap-1.5' },
+                                    React.createElement('input', {
+                                        type: 'text', value: editName,
+                                        onChange: e => setEditName(e.target.value),
+                                        onKeyPress: e => e.key === 'Enter' && handleUpdate(m.id),
+                                        className: 'w-full px-2 py-1 border rounded-lg text-sm focus:outline-none',
+                                        style: { borderColor: '#d1d7e3' }, autoFocus: true
+                                    }),
+                                    React.createElement('input', {
+                                        type: 'date', value: editDate,
+                                        onChange: e => setEditDate(e.target.value),
+                                        className: 'w-full px-2 py-1 border rounded-lg text-sm focus:outline-none',
+                                        style: { borderColor: '#d1d7e3' }
+                                    }),
+                                    React.createElement('div', { className: 'flex gap-2' },
+                                        React.createElement('button', {
+                                            onClick: () => handleUpdate(m.id),
+                                            className: 'flex-1 py-1 rounded-lg text-white text-xs',
+                                            style: { backgroundColor: '#6B8DD6' }
+                                        }, 'save'),
+                                        React.createElement('button', {
+                                            onClick: () => setEditingId(null),
+                                            className: 'flex-1 py-1 rounded-lg text-xs',
+                                            style: { backgroundColor: '#e2e8f0', color: '#4a5568' }
+                                        }, 'cancel')
+                                    )
+                                  )
+                                : React.createElement(React.Fragment, null,
+                                    React.createElement('p', {
+                                        className: 'truncate',
+                                        style: { fontWeight: 500, fontSize: '0.9rem', color: '#1f2937' }
+                                    }, m.name),
+                                    React.createElement('p', {
+                                        style: { fontSize: '0.75rem', color: u.labelColor, fontWeight: 400 }
+                                    }, countdownText + ' · ' + dateShort)
+                                  )
+                        ),
+
+                        // Action buttons — always visible on mobile (no hover)
+                        editingId !== m.id && React.createElement('div', { className: 'flex gap-1 flex-shrink-0' },
+                            React.createElement('button', {
+                                onClick: () => startEdit(m),
+                                style: { fontSize: '0.8rem', background: 'none', border: 'none', cursor: 'pointer', padding: '4px', color: '#6B8DD6' }
+                            }, '✏️'),
+                            React.createElement('button', {
+                                onClick: () => handleDelete(m.id),
+                                style: { fontSize: '1rem', background: 'none', border: 'none', cursor: 'pointer', padding: '4px', color: '#9ca3af' }
+                            }, '×')
+                        )
+                    );
+                })
+              )
+
+            // ── DESKTOP: full large cards ────────────────────────────────────
+            : React.createElement('div', {
+                className: 'flex gap-4 overflow-x-auto pb-2',
+                style: { scrollbarWidth: 'thin' }
+              },
+                upcoming.map(m => {
+                    const cd = getCountdown(m);
+                    const u = urgencyStyle(cd);
+                    const dateStr = m.date?.toDate
+                        ? m.date.toDate().toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })
+                        : new Date(m.date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
+
+                    return React.createElement('div', {
+                        key: m.id,
+                        className: 'group relative flex-shrink-0 rounded-2xl p-5 flex flex-col gap-3 transition',
+                        style: {
+                            background: u.bg,
+                            borderLeft: `4px solid ${u.border}`,
+                            minWidth: '220px',
+                            maxWidth: '280px',
+                            flex: '1 1 220px',
+                            boxShadow: '0 2px 8px rgba(0,0,0,0.04)'
+                        }
+                    },
+                        // Action buttons (top-right): edit + delete on hover
+                        React.createElement('div', { className: 'absolute top-3 right-3 flex gap-1 opacity-0 group-hover:opacity-100 transition' },
+                            React.createElement('button', {
+                                onClick: () => editingId === m.id ? setEditingId(null) : startEdit(m),
+                                style: { color: '#6B8DD6', fontSize: '0.85rem', background: 'none', border: 'none', cursor: 'pointer', padding: '2px 6px', borderRadius: '6px' },
+                                title: 'Edit'
+                            }, '✏️'),
+                            React.createElement('button', {
+                                onClick: () => handleDelete(m.id),
+                                style: { color: '#9ca3af', fontSize: '1.2rem', lineHeight: 1, background: 'none', border: 'none', cursor: 'pointer', padding: '2px 6px', borderRadius: '6px' },
+                                title: 'Delete'
+                            }, '×')
+                        ),
+
+                        // ---- EDIT MODE ----
+                        editingId === m.id
+                            ? React.createElement('div', { className: 'flex flex-col gap-2 pt-4' },
+                                React.createElement('input', {
+                                    type: 'text',
+                                    value: editName,
+                                    onChange: e => setEditName(e.target.value),
+                                    onKeyPress: e => e.key === 'Enter' && handleUpdate(m.id),
+                                    className: 'w-full px-3 py-2 border rounded-xl focus:outline-none focus:ring-2 text-sm',
+                                    style: { borderColor: '#d1d7e3', fontWeight: 400 },
+                                    autoFocus: true
+                                }),
+                                React.createElement('input', {
+                                    type: 'date',
+                                    value: editDate,
+                                    onChange: e => setEditDate(e.target.value),
+                                    className: 'w-full px-3 py-2 border rounded-xl focus:outline-none focus:ring-2 text-sm',
+                                    style: { borderColor: '#d1d7e3', fontWeight: 300 }
+                                }),
+                                React.createElement('div', { className: 'flex gap-2' },
+                                    React.createElement('button', {
+                                        onClick: () => handleUpdate(m.id),
+                                        disabled: !editName.trim() || !editDate,
+                                        className: 'flex-1 py-1.5 rounded-xl text-white text-sm transition disabled:opacity-50',
+                                        style: { backgroundColor: '#6B8DD6', fontWeight: 400 }
+                                    }, 'save'),
+                                    React.createElement('button', {
+                                        onClick: () => setEditingId(null),
+                                        className: 'flex-1 py-1.5 rounded-xl text-sm transition',
+                                        style: { backgroundColor: '#e2e8f0', color: '#4a5568', fontWeight: 400 }
+                                    }, 'cancel')
+                                )
+                              )
+                            // ---- NORMAL VIEW ----
+                            : React.createElement(React.Fragment, null,
+                                // Emoji + name (click emoji to change it)
+                                React.createElement('div', { className: 'flex items-center gap-2' },
+                                    React.createElement('div', { style: { position: 'relative' } },
+                                        React.createElement('button', {
+                                            onClick: () => setEditingEmojiId(editingEmojiId === m.id ? null : m.id),
+                                            title: 'Click to change emoji',
+                                            style: { fontSize: '1.6rem', background: 'none', border: 'none', cursor: 'pointer', padding: '2px', borderRadius: '6px', lineHeight: 1 }
+                                        }, m.emoji || '🎯'),
+                                        editingEmojiId === m.id && React.createElement('div', {
+                                            style: {
+                                                position: 'absolute', top: '110%', left: 0, zIndex: 50,
+                                                background: 'white', borderRadius: '12px', padding: '8px',
+                                                boxShadow: '0 8px 24px rgba(0,0,0,0.15)',
+                                                display: 'flex', flexWrap: 'wrap', gap: '4px', width: '168px'
+                                            }
+                                        },
+                                            EMOJIS.map(em => React.createElement('button', {
+                                                key: em,
+                                                onClick: () => handleUpdateEmoji(m.id, em),
+                                                style: {
+                                                    fontSize: '1.3rem', background: em === m.emoji ? '#f0f4ff' : 'none',
+                                                    border: 'none', cursor: 'pointer', borderRadius: '6px',
+                                                    padding: '4px', width: '36px', textAlign: 'center'
+                                                }
+                                            }, em))
+                                        )
+                                    ),
+                                    React.createElement('span', {
+                                        className: 'font-medium truncate',
+                                        style: { fontWeight: 500, fontSize: '1rem', color: '#1f2937', maxWidth: '150px' }
+                                    }, m.name)
+                                ),
+
+                                // Countdown — single decimal number
+                                cd.totalMs > 0
+                                    ? React.createElement('div', { className: 'flex items-baseline gap-2' },
+                                        React.createElement('div', { style: { fontSize: '3rem', fontWeight: 200, lineHeight: 1, color: u.numColor, fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.02em' } }, cd.decimalDays),
+                                        React.createElement('div', { style: { fontSize: '1rem', fontWeight: 300, color: u.labelColor } }, 'days')
+                                      )
+                                    : React.createElement('div', { style: { fontSize: '1.1rem', color: '#9ca3af', fontWeight: 300 } }, 'today! 🎉'),
+
+                                // Date label
+                                React.createElement('div', { style: { fontSize: '0.78rem', color: '#6b7280', fontWeight: 300 } }, dateStr)
+                            )
+                    );
+                })
+              )
+        ),
+
+        // Past milestones count
+        past.length > 0 && React.createElement('div', { className: 'mt-4 pt-4', style: { borderTop: '1px solid #f1f5f9' } },
+            React.createElement('p', { style: { fontWeight: 300, color: '#9ca3af', fontSize: '0.8rem' } },
+                `${past.length} past milestone${past.length !== 1 ? 's' : ''}`)
+        )
+    );
+};
+
+
 
 // GoalSection component - unified single goals section
 const GoalSection = ({ activeGoals, newGoalText, setNewGoalText, handleAddGoal, handleToggleGoal, handleDeleteGoal }) => {
