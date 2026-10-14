@@ -4575,69 +4575,12 @@ const Settings = ({ auth, userId, db, userProfile, setNotification, isNightMode,
         return { totalHours, totalSessions: sessions.length, dailyAvgHours, habitBreakdown, bestDay, peakHour, avgMood, topStreaks, studyDays, daysInPeriod };
     }
 
-    // Helper: Call DeepSeek API for AI narrative
+    // Helper: AI narrative via the generateReportNarrative Cloud Function
+    // (the DeepSeek key stays on the server; callers fall back on error)
     async function callDeepSeekForReport(data) {
-        const DEEPSEEK_API_KEY = 'sk-62f463e71ae3402d9aa3b06bc25db0d2';
-        const { username, periodType, periodLabel, stats, comparison } = data;
-
-        const prompt = `You are a warm, encouraging study coach writing a brief ${periodType} progress report for a student named "${username}".
-
-Here is their data for this period (${periodLabel}):
-
-STUDY STATS:
-- Total study time: ${stats.totalHours} hours across ${stats.totalSessions} sessions
-- Daily average: ${stats.dailyAvgHours} hours/day
-- Active study days: ${stats.studyDays} out of ${stats.daysInPeriod} days
-- Best study day: ${stats.bestDay || 'N/A'}
-- Peak study hour: ${stats.peakHour || 'N/A'}
-
-HABIT BREAKDOWN:
-${stats.habitBreakdown.map(h => `- ${h.name}: ${h.hours}h (${h.sessions} sessions, ${h.percentOfTotal}%)`).join('\n') || 'No sessions this period'}
-
-COMPARISON VS PREVIOUS ${periodType.toUpperCase()}:
-- Previous period: ${comparison.prevTotalHours}h → This period: ${stats.totalHours}h
-- Change: ${comparison.changePercent > 0 ? '+' : ''}${comparison.changePercent}% (${comparison.direction})
-
-ACTIVE STREAKS:
-${stats.topStreaks.length > 0 ? stats.topStreaks.map(s => `- ${s.title}: ${s.streak}-day streak`).join('\n') : 'No active streaks'}
-
-MOOD:
-${stats.avgMood ? `Average mood: ${stats.avgMood}/10` : 'No mood data this period'}
-
-Write a SHORT, personal email body (3-4 paragraphs, ~150 words max). Be specific with their data. Use a conversational, warm tone. Include:
-1. A warm greeting and highlight of their top achievement this period
-2. A specific, data-backed observation (use the EXACT numbers provided above — do not round, estimate, or invent any figures)
-3. One actionable suggestion for next ${periodType === 'weekly' ? 'week' : 'month'}
-4. An encouraging sign-off
-
-CRITICAL: Only reference the exact numbers provided above. Never invent, estimate, or approximate any hours, sessions, or percentages. If a value is 0, say so honestly.
-Use lowercase text for habit names to match the app's aesthetic, but you may use normal capitalization for sentences. No markdown formatting — just plain text with line breaks.`;
-
-
-        const response = await fetch('https://api.deepseek.com/chat/completions', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${DEEPSEEK_API_KEY}`
-            },
-            body: JSON.stringify({
-                model: 'deepseek-chat',
-                messages: [
-                    { role: 'system', content: 'You are a helpful, warm study coach. Be concise and data-driven. Use normal capitalization.' },
-                    { role: 'user', content: prompt }
-                ],
-                max_tokens: 500,
-                temperature: 0.7
-            })
-        });
-
-        if (!response.ok) {
-            const errText = await response.text();
-            throw new Error(`DeepSeek API error ${response.status}: ${errText}`);
-        }
-
-        const result = await response.json();
-        return result.choices?.[0]?.message?.content || generateFallbackNarrative(data);
+        const generateNarrative = window.httpsCallable(window.getFunctions(), 'generateReportNarrative');
+        const result = await generateNarrative(data);
+        return result.data?.narrative || generateFallbackNarrative(data);
     }
 
     // Helper: Fallback narrative when AI is unavailable

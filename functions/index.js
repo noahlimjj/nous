@@ -629,6 +629,66 @@ exports.sendMonthlyReports = onSchedule(
 );
 
 // ============================================================
+// CLOUD FUNCTION: AI narrative for an in-app report (callable)
+// Keeps the DeepSeek key on the server; the app sends only the
+// stats it already computed and gets back the narrative text.
+// ============================================================
+const num = (v) => (Number.isFinite(Number(v)) ? Number(v) : 0);
+const str = (v, max) => String(v ?? "").slice(0, max);
+
+exports.generateReportNarrative = onCall(
+    { cors: true, invoker: "public" },
+    async (request) => {
+        if (!request.auth) {
+            throw new Error("Authentication required.");
+        }
+
+        const d = request.data || {};
+        const s = d.stats || {};
+        const c = d.comparison || {};
+        const periodType = d.periodType === "monthly" ? "monthly" : "weekly";
+
+        // Whitelist and bound every field so the prompt can't be repurposed
+        const reportData = {
+            username: str(d.username, 40) || "there",
+            periodType,
+            periodLabel: str(d.periodLabel, 60),
+            stats: {
+                totalHours: num(s.totalHours),
+                totalSessions: num(s.totalSessions),
+                dailyAvgHours: num(s.dailyAvgHours),
+                studyDays: num(s.studyDays),
+                daysInPeriod: num(s.daysInPeriod),
+                bestDay: str(s.bestDay, 20) || null,
+                peakHour: str(s.peakHour, 20) || null,
+                avgMood: s.avgMood == null ? null : num(s.avgMood),
+                habitBreakdown: (Array.isArray(s.habitBreakdown) ? s.habitBreakdown : []).slice(0, 12).map(h => ({
+                    name: str(h.name, 40),
+                    hours: num(h.hours),
+                    sessions: num(h.sessions),
+                    percentOfTotal: num(h.percentOfTotal)
+                })),
+                topStreaks: (Array.isArray(s.topStreaks) ? s.topStreaks : []).slice(0, 3).map(t => ({
+                    title: str(t.title, 40),
+                    streak: num(t.streak)
+                }))
+            },
+            comparison: {
+                prevTotalHours: num(c.prevTotalHours),
+                changePercent: num(c.changePercent),
+                direction: ["up", "down", "same"].includes(c.direction) ? c.direction : "same"
+            }
+        };
+
+        const apiKey = getApiKey();
+        const narrative = apiKey
+            ? await generateAINarrative(reportData, apiKey)
+            : generateFallbackNarrative(reportData);
+        return { narrative };
+    }
+);
+
+// ============================================================
 // HELPER: Send reports to all opted-in users
 // ============================================================
 async function sendReportsToAllUsers(periodType) {

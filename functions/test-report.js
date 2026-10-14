@@ -7,7 +7,11 @@
  */
 
 const DEEPSEEK_API_URL = "https://api.deepseek.com/chat/completions";
-const DEEPSEEK_API_KEY = process.env.DEEPSEEK_API_KEY || "sk-62f463e71ae3402d9aa3b06bc25db0d2";
+const DEEPSEEK_API_KEY = process.env.DEEPSEEK_API_KEY;
+if (!DEEPSEEK_API_KEY) {
+    console.error("Set DEEPSEEK_API_KEY (e.g. in functions/.env) before running this test.");
+    process.exit(1);
+}
 
 // Mock report data (simulates what we'd gather from Firestore)
 const mockReportData = {
