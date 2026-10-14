@@ -94,6 +94,14 @@ if (existsSync(PBXPROJ)) {
   console.log(`  ✓ Configured DEVELOPMENT_TEAM = ${TEAM_ID} and IPHONEOS_DEPLOYMENT_TARGET = 15.0 in project.pbxproj`);
 }
 
+const PODS_PBXPROJ = join(ROOT, 'ios/App/Pods/Pods.xcodeproj/project.pbxproj');
+if (existsSync(PODS_PBXPROJ)) {
+  let podsContent = readFileSync(PODS_PBXPROJ, 'utf8');
+  podsContent = podsContent.replace(/IPHONEOS_DEPLOYMENT_TARGET = 13\.0;/g, 'IPHONEOS_DEPLOYMENT_TARGET = 15.0;');
+  writeFileSync(PODS_PBXPROJ, podsContent, 'utf8');
+  console.log('  ✓ Configured IPHONEOS_DEPLOYMENT_TARGET = 15.0 in Pods.xcodeproj');
+}
+
 console.log('\nGenerating App Store Icon (1024x1024 RGB without alpha) ...');
 async function generateIcon() {
   if (existsSync(SOURCE_ICON)) {
