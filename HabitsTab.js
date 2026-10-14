@@ -175,7 +175,8 @@
             check: "M20 6L9 17l-5-5",
             circle: "M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z",
             plus: "M12 4v16m8-8H4",
-            trash: "M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16",
+            trash: "M3 6h18 M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6 M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2 M10 11v6 M14 11v6",
+            reset: "M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8 M3 3v5h5",
             x: "M6 18L18 6M6 6l12 12",
             fire: "M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.07-2.14-.22-4.05 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.15.43-2.29 1-3a2.5 2.5 0 0 0 2.5 2.5z",
             left: "M15 18l-6-6 6-6",
@@ -2012,21 +2013,23 @@
                             // Manual Log (+)
                             React.createElement("button", {
                                 onClick: () => openManualSession(h.id, toLocalDateString(new Date())),
-                                className: "p-2 text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700/60 rounded-full transition-colors",
-                                title: "Log manual session"
-                            }, React.createElement(SysIcon, { name: "plus", size: 16 })),
-                            // Reset button (only when timer exists/elapsed)
-                            (timer || elapsed > 0) && React.createElement("button", {
-                                onClick: () => resetTimer(h.id),
-                                className: "p-2 text-gray-400 hover:text-orange-600 hover:bg-orange-50 dark:hover:bg-orange-950/30 rounded-full transition-colors",
-                                title: "Reset timer to 0"
-                            }, React.createElement("svg", { width: 16, height: 16, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: 2, strokeLinecap: "round", strokeLinejoin: "round" },
-                                React.createElement("path", { d: "M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" }),
-                                React.createElement("path", { d: "M21 3v5h-5" }),
-                                React.createElement("path", { d: "M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" }),
-                                React.createElement("path", { d: "M3 21v-5h5" })
-                            ))
-                        ) : null
+                                className: "nous-icon-btn",
+                                title: "Log manual session",
+                                "aria-label": "Log manual session"
+                            }, React.createElement(SysIcon, { name: "plus", size: 17 })),
+                            // Delete habit
+                            React.createElement("button", {
+                                onClick: () => deleteHabit(h.id),
+                                className: "nous-icon-btn nous-icon-btn--danger",
+                                title: "Delete habit",
+                                "aria-label": "Delete habit"
+                            }, React.createElement(SysIcon, { name: "trash", size: 17 }))
+                        ) : React.createElement("button", {
+                            onClick: () => deleteHabit(h.id),
+                            className: "nous-icon-btn nous-icon-btn--danger",
+                            title: "Delete habit",
+                            "aria-label": "Delete habit"
+                        }, React.createElement(SysIcon, { name: "trash", size: 17 }))
                     ),
 
                     // Center Hero: Timer or Binary Habit
@@ -2102,6 +2105,14 @@
                                 className: "flex items-center justify-center mt-6 mb-2",
                                 style: { display: "flex", alignItems: "center", justifyContent: "center", gap: "24px" }
                             },
+                                // Reset (always visible, dimmed when there's nothing to reset)
+                                React.createElement("button", {
+                                    onClick: () => (timer || elapsed > 0) && resetTimer(h.id),
+                                    disabled: !(timer || elapsed > 0),
+                                    className: "nous-reset-btn",
+                                    title: "Reset timer",
+                                    "aria-label": "Reset timer"
+                                }, React.createElement(SysIcon, { name: "reset", size: 20 })),
                                 !isRunning ? React.createElement(React.Fragment, null,
                                     // Big Beautiful Tactile Play Button (resumes when paused)
                                     React.createElement("button", {
@@ -2113,6 +2124,8 @@
                                             React.createElement("polygon", { points: "6 3 20 12 6 21 6 3" })
                                         )
                                     ),
+                                    // Keeps play centered when there's no finish button
+                                    !(timer && elapsed > 0) && React.createElement("span", { style: { width: "56px", height: "56px" }, "aria-hidden": true }),
                                     // Paused: finish & log without resuming first
                                     timer && elapsed > 0 && React.createElement("button", {
                                         onClick: () => stopTimer(h.id),

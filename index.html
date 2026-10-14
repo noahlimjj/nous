@@ -3,7 +3,7 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Nous</title>
 
     <!-- PWA Meta Tags -->
@@ -36,7 +36,7 @@
     <!-- Satoshi font -->
     <link href="https://api.fontshare.com/v2/css?f[]=satoshi@300,400,500,700&display=swap" rel="stylesheet">
 
-    <link rel="stylesheet" href="style.css?v=habits_recap_3">
+    <link rel="stylesheet" href="style.css?v=habits_recap_4">
     <link rel="stylesheet" href="gamification.css">
 
     <!-- Critical CSS for Skeleton Loader (Instant Startup) -->
@@ -164,7 +164,8 @@
             setPersistence,
             browserLocalPersistence,
             initializeAuth,
-            indexedDBLocalPersistence
+            indexedDBLocalPersistence,
+            deleteUser
         } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
         import {
             getFirestore,
@@ -206,6 +207,7 @@
         window.browserLocalPersistence = browserLocalPersistence;
         window.initializeAuth = initializeAuth;
         window.indexedDBLocalPersistence = indexedDBLocalPersistence;
+        window.deleteUser = deleteUser;
         window.getFirestore = getFirestore;
         window.initializeFirestore = initializeFirestore;
         window.persistentLocalCache = persistentLocalCache;
@@ -362,10 +364,10 @@
     <div class="shooting-star"></div>
     <div class="shooting-star"></div>
 
-    <script src="HabitsTab.js?v=126"></script>
+    <script src="HabitsTab.js?v=127"></script>
     <script src="MoodTrackerTab.js?v=104"></script>
     <script src="components/CalendarChecklist.js?v=104"></script>
-    <script src="index.js?v=122"></script>
+    <script src="index.js?v=123"></script>
 
 </body>
 

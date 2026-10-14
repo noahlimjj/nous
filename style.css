@@ -1551,3 +1551,68 @@ body.night-mode .nous-chip-selected {
     .nous-nav > button { padding: 7px !important; }
     .nous-nav > button svg { width: 22px; height: 22px; }
 }
+
+/* Timer reset (left of play) and destructive icon button */
+.nous-reset-btn {
+    font-family: inherit;
+    width: 56px;
+    height: 56px;
+    border-radius: 9999px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: #f1f3f7;
+    color: #7d8ca8;
+    border: none;
+    cursor: pointer;
+    transition: background 0.15s ease, color 0.15s ease, transform 0.15s ease, opacity 0.15s ease;
+}
+.nous-reset-btn:hover:not(:disabled) { background: #e4e8ee; color: #4a5568; transform: rotate(-30deg); }
+.nous-reset-btn:active:not(:disabled) { transform: scale(0.95); }
+.nous-reset-btn:disabled { opacity: 0.45; cursor: default; }
+body.night-mode .nous-reset-btn {
+    background: rgba(255, 255, 255, 0.06) !important;
+    border: none !important;
+    color: #a8b3c7;
+    box-shadow: none;
+}
+.nous-icon-btn--danger:hover {
+    background: #fef2f2;
+    color: #dc2626;
+}
+body.night-mode .nous-icon-btn--danger:hover {
+    background: rgba(220, 38, 38, 0.15) !important;
+    color: #fca5a5;
+}
+
+/* ============================================
+   SAFE AREAS (iOS app is edge-to-edge; env() is 0 elsewhere)
+   ============================================ */
+body {
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+}
+/* Solid backdrop behind the status bar so scrolled content never shows through it
+   (html::before, since body's pseudo-elements draw the night-mode starfield) */
+html::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: env(safe-area-inset-top);
+    background: #ffffff;
+    z-index: 60;
+    pointer-events: none;
+}
+html:has(body.night-mode)::before {
+    background: #0f172a;
+}
+header.sticky {
+    top: env(safe-area-inset-top);
+}
+/* Full-screen dialog overlays keep their content clear of the notch and home indicator */
+.fixed.inset-0.flex {
+    padding-top: max(20px, calc(env(safe-area-inset-top) + 8px)) !important;
+    padding-bottom: max(20px, calc(env(safe-area-inset-bottom) + 8px)) !important;
+}

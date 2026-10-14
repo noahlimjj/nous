@@ -4196,6 +4196,8 @@ const Settings = ({ auth, userId, db, userProfile, setNotification, isNightMode,
     const [isDeleting, setIsDeleting] = useState(false);
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     const [showAbout, setShowAbout] = useState(false);
+    const [showDeleteAccountConfirm, setShowDeleteAccountConfirm] = useState(false);
+    const [isDeletingAccount, setIsDeletingAccount] = useState(false);
 
     // Email report preferences state
     const [reportWeekly, setReportWeekly] = useState(false);
@@ -4722,6 +4724,48 @@ Use lowercase text for habit names to match the app's aesthetic, but you may use
         }
     };
 
+    // Permanently deletes the signed-in user's data and their auth account
+    const handleDeleteAccount = async () => {
+        const currentUser = auth?.currentUser;
+        if (!currentUser) return;
+        setIsDeletingAccount(true);
+        try {
+            const appId = typeof __app_id !== 'undefined' ? __app_id : 'study-tracker-app';
+            const refs = [];
+            for (const name of ['sessions', 'habits', 'goals', 'milestones', 'gamification']) {
+                try {
+                    const snap = await window.getDocs(window.collection(db, `artifacts/${appId}/users/${userId}/${name}`));
+                    snap.forEach(d => refs.push(d.ref));
+                } catch (e) {
+                    console.warn(`Skipping ${name} during account deletion`, e);
+                }
+            }
+            refs.push(window.doc(db, `artifacts/${appId}/users/${userId}`));
+            // Firestore batches cap at 500 writes
+            for (let i = 0; i < refs.length; i += 450) {
+                const batch = window.writeBatch(db);
+                refs.slice(i, i + 450).forEach(ref => batch.delete(ref));
+                await batch.commit();
+            }
+            try {
+                await window.deleteDoc(window.doc(db, 'users', userId));
+            } catch (e) {
+                console.warn('Could not delete public profile doc', e);
+            }
+            await window.deleteUser(currentUser);
+            setShowDeleteAccountConfirm(false);
+            setNotification({ type: 'success', message: 'Your account and data have been deleted.' });
+        } catch (error) {
+            console.error('Error deleting account:', error);
+            const message = error.code === 'auth/requires-recent-login'
+                ? 'For security, please sign out, sign back in, then delete your account again.'
+                : 'Failed to delete account: ' + error.message;
+            setNotification({ type: 'error', message });
+        } finally {
+            setIsDeletingAccount(false);
+        }
+    };
+
     const handleDeleteUser = async () => {
         if (!usernameToDelete.trim()) {
             setNotification({ type: 'error', message: 'Please enter a username.' });
@@ -5228,6 +5272,43 @@ Use lowercase text for habit names to match the app's aesthetic, but you may use
                 },
                     React.createElement(XIcon),
                     "reset all progress"
+                ),
+                React.createElement('button', {
+                    onClick: () => setShowDeleteAccountConfirm(true),
+                    className: "w-full sm:w-auto bg-white text-red-600 border border-red-200 py-2 px-6 rounded-lg hover:bg-red-50 transition flex items-center justify-center gap-2",
+                    style: { fontWeight: 400 }
+                }, "delete account")
+            )
+        ),
+
+        // Delete Account Confirmation Modal
+        showDeleteAccountConfirm && React.createElement('div', {
+            className: "fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50",
+            onClick: () => !isDeletingAccount && setShowDeleteAccountConfirm(false)
+        },
+            React.createElement('div', {
+                className: "bg-white rounded-xl p-8 max-w-md m-4 soft-shadow-lg",
+                onClick: (e) => e.stopPropagation()
+            },
+                React.createElement('h3', { className: "text-2xl text-gray-800 mb-4", style: { fontWeight: 400 } }, "delete your account?"),
+                React.createElement('p', { className: "text-gray-600 mb-6", style: { fontWeight: 300 } },
+                    "This permanently deletes your account, habits, sessions, goals and milestones. This can't be undone."),
+                React.createElement('div', { className: "flex gap-3 justify-end" },
+                    React.createElement('button', {
+                        onClick: () => setShowDeleteAccountConfirm(false),
+                        disabled: isDeletingAccount,
+                        className: "px-6 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition disabled:opacity-50",
+                        style: { fontWeight: 400 }
+                    }, "cancel"),
+                    React.createElement('button', {
+                        onClick: handleDeleteAccount,
+                        disabled: isDeletingAccount,
+                        className: "px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition disabled:opacity-50 flex items-center gap-2",
+                        style: { fontWeight: 400 }
+                    },
+                        isDeletingAccount && React.createElement(LoaderIcon),
+                        isDeletingAccount ? "deleting..." : "delete account"
+                    )
                 )
             )
         ),

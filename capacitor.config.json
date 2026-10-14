@@ -8,7 +8,7 @@
   },
   "ios": {
     "backgroundColor": "#f8f9fb",
-    "contentInset": "always",
+    "contentInset": "never",
     "limitsNavigationsToAppBoundDomains": false
   },
   "plugins": {

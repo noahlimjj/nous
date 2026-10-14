@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Nous — Support</title>
+  <style>
+    :root {
+      --bg: #f8f9fb;
+      --card: #ffffff;
+      --border: #e2e8f0;
+      --text: #1e293b;
+      --muted: #64748b;
+      --accent: #5d6b86;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #0f172a;
+        --card: #1e293b;
+        --border: #334155;
+        --text: #f8fafc;
+        --muted: #94a3b8;
+        --accent: #818cf8;
+      }
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Satoshi", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      padding: 2.5rem 1rem;
+    }
+    .container {
+      max-width: 760px;
+      margin: 0 auto;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 2.5rem;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+    }
+    .badge {
+      display: inline-block;
+      background: rgba(93, 107, 134, 0.12);
+      color: var(--accent);
+      border: 1px solid rgba(93, 107, 134, 0.25);
+      padding: 0.25rem 0.75rem;
+      border-radius: 999px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      margin-bottom: 1rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    h1 {
+      font-size: 2rem;
+      margin-bottom: 0.5rem;
+      color: var(--text);
+      font-weight: 700;
+    }
+    .updated {
+      color: var(--muted);
+      font-size: 0.875rem;
+      margin-bottom: 2rem;
+    }
+    h2 {
+      font-size: 1.25rem;
+      margin: 1.75rem 0 0.75rem;
+      color: var(--text);
+      font-weight: 600;
+    }
+    p { margin-bottom: 1rem; color: var(--text); font-size: 0.95rem; }
+    ul { margin: 0.5rem 0 1rem 1.5rem; color: var(--text); font-size: 0.95rem; }
+    li { margin-bottom: 0.4rem; }
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    footer {
+      margin-top: 2.5rem;
+      padding-top: 1.5rem;
+      border-top: 1px solid var(--border);
+      font-size: 0.85rem;
+      color: var(--muted);
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="badge">Support</div>
+    <h1>Nous — Study Habit Tracker</h1>
+    <div class="updated">Last updated: October 14, 2026</div>
+
+    <h2>Get help</h2>
+    <p>Questions, bug reports or feature ideas? Email <a href="mailto:noahlimjj@gmail.com">noahlimjj@gmail.com</a> and we'll get back to you, usually within two working days.</p>
+
+    <h2>Common questions</h2>
+    <p><strong>How do I add the home screen widget?</strong><br>Touch and hold an empty area of your home screen, tap the + button, search for Nous, then choose the small or medium widget. It shows today's habits and focus time.</p>
+    <p><strong>How do I turn on daily reminders?</strong><br>Open Settings in the app, turn on "daily reminder" and pick a time. Allow notifications when iOS asks.</p>
+    <p><strong>Can I use Nous without an account?</strong><br>Yes. Choose "continue as guest". Guest data stays with that guest session, so sign up with email if you want to keep it across devices.</p>
+    <p><strong>How do I delete my account?</strong><br>Open Settings, scroll to actions and tap "delete account". This permanently removes your account and all of your habits, sessions and goals.</p>
+
+    <h2>Privacy</h2>
+    <p>Read how we handle your data in our <a href="privacy.html">Privacy Policy</a>.</p>
+
+    <footer>
+      &copy; 2026 Nous. All rights reserved.
+    </footer>
+  </div>
+</body>
+</html>
