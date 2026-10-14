@@ -36,7 +36,7 @@
     <!-- Satoshi font -->
     <link href="https://api.fontshare.com/v2/css?f[]=satoshi@300,400,500,700&display=swap" rel="stylesheet">
 
-    <link rel="stylesheet" href="style.css?v=design_ink_glyphs_1">
+    <link rel="stylesheet" href="style.css?v=habits_recap_3">
     <link rel="stylesheet" href="gamification.css">
 
     <!-- Critical CSS for Skeleton Loader (Instant Startup) -->
@@ -162,7 +162,9 @@
             signInWithPopup,
             GoogleAuthProvider,
             setPersistence,
-            browserLocalPersistence
+            browserLocalPersistence,
+            initializeAuth,
+            indexedDBLocalPersistence
         } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
         import {
             getFirestore,
@@ -202,6 +204,8 @@
         window.GoogleAuthProvider = GoogleAuthProvider;
         window.setPersistence = setPersistence;
         window.browserLocalPersistence = browserLocalPersistence;
+        window.initializeAuth = initializeAuth;
+        window.indexedDBLocalPersistence = indexedDBLocalPersistence;
         window.getFirestore = getFirestore;
         window.initializeFirestore = initializeFirestore;
         window.persistentLocalCache = persistentLocalCache;
@@ -358,10 +362,10 @@
     <div class="shooting-star"></div>
     <div class="shooting-star"></div>
 
-    <script src="HabitsTab.js?v=123"></script>
+    <script src="HabitsTab.js?v=126"></script>
     <script src="MoodTrackerTab.js?v=104"></script>
     <script src="components/CalendarChecklist.js?v=104"></script>
-    <script src="index.js?v=120"></script>
+    <script src="index.js?v=122"></script>
 
 </body>
 

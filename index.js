@@ -905,7 +905,8 @@ const AuthComponent = ({ auth, setNotification }) => {
                 React.createElement('span', { className: "flex-shrink mx-4 text-gray-400" }, "Or"),
                 React.createElement('div', { className: "flex-grow border-t border-gray-300" })
             ),
-            React.createElement('button', {
+            // Google popup sign-in can't open inside the iOS app's web view, so it's web-only
+            !(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()) && React.createElement('button', {
                 onClick: handleGoogleSignIn,
                 className: "w-full bg-white soft-shadow text-calm-700 py-3 px-4 rounded-xl hover:bg-calm-50 focus:outline-none transition flex items-center justify-center gap-3",
                 style: { fontWeight: 400 }
@@ -929,7 +930,7 @@ const Header = ({ setCurrentPage, currentPage, onNavigateToHabits, onNavigateToR
         React.createElement('div', { className: "max-w-7xl mx-auto px-4 sm:px-6 lg:px-8" },
             React.createElement('div', { className: "flex justify-between items-center h-16" },
                 React.createElement(NousLogo, { size: "medium" }),
-                React.createElement('nav', { className: "flex items-center space-x-2" },
+                React.createElement('nav', { className: "nous-nav" },
                     React.createElement('button', {
                         onClick: () => setCurrentPage('dashboard'),
                         title: "Dashboard",
@@ -4204,6 +4205,31 @@ const Settings = ({ auth, userId, db, userProfile, setNotification, isNightMode,
     const [reportPreview, setReportPreview] = useState(null);
     const [isSavingPrefs, setIsSavingPrefs] = useState(false);
 
+    // Daily reminder (iOS app only; stored per device)
+    const canRemind = !!(window.NousNative && window.NousNative.isAvailable());
+    const [reminderPrefs, setReminderPrefs] = useState(() => window.NousReminders ? window.NousReminders.getPrefs() : { enabled: false, time: '20:00' });
+    const updateReminderPrefs = (next) => {
+        setReminderPrefs(next);
+        if (window.NousReminders) window.NousReminders.setPrefs(next);
+    };
+    const toggleReminder = async () => {
+        if (reminderPrefs.enabled) {
+            updateReminderPrefs({ ...reminderPrefs, enabled: false });
+            return;
+        }
+        try {
+            const res = await window.NousNative.call('requestNotificationPermission');
+            if (res && res.granted) {
+                updateReminderPrefs({ ...reminderPrefs, enabled: true });
+                setNotification({ type: 'success', message: `Reminder set for ${reminderPrefs.time} daily` });
+            } else {
+                setNotification({ type: 'error', message: 'Notifications are off. Turn them on in iOS Settings → Nous.' });
+            }
+        } catch (e) {
+            setNotification({ type: 'error', message: 'Could not enable reminders on this device.' });
+        }
+    };
+
     useEffect(() => {
         if (userProfile?.username) {
             setUsername(userProfile.username);
@@ -4806,6 +4832,51 @@ Use lowercase text for habit names to match the app's aesthetic, but you may use
                         )
                     )
                 )
+            )
+        ),
+
+        // Daily Reminder Section (iOS app only)
+        canRemind && React.createElement('div', { className: "bg-white rounded-lg shadow-sm p-6 mb-6" },
+            React.createElement('div', { className: "flex items-start gap-3 mb-4" },
+                React.createElement('div', { className: "flex-shrink-0 mt-0.5" },
+                    React.createElement('svg', {
+                        xmlns: "http://www.w3.org/2000/svg", width: "24", height: "24", viewBox: "0 0 24 24",
+                        fill: "none", stroke: "#6B8DD6", strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round"
+                    },
+                        React.createElement('path', { d: "M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" }),
+                        React.createElement('path', { d: "M10.3 21a1.94 1.94 0 0 0 3.4 0" })
+                    )
+                ),
+                React.createElement('div', null,
+                    React.createElement('h3', { className: "text-xl text-gray-700", style: { fontWeight: 400 } }, "daily reminder"),
+                    React.createElement('p', { className: "text-sm text-gray-500 mt-1", style: { fontWeight: 300 } },
+                        "a gentle nudge when habits are left, plus your weekly recap on sunday"
+                    )
+                )
+            ),
+            React.createElement('div', { className: "flex justify-between items-center py-3 border-b border-gray-100" },
+                React.createElement('span', { className: "text-gray-700", style: { fontWeight: 400 } }, "remind me"),
+                React.createElement('button', {
+                    onClick: toggleReminder,
+                    className: "relative inline-flex items-center rounded-full transition-all duration-300",
+                    style: { cursor: 'pointer', width: '52px', height: '28px', backgroundColor: reminderPrefs.enabled ? '#6B8DD6' : '#e5e7eb', padding: '2px' },
+                    'aria-pressed': reminderPrefs.enabled
+                },
+                    React.createElement('div', {
+                        className: "rounded-full bg-white shadow-md transition-all duration-300",
+                        style: { width: '24px', height: '24px', transform: reminderPrefs.enabled ? 'translateX(24px)' : 'translateX(0px)' }
+                    })
+                )
+            ),
+            reminderPrefs.enabled && React.createElement('div', { className: "flex justify-between items-center py-3" },
+                React.createElement('span', { className: "text-gray-600", style: { fontWeight: 400 } }, "time"),
+                React.createElement('input', {
+                    type: 'time',
+                    value: reminderPrefs.time,
+                    onChange: (e) => e.target.value && updateReminderPrefs({ ...reminderPrefs, time: e.target.value }),
+                    className: "px-3 py-1.5 rounded-lg border border-gray-200 text-gray-700",
+                    style: { fontFamily: 'inherit', fontWeight: 400 }
+                })
             )
         ),
 
@@ -8471,7 +8542,19 @@ function App() {
                     console.warn('Firebase SDK not loaded - Offline Mode');
                 }
 
-                const authInstance = window.getAuth(app);
+                // In the iOS app (capacitor://), getAuth() waits forever on the web popup/redirect
+                // resolver, so initialize auth without it and persist to IndexedDB instead.
+                const isNativeApp = !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
+                let authInstance;
+                if (isNativeApp && window.initializeAuth) {
+                    try {
+                        authInstance = window.initializeAuth(app, { persistence: window.indexedDBLocalPersistence });
+                    } catch (err) {
+                        authInstance = window.getAuth(app); // already initialized
+                    }
+                } else {
+                    authInstance = window.getAuth(app);
+                }
 
                 // Initialize Firestore with persistent cache (modern API, no deprecation warnings)
                 let dbInstance;

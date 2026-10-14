@@ -5,24 +5,31 @@
     // Bespoke vector symbols crafted for Nous minimalist aesthetic
     const NOUS_SYMBOLS = {
         // Study & Knowledge Work
-        study: { label: "study", path: "M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" },
-        reading: { label: "read", path: "M4 19.5A2.5 2.5 0 0 1 6.5 17H20 M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z M8 7h8 M8 11h6" },
-        coding: { label: "code", path: "M16 18l6-6-6-6 M8 6l-6 6 6 6" },
-        writing: { label: "write", path: "M12 19l7-7 3 3-7 7-5 1 2-4z M18 13l-1.5-1.5" },
-        bolt: { label: "energy", path: "M13 2L3 14h9l-1 8 10-12h-9l1-8z" },
-        target: { label: "target", path: "M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20zm0-4a6 6 0 1 0 0-12 6 6 0 0 0 0 12zm0-4a2 2 0 1 0 0-4 2 2 0 0 0 0 4z" },
-        wake: { label: "wake", path: "M12 3v2m0 14v2m9-9h-2M5 12H3m15.36-6.36l-1.41 1.41M7.05 16.95l-1.41 1.41m12.72 0l-1.41-1.41M7.05 7.05L5.64 5.64M16 12a4 4 0 1 1-8 0 4 4 0 0 1 8 0z" },
-        sleep: { label: "sleep", path: "M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" },
-        water: { label: "water", path: "M12 2.7l5.7 5.7a8 8 0 1 1-11.4 0z" },
-        coffee: { label: "coffee", path: "M18 8h1a4 4 0 0 1 0 8h-1 M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z M6 1v3 M10 1v3 M14 1v3" },
-        gym: { label: "gym", path: "M6 5v14 M18 5v14 M2 9v6 M22 9v6 M6 12h12 M4 9h2v6H4z M18 9h2v6h-2z" },
-        leaf: { label: "nature", path: "M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.5 19 2c1 2 2 4.2 2 8 0 5.5-4.8 10-10 10z M2 21l9-9" },
-        fire: { label: "streak", path: "M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.4-.5-2-1-3-1.1-2.1-.2-4 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.1.4-2.3 1-3a2.5 2.5 0 0 0 2.5 2.5z" },
-        star: { label: "star", path: "M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" },
-        bulb: { label: "idea", path: "M9 18h6m-5 3h4M12 2a7 7 0 0 0-7 7c0 2.5 1.5 4.5 3 6h8c1.5-1.5 3-3.5 3-6a7 7 0 0 0-7-7z" },
-        chart: { label: "chart", path: "M18 20V10M12 20V4M6 20v-6" },
-        heart: { label: "heart", path: "M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" },
-        music: { label: "music", path: "M9 18V5l12-2v13M9 9l12-2M6 21a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM18 19a3 3 0 1 0 0-6 3 3 0 0 0 0 6z" },
+        // Habit symbols: 24x24, 2px-optical line style, round caps (Lucide-derived geometry)
+        study: { label: "study", path: "M21.42 10.92a1 1 0 0 0-.02-1.84L12.83 5.18a2 2 0 0 0-1.66 0L2.6 9.08a1 1 0 0 0 0 1.83l8.57 3.91a2 2 0 0 0 1.66 0z M22 10v6 M6 12.5V16a6 3 0 0 0 12 0v-3.5" },
+        reading: { label: "read", path: "M12 7v14 M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z" },
+        writing: { label: "write", path: "M12 20h9 M16.38 3.62a1 1 0 0 1 3 3L7.37 18.64a2 2 0 0 1-.86.5l-2.87.84a.5.5 0 0 1-.62-.62l.84-2.87a2 2 0 0 1 .5-.86z" },
+        coding: { label: "code", path: "M18 5a2 2 0 0 1 2 2v8.53a2 2 0 0 0 .21.9l1.07 2.12a1 1 0 0 1-.9 1.45H3.62a1 1 0 0 1-.9-1.45l1.07-2.12a2 2 0 0 0 .21-.9V7a2 2 0 0 1 2-2z M20.05 16H3.95 M10 9l-2 2 2 2 M14 9l2 2-2 2" },
+        language: { label: "language", path: "M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20z M2 12h20 M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" },
+        bulb: { label: "idea", path: "M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5 M9 18h6 M10 22h4" },
+        target: { label: "focus", path: "M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20z M12 18a6 6 0 1 0 0-12 6 6 0 0 0 0 12z M12 14a2 2 0 1 0 0-4 2 2 0 0 0 0 4z" },
+        bolt: { label: "energy", path: "M4 14a1 1 0 0 1-.78-1.63l9.9-10.2a.5.5 0 0 1 .86.46l-1.92 6.02A1 1 0 0 0 13 10h7a1 1 0 0 1 .78 1.63l-9.9 10.2a.5.5 0 0 1-.86-.46l1.92-6.02A1 1 0 0 0 11 14z" },
+        chart: { label: "progress", path: "M22 7l-8.5 8.5-5-5L2 17 M16 7h6v6" },
+        wake: { label: "wake up", path: "M12 2v8 M4.93 10.93l1.41 1.41 M2 18h2 M20 18h2 M19.07 10.93l-1.41 1.41 M22 22H2 M8 6l4-4 4 4 M16 18a4 4 0 0 0-8 0" },
+        sleep: { label: "sleep", path: "M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9z" },
+        nophone: { label: "no phone", path: "M7 2h10a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2z M11 18h2 M2 2l20 20" },
+        gym: { label: "gym", path: "M14.4 14.4 9.6 9.6 M18.66 21.49a2 2 0 1 1-2.83-2.83l-1.77 1.77a2 2 0 1 1-2.83-2.83l6.36-6.36a2 2 0 1 1 2.83 2.83l-1.77 1.77a2 2 0 1 1 2.83 2.83z M21.5 21.5l-1.4-1.4 M3.9 3.9 2.5 2.5 M6.4 12.77a2 2 0 1 1-2.83-2.83l1.77-1.77a2 2 0 1 1-2.83-2.83l2.83-2.83a2 2 0 1 1 2.83 2.83l1.77-1.77a2 2 0 1 1 2.83 2.83z" },
+        walk: { label: "walk", path: "M4 16v-2.38C4 11.5 2.97 10.5 3 8c.03-2.72 1.49-6 4.5-6C9.37 2 10 3.8 10 5.5c0 3.11-2 5.66-2 8.68V16a2 2 0 1 1-4 0z M20 20v-2.38c0-2.12 1.03-3.12 1-5.62-.03-2.72-1.49-6-4.5-6C14.63 6 14 7.8 14 9.5c0 3.11 2 5.66 2 8.68V20a2 2 0 1 0 4 0z M16 17h4 M4 13h4" },
+        water: { label: "water", path: "M12 22a7 7 0 0 0 7-7c0-2-1-3.9-3-5.5s-3.5-4-4-6.5c-.5 2.5-2 4.9-4 6.5C6 11.1 5 13 5 15a7 7 0 0 0 7 7z" },
+        apple: { label: "eat well", path: "M12 20.94c1.5 0 2.75 1.06 4 1.06 3 0 6-8 6-12.22A4.91 4.91 0 0 0 17 5c-2.22 0-4 1.44-5 2-1-.56-2.78-2-5-2a4.9 4.9 0 0 0-5 4.78C2 14 5 22 8 22c1.25 0 2.5-1.06 4-1.06z M10 2c1 .5 2 2 2 5" },
+        coffee: { label: "coffee", path: "M10 2v2 M14 2v2 M6 2v2 M16 8a1 1 0 0 1 1 1v8a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4V9a1 1 0 0 1 1-1h14a4 4 0 1 1 0 8h-1" },
+        leaf: { label: "nature", path: "M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10z M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12" },
+        heart: { label: "health", path: "M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7z" },
+        fire: { label: "streak", path: "M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.07-2.14-.22-4.05 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.15.43-2.29 1-3a2.5 2.5 0 0 0 2.5 2.5z" },
+        star: { label: "star", path: "M11.53 2.3a.53.53 0 0 1 .95 0l2.31 4.68a2.12 2.12 0 0 0 1.6 1.16l5.16.76a.53.53 0 0 1 .3.9l-3.74 3.64a2.12 2.12 0 0 0-.61 1.88l.88 5.14a.53.53 0 0 1-.77.56l-4.62-2.43a2.12 2.12 0 0 0-1.97 0L6.4 21.01a.53.53 0 0 1-.77-.56l.88-5.14a2.12 2.12 0 0 0-.61-1.88L2.16 9.8a.53.53 0 0 1 .3-.9l5.16-.76a2.12 2.12 0 0 0 1.6-1.16z" },
+        music: { label: "music", path: "M9 18V5l12-2v13 M9 18a3 3 0 1 1-6 0 3 3 0 0 1 6 0z M21 16a3 3 0 1 1-6 0 3 3 0 0 1 6 0z" },
+        budget: { label: "budget", path: "M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1 M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4" },
+        create: { label: "create", path: "M12 22a1 1 0 0 1 0-20 10 9 0 0 1 10 9 5 5 0 0 1-5 5h-2.25a1.75 1.75 0 0 0-1.4 2.8l.3.4a1.75 1.75 0 0 1-1.4 2.8z M13.5 6.5h.01 M17.5 10.5h.01 M8.5 7.5h.01 M6.5 12.5h.01" },
 
         // System & Milestone icons (for full compatibility with Milestones tab)
         trophy: { label: "trophy", path: "M8 21h8m-4-4v4M5 4h14a2 2 0 0 1 2 2v2a5 5 0 0 1-5 5h-4a5 5 0 0 1-5-5V6a2 2 0 0 1 2-2zM3 6h2v3a3 3 0 0 1-3-3zm18 0h-2v3a3 3 0 0 0 3-3z" },
@@ -32,25 +39,25 @@
 
     // Curated high-aesthetic habit icons for selection in Add/Edit habit modals
     const CURATED_HABIT_ICONS = [
-        'study', 'reading', 'coding', 'writing',
-        'bolt', 'target', 'wake', 'sleep',
-        'water', 'coffee', 'gym', 'leaf',
-        'fire', 'star', 'bulb', 'chart',
-        'heart', 'music'
+        'study', 'reading', 'writing', 'coding', 'language', 'bulb',
+        'target', 'bolt', 'chart', 'wake', 'sleep', 'nophone',
+        'gym', 'walk', 'water', 'apple', 'coffee', 'leaf',
+        'heart', 'fire', 'star', 'music', 'budget', 'create'
     ];
 
     // Emoji to custom vector symbol lookup
     const EMOJI_TO_SYMBOL = {
         '😴': 'sleep', '💤': 'sleep', '⏰': 'wake', '🌅': 'wake', '☀️': 'wake',
         '📖': 'reading', '📚': 'study', '🥋': 'gym', '🤸': 'gym', '🏋️': 'gym',
-        '💪': 'gym', '🏃': 'gym', '🚶': 'gym', '🏊': 'gym', '🧘': 'leaf',
+        '💪': 'gym', '🏃': 'walk', '🚶': 'walk', '🏊': 'gym', '🧘': 'leaf',
         '🧠': 'target', '👁️': 'target', '🍃': 'leaf', '🌿': 'leaf', '🌱': 'leaf',
         '🌳': 'leaf', '💧': 'water', '☕': 'coffee', '💻': 'coding', '📝': 'writing',
         '✍️': 'writing', '🙏': 'heart', '🔥': 'fire', '⭐': 'star', '❤️': 'heart',
-        '🎵': 'music', '🥗': 'leaf', '🍎': 'leaf', '📵': 'target', '⚡': 'bolt',
+        '🎵': 'music', '🥗': 'apple', '🍎': 'apple', '📵': 'nophone', '⚡': 'bolt',
         '🎯': 'target', '🏆': 'target', '💼': 'study', '🎓': 'study',
         '🔬': 'study', '💡': 'bulb', '🏅': 'star', '🩺': 'heart',
-        '🧪': 'study', '📅': 'chart', '📊': 'chart', '🔗': 'target', '✏️': 'writing'
+        '🧪': 'study', '📅': 'chart', '📊': 'chart', '🔗': 'target', '✏️': 'writing',
+        '🌍': 'language', '🗣️': 'language', '💰': 'budget', '🎨': 'create', '📱': 'nophone'
     };
 
     const resolveIconKey = (rawName, fallback = 'study') => {
@@ -67,10 +74,16 @@
         if (str.includes('wake') || str.includes('morning') || str.includes('sun')) return 'wake';
         if (str.includes('read') || str.includes('book')) return 'reading';
         if (str.includes('study') || str.includes('exam')) return 'study';
-        if (str.includes('gym') || str.includes('lift') || str.includes('workout') || str.includes('fit') || str.includes('run') || str.includes('walk') || str.includes('swim') || str.includes('bjj') || str.includes('martial') || str.includes('sport')) return 'gym';
+        if (str.includes('phone') || str.includes('screen') || str.includes('social media') || str.includes('scroll')) return 'nophone';
+        if (str.includes('walk') || str.includes('run') || str.includes('step') || str.includes('jog')) return 'walk';
+        if (str.includes('language') || str.includes('spanish') || str.includes('french') || str.includes('japanese') || str.includes('korean') || str.includes('chinese') || str.includes('duolingo')) return 'language';
+        if (str.includes('budget') || str.includes('money') || str.includes('finance') || str.includes('saving')) return 'budget';
+        if (str.includes('draw') || str.includes('paint') || str.includes('sketch') || str.includes('design')) return 'create';
+        if (str.includes('gym') || str.includes('lift') || str.includes('workout') || str.includes('fit') || str.includes('swim') || str.includes('bjj') || str.includes('martial') || str.includes('sport')) return 'gym';
         if (str.includes('meditat') || str.includes('mind') || str.includes('zen') || str.includes('yoga') || str.includes('breathe') || str.includes('eye') || str.includes('focus')) return 'target';
         if (str.includes('water') || str.includes('hydrat')) return 'water';
-        if (str.includes('eat') || str.includes('food') || str.includes('diet') || str.includes('leaf') || str.includes('nature') || str.includes('green')) return 'leaf';
+        if (str.includes('eat') || str.includes('food') || str.includes('diet') || str.includes('fruit') || str.includes('veg')) return 'apple';
+        if (str.includes('leaf') || str.includes('nature') || str.includes('green')) return 'leaf';
         if (str.includes('coffee') || str.includes('tea')) return 'coffee';
         if (str.includes('code') || str.includes('dev') || str.includes('program') || str.includes('tech')) return 'coding';
         if (str.includes('write') || str.includes('journal') || str.includes('log') || str.includes('note')) return 'writing';
@@ -99,7 +112,7 @@
     }, {});
 
     // Pure vector SVG Icon component
-    const Icon = ({ name, size = 20, className = '', color = 'currentColor', strokeWidth = 1.6, style = {} }) => {
+    const Icon = ({ name, size = 20, className = '', color = 'currentColor', strokeWidth = 2, style = {} }) => {
         const key = resolveIconKey(name);
         const item = NOUS_SYMBOLS[key] || NOUS_SYMBOLS.leaf;
 
@@ -254,6 +267,337 @@
         return tick;
     };
 
+    // ============================================
+    // STARTER PACK + WEEKLY RECAP HELPERS
+    // ============================================
+
+    // Suggested first habits for new users (first three are preselected)
+    const STARTER_HABITS = [
+        { key: 'deep-work', title: 'deep work', icon: 'target', tracking_type: 'timed', daily_goal_mins: 60, difficulty: 'medium' },
+        { key: 'read', title: 'read', icon: 'reading', tracking_type: 'timed', daily_goal_mins: 20, difficulty: 'easy' },
+        { key: 'wake', title: 'wake up early', icon: 'wake', tracking_type: 'binary', daily_goal_mins: 0, difficulty: 'hard' },
+        { key: 'move', title: 'move your body', icon: 'gym', tracking_type: 'timed', daily_goal_mins: 30, difficulty: 'medium' },
+        { key: 'water', title: 'drink water', icon: 'water', tracking_type: 'binary', daily_goal_mins: 0, difficulty: 'easy' },
+        { key: 'nophone', title: 'no phone before bed', icon: 'nophone', tracking_type: 'binary', daily_goal_mins: 0, difficulty: 'medium' },
+        { key: 'journal', title: 'journal', icon: 'writing', tracking_type: 'binary', daily_goal_mins: 0, difficulty: 'easy' },
+        { key: 'language', title: 'learn a language', icon: 'language', tracking_type: 'timed', daily_goal_mins: 15, difficulty: 'easy' }
+    ];
+    const STARTER_DEFAULT_KEYS = ['deep-work', 'read', 'wake'];
+
+    // Local date string a session belongs to (mirrors getTodayLoggedMs precedence)
+    const sessionDateStr = (s) => {
+        if (s.localDate) return s.localDate;
+        const raw = s.startTime || s.endTime || s.createdAt;
+        if (!raw) return null;
+        const dt = raw.toDate ? raw.toDate() : new Date(raw);
+        return isNaN(dt) ? null : toLocalDateString(dt);
+    };
+
+    const formatFocus = (ms) => {
+        const totalMins = Math.round(ms / 60000);
+        const h = Math.floor(totalMins / 60);
+        const m = totalMins % 60;
+        if (h === 0) return `${m}m`;
+        return m === 0 ? `${h}h` : `${h}h ${m}m`;
+    };
+
+    // Builds the recap for the Mon–Sun week starting at `monday`
+    const computeWeekRecap = (habits, sessions, monday) => {
+        const days = [];
+        for (let i = 0; i < 7; i++) {
+            const d = new Date(monday);
+            d.setDate(monday.getDate() + i);
+            days.push(toLocalDateString(d));
+        }
+        const prevMonday = new Date(monday);
+        prevMonday.setDate(monday.getDate() - 7);
+        const prevStart = toLocalDateString(prevMonday);
+        const todayIso = toLocalDateString(new Date());
+        const elapsedDays = days.filter(d => d <= todayIso);
+
+        const dailyMs = days.map(() => 0);
+        const habitMs = {};
+        let prevFocusMs = 0;
+        (sessions || []).forEach(s => {
+            const ds = sessionDateStr(s);
+            if (!ds) return;
+            const idx = days.indexOf(ds);
+            const dur = s.duration || 0;
+            if (idx >= 0) {
+                dailyMs[idx] += dur;
+                if (s.habitId) habitMs[s.habitId] = (habitMs[s.habitId] || 0) + dur;
+            } else if (ds >= prevStart && ds < days[0]) {
+                prevFocusMs += dur;
+            }
+        });
+        const focusMs = dailyMs.reduce((a, b) => a + b, 0);
+
+        const perHabit = habits.map(h => {
+            const dates = new Set(h.completionDates || []);
+            const doneDays = days.map(d => dates.has(d));
+            return {
+                id: h.id,
+                title: h.title || 'untitled',
+                icon: h.icon,
+                doneDays,
+                doneCount: doneDays.filter(Boolean).length,
+                focusMs: habitMs[h.id] || 0,
+                streak: calcStreak(h.completionDates)
+            };
+        });
+        const checkins = perHabit.reduce((a, h) => a + h.doneCount, 0);
+        const possible = habits.length * elapsedDays.length;
+        const perfectDays = habits.length === 0 ? 0 : elapsedDays.filter(d => habits.every(h => (h.completionDates || []).includes(d))).length;
+        const bestIdx = dailyMs.reduce((best, v, i) => (v > dailyMs[best] ? i : best), 0);
+        const topStreak = perHabit.reduce((a, h) => Math.max(a, h.streak), 0);
+
+        return {
+            days, todayIso, dailyMs, focusMs, prevFocusMs, perHabit, checkins, possible,
+            perfectDays, bestIdx: dailyMs[bestIdx] > 0 ? bestIdx : -1, topStreak,
+            hasActivity: focusMs > 0 || checkins > 0
+        };
+    };
+
+    const recapRangeLabel = (days) => {
+        const fmt = (iso) => new Date(`${iso}T12:00:00`).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        return `${fmt(days[0])} – ${fmt(days[6])}`.toLowerCase();
+    };
+
+    const WeekRecapModal = ({ recap, onClose }) => {
+        const [copied, setCopied] = useState(false);
+        const maxMs = Math.max(...recap.dailyMs, 1);
+        const delta = recap.focusMs - recap.prevFocusMs;
+        const shareText = [
+            `my week on nous (${recapRangeLabel(recap.days)})`,
+            `${formatFocus(recap.focusMs)} focused`,
+            recap.possible > 0 ? `${recap.checkins}/${recap.possible} check-ins` : null,
+            recap.perfectDays > 0 ? `${recap.perfectDays} perfect day${recap.perfectDays === 1 ? '' : 's'}` : null,
+            recap.topStreak > 0 ? `🔥 ${recap.topStreak} day streak` : null
+        ].filter(Boolean).join(' · ');
+
+        const share = async () => {
+            try {
+                if (navigator.share) {
+                    await navigator.share({ text: shareText });
+                    return;
+                }
+                await navigator.clipboard.writeText(shareText);
+                setCopied(true);
+                setTimeout(() => setCopied(false), 2000);
+            } catch (e) { /* user cancelled share */ }
+        };
+
+        return React.createElement("div", {
+            className: "fixed inset-0 flex items-center justify-center bg-black/50 backdrop-blur-sm",
+            style: { zIndex: 10000, padding: '20px' },
+            onClick: onClose
+        },
+            React.createElement("div", {
+                className: "nous-recap",
+                onClick: e => e.stopPropagation(),
+                role: "dialog",
+                "aria-label": "Weekly recap"
+            },
+                // Header
+                React.createElement("div", { className: "nous-recap-head" },
+                    React.createElement("div", null,
+                        React.createElement("div", { className: "nous-recap-title" }, "your week"),
+                        React.createElement("div", { className: "nous-recap-sub" }, recapRangeLabel(recap.days))
+                    ),
+                    React.createElement("button", { className: "nous-icon-btn", onClick: onClose, title: "Close", "aria-label": "Close" },
+                        React.createElement(SysIcon, { name: "x", size: 18 }))
+                ),
+
+                // Hero number
+                React.createElement("div", { className: "nous-recap-hero" },
+                    React.createElement("div", { className: "nous-recap-hero-num" }, formatFocus(recap.focusMs)),
+                    React.createElement("div", { className: "nous-recap-hero-label" },
+                        "focused",
+                        (recap.prevFocusMs > 0 || recap.focusMs > 0) && React.createElement("span", {
+                            className: `nous-pill ${delta >= 0 ? 'is-met' : ''}`,
+                            style: { marginLeft: '8px' }
+                        }, `${delta >= 0 ? '↑' : '↓'} ${formatFocus(Math.abs(delta))} vs last week`)
+                    )
+                ),
+
+                // Daily focus columns
+                React.createElement("div", { className: "nous-recap-chart", role: "img", "aria-label": `Daily focus: ${recap.days.map((d, i) => `${new Date(`${d}T12:00:00`).toLocaleDateString('en-US', { weekday: 'short' })} ${formatFocus(recap.dailyMs[i])}`).join(', ')}` },
+                    recap.days.map((d, i) => {
+                        const ms = recap.dailyMs[i];
+                        const isFuture = d > recap.todayIso;
+                        const pct = ms > 0 ? Math.max(6, Math.round((ms / maxMs) * 100)) : 0;
+                        const dayName = new Date(`${d}T12:00:00`).toLocaleDateString('en-US', { weekday: 'short' }).toLowerCase();
+                        return React.createElement("div", { key: d, className: "nous-recap-col", title: `${dayName} · ${formatFocus(ms)}` },
+                            React.createElement("div", { className: "nous-recap-bar-area" },
+                                i === recap.bestIdx && React.createElement("div", { className: "nous-recap-bar-label", style: { bottom: `calc(${pct}% + 4px)` } }, formatFocus(ms)),
+                                ms > 0
+                                    ? React.createElement("div", { className: "nous-recap-bar", style: { height: `${pct}%` } })
+                                    : React.createElement("div", { className: `nous-recap-bar-empty ${isFuture ? 'is-future' : ''}` })
+                            ),
+                            React.createElement("div", { className: `nous-recap-day ${d === recap.todayIso ? 'is-today' : ''}` }, dayName.charAt(0))
+                        );
+                    })
+                ),
+
+                // Stat tiles
+                React.createElement("div", { className: "nous-recap-stats" },
+                    [
+                        { label: 'check-ins', value: recap.possible > 0 ? `${recap.checkins}/${recap.possible}` : '—' },
+                        { label: 'perfect days', value: String(recap.perfectDays) },
+                        { label: 'best streak', value: recap.topStreak > 0 ? `${recap.topStreak}d` : '—' }
+                    ].map(t => React.createElement("div", { key: t.label, className: "nous-recap-stat" },
+                        React.createElement("div", { className: "nous-recap-stat-value" }, t.value),
+                        React.createElement("div", { className: "nous-recap-stat-label" }, t.label)
+                    ))
+                ),
+
+                // Per-habit rows
+                recap.perHabit.length > 0 && React.createElement("div", { className: "nous-recap-habits" },
+                    recap.perHabit.map(h => React.createElement("div", { key: h.id, className: "nous-recap-habit" },
+                        React.createElement("div", { className: `nous-glyph ${h.doneCount > 0 ? '' : ''}`, style: { width: '30px', height: '30px', borderRadius: '9px' } },
+                            React.createElement(Icon, { name: h.icon || 'study', size: 15 })),
+                        React.createElement("div", { className: "nous-recap-habit-name" }, h.title),
+                        React.createElement("div", { className: "nous-recap-dots", "aria-label": `${h.doneCount} of 7 days` },
+                            h.doneDays.map((done, i) => React.createElement("span", { key: i, className: `nous-recap-dot ${done ? 'is-done' : ''}` }))
+                        ),
+                        React.createElement("div", { className: "nous-recap-habit-count" }, `${h.doneCount}/7`)
+                    ))
+                ),
+
+                // Actions
+                React.createElement("div", { className: "nous-recap-actions" },
+                    React.createElement("button", { className: "nous-btn-secondary", onClick: share }, copied ? "copied ✓" : "share"),
+                    React.createElement("button", { className: "nous-btn-primary", onClick: onClose }, "done")
+                )
+            )
+        );
+    };
+
+    const StarterPack = ({ onAdd, onScratch }) => {
+        const [selected, setSelected] = useState(STARTER_DEFAULT_KEYS);
+        const [isAdding, setIsAdding] = useState(false);
+        const toggle = (key) => setSelected(prev => prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key]);
+
+        return React.createElement("div", { className: "nous-starter" },
+            React.createElement("div", { className: "nous-starter-title" }, "start with a few habits"),
+            React.createElement("div", { className: "nous-starter-sub" }, "we picked three to get you going. tap to change, you can edit them anytime."),
+            React.createElement("div", { className: "nous-starter-grid" },
+                STARTER_HABITS.map(h => {
+                    const isOn = selected.includes(h.key);
+                    return React.createElement("button", {
+                        key: h.key,
+                        type: "button",
+                        onClick: () => toggle(h.key),
+                        className: `nous-starter-opt ${isOn ? 'is-selected' : ''}`,
+                        "aria-pressed": isOn
+                    },
+                        React.createElement("span", { className: "nous-glyph", style: { width: '34px', height: '34px', borderRadius: '10px' } },
+                            React.createElement(Icon, { name: h.icon, size: 17 })),
+                        React.createElement("span", { className: "nous-starter-opt-text" },
+                            React.createElement("span", { className: "nous-starter-opt-title" }, h.title),
+                            React.createElement("span", { className: "nous-starter-opt-meta" }, h.tracking_type === 'binary' ? '1-tap check-in' : `${h.daily_goal_mins}m a day`)
+                        ),
+                        React.createElement("span", { className: "nous-starter-check" }, isOn && React.createElement(SysIcon, { name: "check", size: 12 }))
+                    );
+                })
+            ),
+            React.createElement("button", {
+                type: "button",
+                className: "nous-btn-primary",
+                style: { width: '100%', marginTop: '20px' },
+                disabled: selected.length === 0 || isAdding,
+                onClick: async () => {
+                    setIsAdding(true);
+                    await onAdd(STARTER_HABITS.filter(h => selected.includes(h.key)));
+                    setIsAdding(false);
+                }
+            }, selected.length === 0 ? "pick at least one" : `add ${selected.length} habit${selected.length === 1 ? '' : 's'}`),
+            React.createElement("button", { type: "button", className: "nous-starter-scratch", onClick: onScratch }, "or start from scratch")
+        );
+    };
+
+    // ============================================
+    // NATIVE BRIDGE (iOS app only): home-screen widget + local reminders
+    // ============================================
+    const NousNative = {
+        isAvailable: () => !!(window.Capacitor && typeof window.Capacitor.isNativePlatform === 'function' &&
+            window.Capacitor.isNativePlatform() && typeof window.Capacitor.nativePromise === 'function'),
+        call: (method, options = {}) => NousNative.isAvailable()
+            ? window.Capacitor.nativePromise('NousNative', method, options)
+            : Promise.resolve(null)
+    };
+
+    const REMINDER_PREFS_KEY = 'nous_reminder_prefs';
+    const NousReminders = {
+        getPrefs: () => {
+            try {
+                return { enabled: false, time: '20:00', ...JSON.parse(localStorage.getItem(REMINDER_PREFS_KEY) || '{}') };
+            } catch (e) {
+                return { enabled: false, time: '20:00' };
+            }
+        },
+        setPrefs: (prefs) => {
+            try { localStorage.setItem(REMINDER_PREFS_KEY, JSON.stringify(prefs)); } catch (e) { /* storage unavailable */ }
+            window.dispatchEvent(new Event('nous-reminders-changed'));
+        }
+    };
+    window.NousNative = NousNative;
+    window.NousReminders = NousReminders;
+
+    // Snapshot of today's progress for the widget, and the next week of reminders
+    const buildNativeSync = (habits, sessions) => {
+        const now = new Date();
+        const todayIso = toLocalDateString(now);
+        const doneToday = habits.filter(h => (h.completionDates || []).includes(todayIso));
+        const focusMs = (sessions || []).reduce((acc, s) => sessionDateStr(s) === todayIso ? acc + (s.duration || 0) : acc, 0);
+        const streak = habits.reduce((a, h) => Math.max(a, calcStreak(h.completionDates)), 0);
+
+        const snapshot = {
+            date: todayIso,
+            done: doneToday.length,
+            total: habits.length,
+            focusMinutes: Math.round(focusMs / 60000),
+            streak,
+            habits: habits.slice(0, 6).map(h => ({
+                title: h.title || 'untitled',
+                icon: resolveIconKey(h.icon),
+                done: (h.completionDates || []).includes(todayIso)
+            }))
+        };
+
+        const prefs = NousReminders.getPrefs();
+        const items = [];
+        if (prefs.enabled && habits.length > 0) {
+            const [hh, mm] = String(prefs.time || '20:00').split(':').map(Number);
+            const nudges = [
+                'a few focused minutes keep the streak alive',
+                'small steps count. check in on your habits',
+                'your habits are waiting for you',
+                'future you will thank you. check in today'
+            ];
+            for (let i = 0; i < 7; i++) {
+                const at = new Date(now.getFullYear(), now.getMonth(), now.getDate() + i, hh || 0, mm || 0, 0);
+                if (at <= now) continue;
+                let body;
+                if (i === 0) {
+                    const left = habits.length - doneToday.length;
+                    if (left === 0) continue; // all done today, no nudge
+                    body = `${left} habit${left === 1 ? '' : 's'} left today`;
+                } else {
+                    body = nudges[(at.getDate() + i) % nudges.length];
+                }
+                if (streak > 0) body += ` · keep your 🔥${streak} going`;
+                items.push({ id: `daily-${toLocalDateString(at)}`, at: at.getTime(), title: 'nous', body });
+            }
+            // Sunday evening weekly recap
+            const daysToSunday = (7 - now.getDay()) % 7;
+            const recapAt = new Date(now.getFullYear(), now.getMonth(), now.getDate() + daysToSunday, 19, 0, 0);
+            if (recapAt <= now) recapAt.setDate(recapAt.getDate() + 7);
+            items.push({ id: `recap-${toLocalDateString(recapAt)}`, at: recapAt.getTime(), title: 'your week in review is ready', body: 'see your focus time, check-ins and streaks' });
+        }
+        return { snapshot, reminders: prefs.enabled ? items : null };
+    };
+
     const HabitsPage = ({ user, db, isWidget = false, onToggleView, appId: propAppId, sharedTimers = [] }) => {
         // console.log("HabitsPage rendered. User:", user, "DB:", db);
         const userId = user?.uid || user?.id || null;
@@ -283,6 +627,10 @@
         const [countdownSeconds, setCountdownSeconds] = useState('0');
         const [showHabitSelector, setShowHabitSelector] = useState(false);
         const [draggedHabit, setDraggedHabit] = useState(null);
+        const [habitsLoaded, setHabitsLoaded] = useState(false);
+        const [recapMonday, setRecapMonday] = useState(null); // Date of the Monday whose recap is open
+        const [recapBannerHidden, setRecapBannerHidden] = useState(false);
+        const [nativeSyncTick, setNativeSyncTick] = useState(0);
 
         // Touch-based reordering state (for PWA)
         const [touchDragHabit, setTouchDragHabit] = useState(null);
@@ -438,6 +786,7 @@
                     return a.id.localeCompare(b.id);
                 });
                 setHabits(habitsData);
+                setHabitsLoaded(true);
 
                 // Sync active timers from Firestore
                 setTimers(prev => {
@@ -525,6 +874,31 @@
 
             return () => { unsub1(); unsub2(); unsub3(); unsub4(); };
         }, [db, userId, appId]);
+
+        // iOS app: keep the widget snapshot and scheduled reminders current
+        useEffect(() => {
+            if (!NousNative.isAvailable()) return;
+            const bump = () => setNativeSyncTick(t => t + 1);
+            const onVisible = () => { if (document.visibilityState === 'visible') bump(); };
+            window.addEventListener('nous-reminders-changed', bump);
+            document.addEventListener('visibilitychange', onVisible);
+            return () => {
+                window.removeEventListener('nous-reminders-changed', bump);
+                document.removeEventListener('visibilitychange', onVisible);
+            };
+        }, []);
+
+        useEffect(() => {
+            if (!habitsLoaded || !NousNative.isAvailable()) return;
+            const t = setTimeout(() => {
+                const { snapshot, reminders } = buildNativeSync(habits, sessions);
+                NousNative.call('setWidgetData', { json: JSON.stringify(snapshot) })
+                    .catch(e => console.warn('[HabitsTab] widget sync failed', e));
+                (reminders ? NousNative.call('scheduleReminders', { items: reminders }) : NousNative.call('cancelReminders'))
+                    .catch(e => console.warn('[HabitsTab] reminder sync failed', e));
+            }, 800);
+            return () => clearTimeout(t);
+        }, [habits, sessions, habitsLoaded, nativeSyncTick]);
 
         // Hydrate timers from OfflineTimerManager on mount
 
@@ -1098,6 +1472,59 @@
             }
         };
 
+        // Create the habits picked in the first-run starter pack
+        const addStarterHabits = async (picks) => {
+            const base = Date.now();
+            const created = picks.map((p, i) => ({
+                id: String(base + i),
+                title: p.title,
+                difficulty: p.difficulty,
+                icon: p.icon,
+                color: '#111827',
+                tracking_type: p.tracking_type,
+                target_duration_sec: 1500,
+                daily_goal_mins: p.daily_goal_mins,
+                milestone_id: null,
+                streak: 0,
+                completionDates: [],
+                order: i
+            }));
+            setHabits(created);
+            setSelectedHabitId(created[0]?.id || null);
+            showNotif(`${created.length} habit${created.length === 1 ? '' : 's'} added`);
+            if (db && userId) {
+                try {
+                    const batch = window.writeBatch(db);
+                    created.forEach(h => batch.set(window.doc(db, `/artifacts/${appId}/users/${userId}/habits/${h.id}`), h));
+                    await batch.commit();
+                } catch (error) {
+                    console.error("Error creating starter habits:", error);
+                }
+            }
+        };
+
+        // Weekly recap: Sunday evening shows this week, Monday shows last week
+        const recapPrompt = (() => {
+            const now = new Date();
+            const dow = now.getDay();
+            if (!(dow === 0 && now.getHours() >= 17) && dow !== 1) return null;
+            const monday = new Date(weekDays[0]);
+            if (weekOffset !== 0) monday.setDate(monday.getDate() - weekOffset * 7);
+            if (dow === 1) monday.setDate(monday.getDate() - 7);
+            monday.setHours(0, 0, 0, 0);
+            const key = `nous_recap_seen_${toLocalDateString(monday)}`;
+            try { if (localStorage.getItem(key)) return null; } catch (e) { /* storage unavailable */ }
+            return { monday, key };
+        })();
+        const dismissRecapPrompt = () => {
+            if (recapPrompt) { try { localStorage.setItem(recapPrompt.key, '1'); } catch (e) { /* storage unavailable */ } }
+            setRecapBannerHidden(true);
+        };
+        const openRecap = (monday) => {
+            setRecapMonday(monday);
+            dismissRecapPrompt();
+        };
+
         const saveHabit = async (e) => {
             e.preventDefault();
             if (!editingHabit || !editingHabit.title.trim()) return;
@@ -1457,13 +1884,7 @@
                     isManual: true,
                     localDate: dateStr
                 });
-                setSessions(prev => [...prev, {
-                    habitId: habitId,
-                    habitName: habit.title,
-                    duration: totalMs,
-                    localDate: dateStr,
-                    isManual: true
-                }]);
+                // The sessions listener picks up the new doc (latency-compensated), so no local append here
                 showNotif(`manual session saved: ${hours > 0 ? hours + 'h ' : ''}${minutes}m`);
                 setShowManualSession(null);
             } catch (error) {
@@ -1483,12 +1904,12 @@
         }, []);
 
         // Adjust sizes based on screen width
-        const checkboxSize = isMobile ? '24px' : '28px';
-        const habitColWidth = isMobile ? '96px' : '210px';
-        const flameColWidth = isMobile ? '28px' : '36px';
+        const checkboxSize = isMobile ? '22px' : '28px';
+        const habitColWidth = isMobile ? '84px' : '210px';
+        const flameColWidth = isMobile ? '24px' : '36px';
 
-        const rowStyle = { display: 'flex', alignItems: 'center', gap: isMobile ? '2px' : '4px' };
-        const dayStyle = { flex: '1', textAlign: 'center', minWidth: isMobile ? '24px' : '28px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' };
+        const rowStyle = { display: 'flex', alignItems: 'center', gap: isMobile ? '1px' : '4px' };
+        const dayStyle = { flex: '1', textAlign: 'center', minWidth: isMobile ? '22px' : '28px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' };
         const habitColStyle = { width: habitColWidth, flexShrink: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' };
 
         return React.createElement("div", { className: "px-4 py-2 max-w-4xl mx-auto", style: { paddingBottom: '80px', position: 'relative' } },
@@ -1518,18 +1939,18 @@
                 );
 
                 return React.createElement("div", {
-                    className: `${isShared ? "bg-purple-50/50 ring-2 ring-purple-400" : "bg-white"} p-6 sm:p-9 rounded-3xl shadow-sm transition-all mb-8 border border-gray-100 dark:border-gray-700/80 dark:bg-gray-800/90 relative`
+                    className: `${isShared ? "bg-purple-50/50 ring-2 ring-purple-400" : "bg-white"} p-5 sm:p-9 rounded-3xl shadow-sm transition-all mb-8 border border-gray-100 dark:border-gray-700/80 dark:bg-gray-800/90 relative`
                 },
                     // Top Bar: Habit identity on left, minimalist actions & mode toggle on right
-                    React.createElement("div", { className: "flex items-center justify-between gap-4 mb-6 pb-4 border-b border-gray-100 dark:border-gray-700/50" },
+                    React.createElement("div", { className: "nous-hero-head flex items-center justify-between gap-4 mb-6 pb-4 border-b border-gray-100 dark:border-gray-700/50" },
                         // Left: Habit selector + Symbol badge + Title + Edit Button
-                        React.createElement("div", { className: "flex items-center gap-4 relative z-30 min-w-0" },
+                        React.createElement("div", { className: "nous-hero-identity flex items-center gap-4 relative z-30 min-w-0" },
                             // Symbol tile
                             React.createElement("div", {
                                 className: "nous-glyph nous-glyph--lg",
                                 onClick: () => setShowHabitSelector(!showHabitSelector),
                                 title: "Switch habit"
-                            }, React.createElement(Icon, { name: h.icon || "study", size: 21, strokeWidth: 1.75 })),
+                            }, React.createElement(Icon, { name: h.icon || "study", size: 22 })),
 
                             // Dropdown & Title
                             React.createElement("div", { className: "relative flex items-center gap-1 min-w-0" },
@@ -1557,10 +1978,10 @@
                                     habits.map(habit => React.createElement("button", {
                                         key: habit.id,
                                         onClick: () => { setSelectedHabitId(habit.id); setShowHabitSelector(false); },
-                                        className: `w-full text-left px-5 py-4 text-base flex items-center gap-3.5 hover:bg-gray-50 dark:hover:bg-gray-700 transition ${habit.id === h.id ? "bg-gray-50 dark:bg-gray-700/50 text-gray-900 dark:text-white font-medium" : "text-gray-700 dark:text-gray-200"}`
+                                        className: `w-full text-left px-5 py-4 text-base flex items-center gap-3.5 hover:bg-gray-50 dark:hover:bg-gray-700 transition ${habit.id === h.id ? "bg-gray-50 dark:bg-gray-700/50 text-gray-900 dark:text-white" : "text-gray-700 dark:text-gray-200"}`
                                     },
                                         React.createElement("div", { className: "nous-glyph", style: { width: "34px", height: "34px", borderRadius: "11px" } },
-                                            React.createElement(Icon, { name: habit.icon || "study", size: 16, strokeWidth: 1.75 })),
+                                            React.createElement(Icon, { name: habit.icon || "study", size: 16 })),
                                         React.createElement("span", { className: "truncate" }, habit.title)
                                     )),
                                     React.createElement("button", {
@@ -1681,15 +2102,25 @@
                                 className: "flex items-center justify-center mt-6 mb-2",
                                 style: { display: "flex", alignItems: "center", justifyContent: "center", gap: "24px" }
                             },
-                                !isRunning ? (
-                                    // Big Beautiful Tactile Play Button
+                                !isRunning ? React.createElement(React.Fragment, null,
+                                    // Big Beautiful Tactile Play Button (resumes when paused)
                                     React.createElement("button", {
                                         onClick: () => startTimer(h.id),
                                         className: "nous-play-btn",
-                                        title: "Start timer"
+                                        title: timer && elapsed > 0 ? "Resume timer" : "Start timer"
                                     },
                                         React.createElement("svg", { width: 28, height: 28, viewBox: "0 0 24 24", fill: "currentColor", className: "ml-1" },
                                             React.createElement("polygon", { points: "6 3 20 12 6 21 6 3" })
+                                        )
+                                    ),
+                                    // Paused: finish & log without resuming first
+                                    timer && elapsed > 0 && React.createElement("button", {
+                                        onClick: () => stopTimer(h.id),
+                                        className: "nous-stop-btn",
+                                        title: "Finish & log session"
+                                    },
+                                        React.createElement("svg", { width: 20, height: 20, viewBox: "0 0 24 24", fill: "currentColor" },
+                                            React.createElement("rect", { x: 5, y: 5, width: 14, height: 14, rx: 2 })
                                         )
                                     )
                                 ) : (
@@ -1746,7 +2177,7 @@
                                                 )
                                             ),
                                             React.createElement("span", {
-                                                className: `font-medium tabular-nums ${isAchieved ? "text-green-600 dark:text-green-400 font-semibold" : "text-gray-900 dark:text-white"}`
+                                                className: `font-medium ${isAchieved ? "text-green-600 dark:text-green-400 font-semibold" : "text-gray-900 dark:text-white"}`
                                             }, isAchieved ? "100% ✓" : `${goalPct}%`)
                                         ),
                                         React.createElement("div", { className: "nous-progress-container" },
@@ -1777,7 +2208,7 @@
                                         style: { fontFamily: '"Satoshi", sans-serif' }
                                     },
                                         React.createElement("span", null, sessionLabel),
-                                        React.createElement("span", { className: "text-gray-900 dark:text-white font-medium tabular-nums" }, `${sessionPct}%`)
+                                        React.createElement("span", { className: "text-gray-900 dark:text-white font-medium" }, `${sessionPct}%`)
                                     ),
                                     React.createElement("div", { className: "nous-progress-container" },
                                         React.createElement("div", { className: "nous-progress-track" },
@@ -1796,16 +2227,40 @@
                 );
             })(),
 
+            // First run: starter habit pack
+            habitsLoaded && habits.length === 0 && React.createElement(StarterPack, {
+                onAdd: addStarterHabits,
+                onScratch: () => setShowAddHabit(true)
+            }),
+
+            // Weekly recap prompt (Sunday evening / Monday, once per week)
+            habits.length > 0 && recapPrompt && !recapBannerHidden && computeWeekRecap(habits, sessions, recapPrompt.monday).hasActivity && React.createElement("div", { className: "nous-recap-banner" },
+                React.createElement("span", { className: "nous-glyph", style: { width: '34px', height: '34px', borderRadius: '10px' } },
+                    React.createElement(Icon, { name: "chart", size: 17 })),
+                React.createElement("div", { className: "nous-recap-banner-text" },
+                    React.createElement("div", { className: "nous-recap-banner-title" }, "your week in review is ready"),
+                    React.createElement("div", { className: "nous-recap-banner-sub" }, "see your focus time, check-ins and streaks")
+                ),
+                React.createElement("button", { className: "nous-btn-primary", style: { padding: '8px 14px' }, onClick: () => openRecap(recapPrompt.monday) }, "view"),
+                React.createElement("button", { className: "nous-icon-btn", onClick: dismissRecapPrompt, title: "Dismiss", "aria-label": "Dismiss" },
+                    React.createElement(SysIcon, { name: "x", size: 16 }))
+            ),
+
             // Week Nav
-            React.createElement("div", { className: "flex items-center justify-between mb-5 px-1" },
+            habits.length > 0 && React.createElement("div", { className: "flex items-center justify-between mb-5 px-1" },
                 React.createElement("button", { onClick: () => setWeekOffset(w => w - 1), className: "nous-icon-btn nous-icon-btn--strong", title: "Previous week" },
                     React.createElement(SysIcon, { name: "left", size: 18 })
                 ),
                 React.createElement("div", { className: "text-center flex items-center gap-3" },
-                    React.createElement("span", { className: "text-base font-medium text-gray-900 dark:text-white tracking-tight" }, monthYear),
+                    React.createElement("span", { className: "text-sm font-medium text-gray-800 dark:text-white" }, monthYear),
                     weekOffset !== 0 && React.createElement("button", {
                         onClick: () => setWeekOffset(0), className: "nous-pill hover:opacity-80 lowercase"
-                    }, "today")
+                    }, "today"),
+                    React.createElement("button", {
+                        onClick: () => openRecap(new Date(weekDays[0].getFullYear(), weekDays[0].getMonth(), weekDays[0].getDate())),
+                        className: "nous-pill hover:opacity-80 lowercase",
+                        title: "Weekly recap"
+                    }, React.createElement(Icon, { name: "chart", size: 12, strokeWidth: 2 }), "recap")
                 ),
                 React.createElement("button", { onClick: () => setWeekOffset(w => w + 1), className: "nous-icon-btn nous-icon-btn--strong", title: "Next week" },
                     React.createElement(SysIcon, { name: "right", size: 18 })
@@ -1813,10 +2268,10 @@
             ),
 
             // Days Header - includes spacer for flame icon alignment
-            React.createElement("div", { style: { ...rowStyle, alignItems: 'flex-end' }, className: "mb-3 px-4" },
+            habits.length > 0 && React.createElement("div", { style: { ...rowStyle, alignItems: 'flex-end', padding: isMobile ? '0 12px' : '0 16px' }, className: "mb-3" },
                 // Spacer for flame icon (responsive)
                 React.createElement("div", { style: { width: flameColWidth, flexShrink: 0 } }),
-                React.createElement("div", { style: { ...habitColStyle, paddingLeft: isMobile ? 0 : '4px', fontSize: '11px', letterSpacing: '0.06em' }, className: "font-medium uppercase text-gray-400" }, "habit"),
+                React.createElement("div", { style: { ...habitColStyle, paddingLeft: isMobile ? 0 : '4px' }, className: "text-sm text-gray-500 dark:text-gray-400" }, "habit"),
                 weekDays.map(d => {
                     const iso = toLocalDateString(d);
                     const isToday = iso === todayStr;
@@ -1855,7 +2310,7 @@
                     }
                 },
                     // Main habit row
-                    React.createElement("div", { style: rowStyle, className: "p-4" },
+                    React.createElement("div", { style: { ...rowStyle, padding: isMobile ? '12px' : '16px' } },
                         // Timer toggle button - changed to Focus button - shows correct icon based on timer mode or binary
                         React.createElement("button", {
                             onClick: () => {
@@ -1863,14 +2318,14 @@
                                 window.scrollTo({ top: 0, behavior: 'smooth' });
                             },
                             className: `nous-icon-btn ${(selectedHabitId || habits[0]?.id) === h.id ? 'is-active' : ''}`,
-                            style: isMobile ? { width: '28px', height: '28px' } : undefined,
+                            style: isMobile ? { width: '24px', height: '24px' } : undefined,
                             title: h.tracking_type === 'binary' ? "Focus on 1-tap habit" : "Focus on this habit"
                         }, h.tracking_type === 'binary' ? React.createElement(SysIcon, { name: "check", size: 16 }) : (h.timerMode === 'timer' ? React.createElement(HourglassIcon, { size: 16 }) : React.createElement(StopwatchIcon, { size: 16 }))),
                         React.createElement("div", { style: { ...habitColStyle, paddingLeft: isMobile ? '2px' : '6px' }, className: "flex items-center gap-3" },
                             // Habit symbol tile (tints green once done today)
                             !isMobile && React.createElement("div", {
                                 className: `nous-glyph ${(h.completionDates || []).includes(todayStr) ? 'is-done' : ''}`
-                            }, React.createElement(Icon, { name: h.icon || 'study', size: 18, strokeWidth: 1.75 })),
+                            }, React.createElement(Icon, { name: h.icon || 'study', size: 20 })),
                             React.createElement("div", { className: "flex-1 min-w-0", style: { overflow: 'hidden' } },
                                 // Habit title with double click to edit
                                 React.createElement("div", {
@@ -1880,7 +2335,7 @@
                                     title: h.title || "Click to focus, double click to edit"
                                 }, h.title || 'untitled'),
                                 // Hide coins/streak on mobile to save space
-                                !isMobile && React.createElement("div", { className: "flex items-center gap-2 text-xs text-gray-400 mt-1 tabular-nums" },
+                                !isMobile && React.createElement("div", { className: "flex items-center gap-2 text-xs text-gray-400 mt-1" },
                                     React.createElement("span", { title: "Coins per completion" }, `${coinVal}c`),
                                     streak > 0 && React.createElement("span", { className: "text-orange-500 inline-flex items-center gap-0.5 font-medium", title: `${streak} day streak` },
                                         React.createElement(Icon, { name: "fire", size: 12, color: "#f97316" }),
@@ -1934,13 +2389,19 @@
 
 
             // Add Habit Button - static inline at end of habits list
-            React.createElement("button", {
+            !(habitsLoaded && habits.length === 0) && React.createElement("button", {
                 onClick: () => setShowAddHabit(true),
                 className: "add-habit-btn w-full mt-4 mb-6 py-3.5 flex items-center justify-center gap-2 rounded-xl border-2 border-dashed border-gray-300 dark:border-gray-600 text-gray-500 dark:text-gray-400 hover:border-gray-300 dark:hover:text-gray-200 transition-all bg-white/50 dark:bg-gray-800/30 hover:bg-white dark:hover:bg-gray-700/60"
             },
                 React.createElement(SysIcon, { name: "plus", size: 20 }),
                 React.createElement("span", { className: "lowercase text-sm font-medium" }, "add habit")
             ),
+
+            // Weekly recap modal
+            recapMonday && React.createElement(WeekRecapModal, {
+                recap: computeWeekRecap(habits, sessions, recapMonday),
+                onClose: () => setRecapMonday(null)
+            }),
 
             // Add Habit Modal (positioned within container)
             showAddHabit && React.createElement("div", {
@@ -2005,7 +2466,7 @@
                                         onClick: () => setNewHabit({ ...newHabit, daily_goal_mins: p.mins }),
                                         className: `py-2 px-1 text-xs rounded-xl border lowercase transition-all font-medium ${
                                             isSel
-                                                ? "bg-gray-900 text-white dark:bg-white dark:text-gray-900 border-transparent shadow-sm"
+                                                ? "nous-chip-selected"
                                                 : "bg-white dark:bg-gray-800 border-gray-100 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-750"
                                         }`
                                     }, p.label);
@@ -2031,21 +2492,20 @@
 
                         // Icon Picker (Curated crisp symbols)
                         React.createElement("div", null,
-                            React.createElement("label", { className: "block text-xs font-semibold text-gray-800 dark:text-white mb-3 uppercase tracking-wider ml-1" }, "symbol"),
+                            React.createElement("label", { className: "flex items-center justify-between text-xs font-semibold text-gray-800 dark:text-white mb-3 uppercase tracking-wider ml-1" },
+                                "symbol",
+                                React.createElement("span", { className: "nous-symbol-label" }, (NOUS_SYMBOLS[resolveIconKey(newHabit.icon)] || {}).label || "")
+                            ),
                             React.createElement("div", {
                                 style: { display: "grid", gridTemplateColumns: "repeat(6, minmax(0, 1fr))", gap: "8px" }
                             },
                                 CURATED_HABIT_ICONS.map(k => React.createElement("button", {
                                     key: k, type: "button",
                                     onClick: () => setNewHabit({ ...newHabit, icon: k }),
-                                    style: { height: "42px" },
-                                    className: `rounded-xl border transition-all flex items-center justify-center ${
-                                        newHabit.icon === k
-                                            ? 'bg-gray-900 text-white dark:bg-white dark:text-gray-900 border-transparent shadow-sm transform scale-105'
-                                            : 'bg-white dark:bg-gray-800 border-gray-100 dark:border-gray-700 text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-750'
-                                    }`,
-                                    title: k
-                                }, React.createElement(Icon, { name: k, size: 18 })))
+                                    className: `nous-symbol-opt ${resolveIconKey(newHabit.icon) === k ? 'is-selected' : ''}`,
+                                    title: NOUS_SYMBOLS[k].label,
+                                    "aria-label": NOUS_SYMBOLS[k].label
+                                }, React.createElement(Icon, { name: k, size: 22 })))
                             )
                         ),
 
@@ -2110,7 +2570,7 @@
                         // Submit Button
                         React.createElement("button", {
                             type: "submit",
-                            className: "w-full py-4 bg-gray-900 dark:bg-blue-600 hover:bg-black dark:hover:bg-blue-700 text-white rounded-2xl lowercase text-base font-medium shadow-xl shadow-gray-200/50 dark:shadow-blue-900/30 transition-all transform active:scale-95 mt-6"
+                            className: "nous-btn-primary nous-btn-lg w-full lowercase mt-6"
                         }, "create habit")
                     )
                 )
@@ -2178,7 +2638,7 @@
                                         onClick: () => setEditingHabit({ ...editingHabit, daily_goal_mins: p.mins }),
                                         className: `py-2 px-1 text-xs rounded-xl border lowercase transition-all font-medium ${
                                             isSel
-                                                ? "bg-gray-900 text-white dark:bg-white dark:text-gray-900 border-transparent shadow-sm"
+                                                ? "nous-chip-selected"
                                                 : "bg-white dark:bg-gray-800 border-gray-100 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-750"
                                         }`
                                     }, p.label);
@@ -2204,21 +2664,20 @@
 
                         // Icon Picker (Curated crisp symbols)
                         React.createElement("div", null,
-                            React.createElement("label", { className: "block text-xs font-semibold text-gray-800 dark:text-white mb-3 uppercase tracking-wider ml-1" }, "symbol"),
+                            React.createElement("label", { className: "flex items-center justify-between text-xs font-semibold text-gray-800 dark:text-white mb-3 uppercase tracking-wider ml-1" },
+                                "symbol",
+                                React.createElement("span", { className: "nous-symbol-label" }, (NOUS_SYMBOLS[resolveIconKey(editingHabit.icon)] || {}).label || "")
+                            ),
                             React.createElement("div", {
                                 style: { display: "grid", gridTemplateColumns: "repeat(6, minmax(0, 1fr))", gap: "8px" }
                             },
                                 CURATED_HABIT_ICONS.map(k => React.createElement("button", {
                                     key: k, type: "button",
                                     onClick: () => setEditingHabit({ ...editingHabit, icon: k }),
-                                    style: { height: "42px" },
-                                    className: `rounded-xl border transition-all flex items-center justify-center ${
-                                        editingHabit.icon === k
-                                            ? 'bg-gray-900 text-white dark:bg-white dark:text-gray-900 border-transparent shadow-sm transform scale-105'
-                                            : 'bg-white dark:bg-gray-800 border-gray-100 dark:border-gray-700 text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-750'
-                                    }`,
-                                    title: k
-                                }, React.createElement(Icon, { name: k, size: 18 })))
+                                    className: `nous-symbol-opt ${resolveIconKey(editingHabit.icon) === k ? 'is-selected' : ''}`,
+                                    title: NOUS_SYMBOLS[k].label,
+                                    "aria-label": NOUS_SYMBOLS[k].label
+                                }, React.createElement(Icon, { name: k, size: 22 })))
                             )
                         ),
 
@@ -2289,7 +2748,7 @@
                             }, "delete habit"),
                             React.createElement("button", {
                                 type: "submit",
-                                className: "flex-[2] py-4 bg-gray-900 dark:bg-blue-600 hover:bg-black dark:hover:bg-blue-700 text-white rounded-2xl lowercase text-base font-medium shadow-xl shadow-gray-200/50 dark:shadow-blue-900/30 transition-all transform active:scale-95"
+                                className: "nous-btn-primary nous-btn-lg flex-[2] lowercase"
                             }, "save changes")
                         )
                     )
