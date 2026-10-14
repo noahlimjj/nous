@@ -1484,10 +1484,10 @@
 
         // Adjust sizes based on screen width
         const checkboxSize = isMobile ? '24px' : '28px';
-        const habitColWidth = isMobile ? '80px' : '140px';
-        const flameColWidth = isMobile ? '24px' : '28px';
+        const habitColWidth = isMobile ? '96px' : '210px';
+        const flameColWidth = isMobile ? '28px' : '36px';
 
-        const rowStyle = { display: 'flex', alignItems: 'center', gap: isMobile ? '1px' : '2px' };
+        const rowStyle = { display: 'flex', alignItems: 'center', gap: isMobile ? '2px' : '4px' };
         const dayStyle = { flex: '1', textAlign: 'center', minWidth: isMobile ? '24px' : '28px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' };
         const habitColStyle = { width: habitColWidth, flexShrink: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' };
 
@@ -1523,31 +1523,31 @@
                     // Top Bar: Habit identity on left, minimalist actions & mode toggle on right
                     React.createElement("div", { className: "flex items-center justify-between gap-4 mb-6 pb-4 border-b border-gray-100 dark:border-gray-700/50" },
                         // Left: Habit selector + Symbol badge + Title + Edit Button
-                        React.createElement("div", { className: "flex items-center gap-3.5 relative z-30" },
-                            // Symbol badge (true circle, comfortable width, sleek monochrome neutral)
+                        React.createElement("div", { className: "flex items-center gap-4 relative z-30 min-w-0" },
+                            // Symbol tile
                             React.createElement("div", {
-                                className: "rounded-full flex items-center justify-center bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200 border border-gray-200/80 dark:border-gray-700 shadow-sm flex-shrink-0 cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-750 transition-colors",
-                                style: { width: "44px", height: "44px", minWidth: "44px", minHeight: "44px", borderRadius: "50%" },
+                                className: "nous-glyph nous-glyph--lg",
                                 onClick: () => setShowHabitSelector(!showHabitSelector),
                                 title: "Switch habit"
-                            }, React.createElement(Icon, { name: h.icon || "study", size: 21 })),
+                            }, React.createElement(Icon, { name: h.icon || "study", size: 21, strokeWidth: 1.75 })),
 
                             // Dropdown & Title
-                            React.createElement("div", { className: "relative flex items-center gap-1.5" },
+                            React.createElement("div", { className: "relative flex items-center gap-1 min-w-0" },
                                 React.createElement("button", {
                                     onClick: () => setShowHabitSelector(!showHabitSelector),
-                                    className: "text-xl sm:text-2xl text-gray-800 dark:text-white flex items-center gap-2 hover:text-blue-600 dark:hover:text-blue-400 py-1 rounded-xl transition font-light",
+                                    className: "text-xl sm:text-2xl text-gray-900 dark:text-white flex items-center gap-2 hover:opacity-80 py-1 rounded-xl transition font-light min-w-0",
                                     title: "Click to switch habit"
                                 },
-                                    React.createElement("span", { className: "tracking-tight" }, h.title),
-                                    React.createElement(SysIcon, { name: "down", size: 18 })
+                                    React.createElement("span", { className: "tracking-tight truncate" }, h.title),
+                                    React.createElement("span", { className: "text-gray-400 flex-shrink-0" }, React.createElement(SysIcon, { name: "down", size: 18 }))
                                 ),
                                 // Edit button (pencil) - passes full object with defaults!
                                 React.createElement("button", {
                                     onClick: () => setEditingHabit({ ...h, difficulty: h.difficulty || "medium", icon: h.icon || "study", color: "#111827", daily_goal_mins: h.daily_goal_mins || 0 }),
-                                    className: "p-1.5 text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-gray-100 dark:hover:bg-gray-750 rounded-lg transition-colors ml-0.5",
+                                    className: "nous-icon-btn",
+                                    style: { width: "36px", height: "36px" },
                                     title: "Edit habit details"
-                                }, React.createElement(SysIcon, { name: "edit", size: 16 })),
+                                }, React.createElement(SysIcon, { name: "edit", size: 18 })),
 
                                 // Dropdown menu
                                 showHabitSelector && React.createElement("div", {
@@ -1557,12 +1557,10 @@
                                     habits.map(habit => React.createElement("button", {
                                         key: habit.id,
                                         onClick: () => { setSelectedHabitId(habit.id); setShowHabitSelector(false); },
-                                        className: `w-full text-left px-5 py-4 text-base flex items-center gap-3.5 hover:bg-gray-50 dark:hover:bg-gray-700 transition ${habit.id === h.id ? "bg-blue-50 dark:bg-blue-900/20 text-blue-600" : "text-gray-700 dark:text-gray-200"}`
+                                        className: `w-full text-left px-5 py-4 text-base flex items-center gap-3.5 hover:bg-gray-50 dark:hover:bg-gray-700 transition ${habit.id === h.id ? "bg-gray-50 dark:bg-gray-700/50 text-gray-900 dark:text-white font-medium" : "text-gray-700 dark:text-gray-200"}`
                                     },
-                                        React.createElement("div", {
-                                            className: "rounded-full flex items-center justify-center bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200 border border-gray-200/60 dark:border-gray-700 flex-shrink-0",
-                                            style: { width: "36px", height: "36px", minWidth: "36px", minHeight: "36px", borderRadius: "50%" }
-                                        }, React.createElement(Icon, { name: habit.icon || "study", size: 16 })),
+                                        React.createElement("div", { className: "nous-glyph", style: { width: "34px", height: "34px", borderRadius: "11px" } },
+                                            React.createElement(Icon, { name: habit.icon || "study", size: 16, strokeWidth: 1.75 })),
                                         React.createElement("span", { className: "truncate" }, habit.title)
                                     )),
                                     React.createElement("button", {
@@ -1671,7 +1669,7 @@
                             // Subtitle helper for countdown target duration
                             h.timerMode === "timer" && !isRunning && React.createElement("button", {
                                 onClick: () => openDurationPicker(h.id),
-                                className: "mt-2 text-xs text-gray-400 dark:text-gray-500 hover:text-blue-500 transition-colors font-light flex items-center gap-1.5"
+                                className: "mt-2 text-xs text-gray-400 dark:text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors font-light flex items-center gap-1.5"
                             },
                                 React.createElement("span", null, `${Math.round((h.targetDuration || 1500000) / 60000)}m target`),
                                 React.createElement("span", { className: "text-gray-300 dark:text-gray-600" }, "•"),
@@ -1741,20 +1739,20 @@
                                             style: { fontFamily: '"Satoshi", sans-serif' }
                                         },
                                             React.createElement("span", { className: "flex items-center gap-1.5" },
-                                                React.createElement(Icon, { name: "target", size: 13, className: isAchieved ? "text-green-500" : "text-blue-500" }),
+                                                React.createElement(Icon, { name: "target", size: 13, className: isAchieved ? "text-green-600" : "text-gray-400" }),
                                                 React.createElement("span", null, isAchieved
                                                     ? `daily goal achieved! ${todayMins}m / ${goalMins}m`
                                                     : `daily goal: ${todayMins}m ${isRunning ? `${todaySecs}s ` : ''}/ ${goalMins}m`
                                                 )
                                             ),
                                             React.createElement("span", {
-                                                className: `font-medium ${isAchieved ? "text-green-600 dark:text-green-400 font-semibold" : "text-blue-600 dark:text-blue-400"}`
+                                                className: `font-medium tabular-nums ${isAchieved ? "text-green-600 dark:text-green-400 font-semibold" : "text-gray-900 dark:text-white"}`
                                             }, isAchieved ? "100% ✓" : `${goalPct}%`)
                                         ),
                                         React.createElement("div", { className: "nous-progress-container" },
                                             React.createElement("div", { className: "nous-progress-track" },
                                                 React.createElement("div", {
-                                                    className: `nous-progress-fill session-stream ${isRunning ? "is-active" : ""}`,
+                                                    className: `nous-progress-fill ${isAchieved ? "is-complete" : ""} ${isRunning ? "is-active" : ""}`,
                                                     style: { width: `${goalPct}%` }
                                                 },
                                                     goalPct > 0 && React.createElement("div", { className: "nous-progress-beacon" })
@@ -1779,12 +1777,12 @@
                                         style: { fontFamily: '"Satoshi", sans-serif' }
                                     },
                                         React.createElement("span", null, sessionLabel),
-                                        React.createElement("span", { className: "text-blue-600 dark:text-blue-400 font-medium" }, `${sessionPct}%`)
+                                        React.createElement("span", { className: "text-gray-900 dark:text-white font-medium tabular-nums" }, `${sessionPct}%`)
                                     ),
                                     React.createElement("div", { className: "nous-progress-container" },
                                         React.createElement("div", { className: "nous-progress-track" },
                                             React.createElement("div", {
-                                                className: `nous-progress-fill session-stream ${isRunning ? "is-active" : ""}`,
+                                                className: `nous-progress-fill ${isRunning ? "is-active" : ""}`,
                                                 style: { width: `${sessionPct}%` }
                                             },
                                                 sessionPct > 0 && React.createElement("div", { className: "nous-progress-beacon" })
@@ -1794,69 +1792,37 @@
                                 );
                             })()
                         )
-                    ),
-
-                    // Footer: Daily Habit Progress Bar (separated and cleanly spaced)
-                    (() => {
-                        const todayStr = toLocalDateString(new Date());
-                        const completedToday = habits.filter(habit =>
-                            (habit.completionDates || []).includes(todayStr)
-                        ).length;
-                        const totalHabits = habits.length;
-                        const percentage = totalHabits > 0
-                            ? Math.round((completedToday / totalHabits) * 100)
-                            : 0;
-
-                        return React.createElement("div", { className: "w-full pt-5 mt-6 border-t border-gray-100 dark:border-gray-700/50" },
-                            React.createElement("div", {
-                                className: "flex justify-between items-center mb-2",
-                                style: { fontFamily: '"Satoshi", sans-serif' }
-                            },
-                                React.createElement("span", { className: "text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-200 tracking-tight" }, "daily habits completion"),
-                                React.createElement("span", { className: "text-blue-600 dark:text-blue-400 font-semibold text-xs sm:text-sm" }, `${completedToday}/${totalHabits} completed • ${percentage}%`)
-                            ),
-                            React.createElement("div", { className: "nous-progress-container" },
-                                React.createElement("div", { className: "nous-progress-track" },
-                                    React.createElement("div", {
-                                        className: `nous-progress-fill ${isRunning ? "is-active" : ""}`,
-                                        style: { width: `${percentage}%` }
-                                    },
-                                        percentage > 0 && React.createElement("div", { className: "nous-progress-beacon" })
-                                    )
-                                )
-                            )
-                        );
-                    })()
+                    )
                 );
             })(),
 
             // Week Nav
-            React.createElement("div", { className: "flex items-center justify-between mb-6 px-1" },
-                React.createElement("button", { onClick: () => setWeekOffset(w => w - 1), className: "p-1 hover:bg-white/50 rounded-lg" },
+            React.createElement("div", { className: "flex items-center justify-between mb-5 px-1" },
+                React.createElement("button", { onClick: () => setWeekOffset(w => w - 1), className: "nous-icon-btn nous-icon-btn--strong", title: "Previous week" },
                     React.createElement(SysIcon, { name: "left", size: 18 })
                 ),
                 React.createElement("div", { className: "text-center flex items-center gap-3" },
-                    React.createElement("span", { className: "text-sm font-medium text-gray-800 dark:text-white" }, monthYear),
+                    React.createElement("span", { className: "text-base font-medium text-gray-900 dark:text-white tracking-tight" }, monthYear),
                     weekOffset !== 0 && React.createElement("button", {
-                        onClick: () => setWeekOffset(0), className: "text-xs text-blue-500 hover:underline lowercase"
+                        onClick: () => setWeekOffset(0), className: "nous-pill hover:opacity-80 lowercase"
                     }, "today")
                 ),
-                React.createElement("button", { onClick: () => setWeekOffset(w => w + 1), className: "p-1 hover:bg-white/50 rounded-lg" },
+                React.createElement("button", { onClick: () => setWeekOffset(w => w + 1), className: "nous-icon-btn nous-icon-btn--strong", title: "Next week" },
                     React.createElement(SysIcon, { name: "right", size: 18 })
                 )
             ),
 
             // Days Header - includes spacer for flame icon alignment
-            React.createElement("div", { style: { ...rowStyle, alignItems: 'center' }, className: "mb-2 px-2" },
+            React.createElement("div", { style: { ...rowStyle, alignItems: 'flex-end' }, className: "mb-3 px-4" },
                 // Spacer for flame icon (responsive)
                 React.createElement("div", { style: { width: flameColWidth, flexShrink: 0 } }),
-                React.createElement("div", { style: habitColStyle, className: "text-sm font-medium text-gray-600 dark:text-gray-300" }, "habit"),
+                React.createElement("div", { style: { ...habitColStyle, paddingLeft: isMobile ? 0 : '4px', fontSize: '11px', letterSpacing: '0.06em' }, className: "font-medium uppercase text-gray-400" }, "habit"),
                 weekDays.map(d => {
                     const iso = toLocalDateString(d);
                     const isToday = iso === todayStr;
-                    return React.createElement("div", { key: iso, style: dayStyle, className: isToday ? 'text-blue-600 font-bold' : 'text-gray-500' },
-                        React.createElement("div", { className: "text-[10px] lowercase" }, d.toLocaleDateString('en-US', { weekday: 'narrow' })),
-                        React.createElement("div", { className: "text-sm" }, d.getDate())
+                    return React.createElement("div", { key: iso, style: dayStyle, className: `nous-day-head ${isToday ? 'is-today' : ''}` },
+                        React.createElement("div", { className: "nous-day-letter" }, d.toLocaleDateString('en-US', { weekday: 'narrow' })),
+                        React.createElement("div", { className: "nous-day-num" }, d.getDate())
                     );
                 })
             ),
@@ -1896,47 +1862,40 @@
                                 setSelectedHabitId(h.id);
                                 window.scrollTo({ top: 0, behavior: 'smooth' });
                             },
-                            className: `p-1.5 rounded-lg transition ${selectedHabitId === h.id ? 'bg-blue-100 text-blue-600' : 'text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'}`,
+                            className: `nous-icon-btn ${(selectedHabitId || habits[0]?.id) === h.id ? 'is-active' : ''}`,
+                            style: isMobile ? { width: '28px', height: '28px' } : undefined,
                             title: h.tracking_type === 'binary' ? "Focus on 1-tap habit" : "Focus on this habit"
                         }, h.tracking_type === 'binary' ? React.createElement(SysIcon, { name: "check", size: 16 }) : (h.timerMode === 'timer' ? React.createElement(HourglassIcon, { size: 16 }) : React.createElement(StopwatchIcon, { size: 16 }))),
-                        React.createElement("div", { style: habitColStyle, className: "flex items-center gap-3" },
-                            // Monochrome habit symbol badge (true circle, comfortable size)
+                        React.createElement("div", { style: { ...habitColStyle, paddingLeft: isMobile ? '2px' : '6px' }, className: "flex items-center gap-3" },
+                            // Habit symbol tile (tints green once done today)
                             !isMobile && React.createElement("div", {
-                                className: "rounded-full flex items-center justify-center bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200 border border-gray-200/60 dark:border-gray-700 flex-shrink-0",
-                                style: { width: "36px", height: "36px", minWidth: "36px", minHeight: "36px", borderRadius: "50%" }
-                            }, React.createElement(Icon, { name: h.icon || 'study', size: 16 })),
+                                className: `nous-glyph ${(h.completionDates || []).includes(todayStr) ? 'is-done' : ''}`
+                            }, React.createElement(Icon, { name: h.icon || 'study', size: 18, strokeWidth: 1.75 })),
                             React.createElement("div", { className: "flex-1 min-w-0", style: { overflow: 'hidden' } },
                                 // Habit title with double click to edit
                                 React.createElement("div", {
-                                    className: `${isMobile ? 'text-xs' : 'text-sm'} font-medium text-gray-800 dark:text-white lowercase leading-tight cursor-pointer select-none hover:text-blue-600 transition-colors flex items-center gap-1.5`,
-                                    style: { wordBreak: 'break-word', whiteSpace: 'normal' },
+                                    className: `${isMobile ? 'text-xs' : 'text-sm'} font-medium text-gray-900 dark:text-white lowercase leading-tight cursor-pointer select-none hover:opacity-80 transition-opacity truncate`,
                                     onClick: () => setSelectedHabitId(h.id),
                                     onDoubleClick: () => setEditingHabit({ ...h, difficulty: h.difficulty || 'medium', icon: h.icon || 'study', color: '#111827', daily_goal_mins: h.daily_goal_mins || 0 }),
-                                    title: "Click to focus, double click to edit"
-                                },
-                                    React.createElement("span", { className: "truncate" }, h.title || 'untitled'),
-                                    h.tracking_type === 'binary' && React.createElement("span", {
-                                        className: "text-[10px] px-1.5 py-0.2 rounded-full bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400 font-light lowercase flex-shrink-0",
-                                        title: "1-tap completion habit"
-                                    }, "1-tap")
-                                ),
-                                // Hide coins/streak/edit on mobile to save space
-                                !isMobile && React.createElement("div", { className: "flex items-center gap-1.5 text-xs text-gray-400 mt-0.5" },
-                                    React.createElement("span", null, `${coinVal}c`),
-                                    streak > 0 && React.createElement("span", { className: "text-orange-500 inline-flex items-center gap-0.5 font-medium" },
+                                    title: h.title || "Click to focus, double click to edit"
+                                }, h.title || 'untitled'),
+                                // Hide coins/streak on mobile to save space
+                                !isMobile && React.createElement("div", { className: "flex items-center gap-2 text-xs text-gray-400 mt-1 tabular-nums" },
+                                    React.createElement("span", { title: "Coins per completion" }, `${coinVal}c`),
+                                    streak > 0 && React.createElement("span", { className: "text-orange-500 inline-flex items-center gap-0.5 font-medium", title: `${streak} day streak` },
                                         React.createElement(Icon, { name: "fire", size: 12, color: "#f97316" }),
                                         streak
                                     ),
+                                    h.tracking_type === 'binary' && React.createElement("span", {
+                                        className: "nous-pill",
+                                        title: "1-tap completion habit"
+                                    }, "1-tap"),
                                     // Daily goal badge if set
                                     h.daily_goal_mins > 0 && (() => {
                                         const loggedMins = Math.floor(getTodayLoggedMs(h.id) / 60000);
                                         const isMet = loggedMins >= h.daily_goal_mins;
                                         return React.createElement("span", {
-                                            className: `text-[10px] px-1.5 py-0.2 rounded-full font-light ${
-                                                isMet
-                                                    ? "bg-green-50 text-green-600 dark:bg-green-900/30 dark:text-green-400 font-medium"
-                                                    : "bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400"
-                                            }`,
+                                            className: `nous-pill ${isMet ? 'is-met' : ''}`,
                                             title: `Daily goal: ${loggedMins}/${h.daily_goal_mins}m logged today`
                                         }, isMet ? `goal ✓` : `${loggedMins}/${h.daily_goal_mins}m`);
                                     })(),
@@ -1944,14 +1903,16 @@
                                         const linkedM = milestones.find(m => m.id === h.milestone_id);
                                         return linkedM ? React.createElement("span", {
                                             title: `Linked to ${linkedM.name}`,
-                                            className: "ml-0.5 inline-flex items-center text-blue-600 dark:text-blue-400"
-                                        }, React.createElement(Icon, { name: linkedM.emoji || 'target', size: 12, color: "#2563eb" })) : null;
-                                    })(),
-                                    React.createElement("button", { onClick: () => setEditingHabit({ ...h, difficulty: h.difficulty || 'medium', icon: h.icon || 'study', color: '#111827', daily_goal_mins: h.daily_goal_mins || 0 }), className: "ml-1 p-1 text-gray-400 hover:text-blue-500" },
-                                        React.createElement(SysIcon, { name: "edit", size: 14 })
-                                    )
+                                            className: "inline-flex items-center text-gray-500 dark:text-gray-400"
+                                        }, React.createElement(Icon, { name: linkedM.emoji || 'target', size: 12 })) : null;
+                                    })()
                                 )
-                            )
+                            ),
+                            !isMobile && React.createElement("button", {
+                                onClick: () => setEditingHabit({ ...h, difficulty: h.difficulty || 'medium', icon: h.icon || 'study', color: '#111827', daily_goal_mins: h.daily_goal_mins || 0 }),
+                                className: "nous-icon-btn",
+                                title: "Edit habit"
+                            }, React.createElement(SysIcon, { name: "edit", size: 16 }))
                         ),
                         weekDays.map(d => {
                             const iso = toLocalDateString(d);
@@ -1975,7 +1936,7 @@
             // Add Habit Button - static inline at end of habits list
             React.createElement("button", {
                 onClick: () => setShowAddHabit(true),
-                className: "add-habit-btn w-full mt-4 mb-6 py-3.5 flex items-center justify-center gap-2 rounded-xl border-2 border-dashed border-gray-300 dark:border-gray-600 text-gray-500 dark:text-gray-400 hover:border-blue-400 hover:text-blue-500 dark:hover:border-blue-400 dark:hover:text-blue-400 transition-all bg-white/50 dark:bg-gray-800/30 hover:bg-blue-50/50 dark:hover:bg-blue-900/20"
+                className: "add-habit-btn w-full mt-4 mb-6 py-3.5 flex items-center justify-center gap-2 rounded-xl border-2 border-dashed border-gray-300 dark:border-gray-600 text-gray-500 dark:text-gray-400 hover:border-gray-300 dark:hover:text-gray-200 transition-all bg-white/50 dark:bg-gray-800/30 hover:bg-white dark:hover:bg-gray-700/60"
             },
                 React.createElement(SysIcon, { name: "plus", size: 20 }),
                 React.createElement("span", { className: "lowercase text-sm font-medium" }, "add habit")

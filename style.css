@@ -888,22 +888,22 @@ body.night-mode .stat-card {
     0%, 100% {
         transform: translate(50%, -50%) scale(0.85);
         opacity: 0.85;
-        box-shadow: 0 0 6px rgba(37, 99, 235, 0.7), 0 0 2px #ffffff;
+        box-shadow: 0 0 4px rgba(107, 141, 214, 0.6), 0 0 2px #ffffff;
     }
     50% {
         transform: translate(50%, -50%) scale(1.2);
         opacity: 1;
-        box-shadow: 0 0 12px rgba(37, 99, 235, 1), 0 0 20px rgba(30, 64, 175, 0.6), 0 0 4px #ffffff;
+        box-shadow: 0 0 8px rgba(107, 141, 214, 0.8), 0 0 14px rgba(90, 123, 200, 0.4), 0 0 4px #ffffff;
     }
 }
 
 /* Subtle living stream pulse */
 @keyframes nous-subtle-glow {
     0%, 100% {
-        filter: drop-shadow(0 0 2px rgba(30, 64, 175, 0.25));
+        filter: drop-shadow(0 0 1px rgba(107, 141, 214, 0.2));
     }
     50% {
-        filter: drop-shadow(0 0 6px rgba(37, 99, 235, 0.55));
+        filter: drop-shadow(0 0 4px rgba(107, 141, 214, 0.45));
     }
 }
 
@@ -932,45 +932,36 @@ body.night-mode .nous-progress-track {
     box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.3);
 }
 
-/* Flowing filled bar - Sophisticated Darker Blue Stream */
+/* Flowing filled bar - soft periwinkle stream (app primary #6B8DD6) */
 .nous-progress-fill {
     position: relative;
     height: 100%;
     border-radius: 9999px;
     background: linear-gradient(
         90deg,
-        #1e3a8a 0%,
-        #1e40af 20%,
-        #2563eb 45%,
-        #3b82f6 65%,
-        #1d4ed8 85%,
-        #1e3a8a 100%
+        #5a7bc8 0%,
+        #6b8dd6 25%,
+        #94aee6 50%,
+        #6b8dd6 75%,
+        #5a7bc8 100%
     );
     background-size: 200% 100%;
-    animation: nous-flow-stream 4s linear infinite, nous-subtle-glow 3s ease-in-out infinite;
+    animation: nous-flow-stream 5s linear infinite, nous-subtle-glow 3s ease-in-out infinite;
     transition: width 0.6s cubic-bezier(0.34, 1.3, 0.64, 1);
     will-change: background-position, width;
 }
 
 /* Slightly faster and more radiant when timer is running */
 .nous-progress-fill.is-active {
-    animation: nous-flow-stream 2.2s linear infinite, nous-subtle-glow 2s ease-in-out infinite;
-    box-shadow: 0 0 12px rgba(37, 99, 235, 0.45);
+    animation: nous-flow-stream 2.4s linear infinite, nous-subtle-glow 2s ease-in-out infinite;
+    box-shadow: 0 0 10px rgba(107, 141, 214, 0.4);
 }
 
-/* Deep midnight navy stream variant for countdown sessions */
-.nous-progress-fill.session-stream {
-    background: linear-gradient(
-        90deg,
-        #0f172a 0%,
-        #1e293b 22%,
-        #1e40af 48%,
-        #2563eb 68%,
-        #1d4ed8 88%,
-        #0f172a 100%
-    );
+/* Goal reached: settle into the app's success green */
+.nous-progress-fill.is-complete {
+    background: linear-gradient(90deg, #059669 0%, #10b981 50%, #059669 100%);
     background-size: 200% 100%;
-    box-shadow: 0 0 10px rgba(30, 64, 175, 0.35);
+    box-shadow: 0 0 10px rgba(16, 185, 129, 0.3);
 }
 
 /* Sheen sweep overlay */
@@ -1011,23 +1002,30 @@ body.night-mode .nous-progress-track {
     width: 64px;
     height: 64px;
     border-radius: 9999px;
-    background: linear-gradient(135deg, #1e3a8a 0%, #1e40af 40%, #2563eb 100%);
+    background: linear-gradient(160deg, #84a2e2 0%, #5a7bc8 100%);
     color: #ffffff;
     display: inline-flex;
     align-items: center;
     justify-content: center;
     border: none;
     cursor: pointer;
-    box-shadow: 0 4px 16px rgba(30, 64, 175, 0.35);
+    box-shadow: 0 8px 20px -6px rgba(90, 123, 200, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.25);
     transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 .nous-play-btn:hover {
-    background: linear-gradient(135deg, #172554 0%, #1e3a8a 40%, #1d4ed8 100%);
-    box-shadow: 0 6px 20px rgba(30, 64, 175, 0.45);
+    background: linear-gradient(160deg, #7695db 0%, #4e6fbd 100%);
+    box-shadow: 0 10px 24px -6px rgba(90, 123, 200, 0.65), inset 0 1px 0 rgba(255, 255, 255, 0.25);
     transform: translateY(-1px) scale(1.02);
 }
 .nous-play-btn:active {
     transform: scale(0.95);
+}
+body.night-mode .nous-play-btn,
+body.night-mode .nous-play-btn:hover {
+    background: linear-gradient(160deg, #84a2e2 0%, #5a7bc8 100%) !important;
+    border: none !important;
+    color: #ffffff;
+    box-shadow: 0 8px 20px -6px rgba(0, 0, 0, 0.6);
 }
 
 .nous-pause-btn {
@@ -1074,4 +1072,160 @@ body.night-mode .nous-progress-track {
 }
 .nous-stop-btn:active {
     transform: scale(0.95);
+}
+
+/* ============================================
+   HABIT GLYPHS & ICON BUTTONS
+   ============================================ */
+
+/* Soft-squircle symbol tile with a subtle top highlight */
+.nous-glyph {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 38px;
+    height: 38px;
+    border-radius: 12px;
+    background: linear-gradient(180deg, #ffffff 0%, #f1f5f9 100%);
+    color: #1e293b;
+    border: 1px solid rgba(15, 23, 42, 0.08);
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05), 0 4px 10px -4px rgba(15, 23, 42, 0.12), inset 0 1px 0 #ffffff;
+    transition: background 0.25s ease, color 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
+}
+.nous-glyph--lg {
+    width: 46px;
+    height: 46px;
+    border-radius: 14px;
+    cursor: pointer;
+}
+.nous-glyph--lg:hover {
+    border-color: rgba(15, 23, 42, 0.16);
+}
+.nous-glyph.is-done {
+    background: linear-gradient(180deg, #f0fdf4 0%, #dcfce7 100%);
+    color: #047857;
+    border-color: rgba(16, 185, 129, 0.25);
+    box-shadow: 0 1px 2px rgba(16, 185, 129, 0.08), 0 4px 10px -4px rgba(16, 185, 129, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.8);
+}
+body.night-mode .nous-glyph {
+    background: linear-gradient(180deg, #334155 0%, #1e293b 100%);
+    color: #e2e8f0;
+    border-color: rgba(255, 255, 255, 0.06);
+    box-shadow: 0 4px 10px -4px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+body.night-mode .nous-glyph.is-done {
+    background: linear-gradient(180deg, rgba(16, 185, 129, 0.25) 0%, rgba(16, 185, 129, 0.12) 100%);
+    color: #6ee7b7;
+    border-color: rgba(16, 185, 129, 0.3);
+}
+
+/* Comfortable icon-only button (32px hit area) */
+.nous-icon-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 32px;
+    height: 32px;
+    border-radius: 10px;
+    color: #94a3b8;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    transition: background 0.15s ease, color 0.15s ease;
+}
+.nous-icon-btn:hover {
+    background: #f1f5f9;
+    color: #0f172a;
+}
+.nous-icon-btn.is-active {
+    background: #eef2fb;
+    color: #5a7bc8;
+    box-shadow: inset 0 0 0 1px rgba(107, 141, 214, 0.25);
+}
+/* Override the global night-mode button chrome for flat icon buttons */
+body.night-mode .nous-icon-btn {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none;
+    backdrop-filter: none;
+    color: #94a3b8;
+}
+body.night-mode .nous-icon-btn:hover {
+    background: rgba(255, 255, 255, 0.08) !important;
+    color: #f8fafc;
+    transform: none;
+    box-shadow: none;
+}
+body.night-mode .nous-icon-btn.is-active {
+    background: rgba(107, 141, 214, 0.2) !important;
+    color: #a9bdea;
+}
+
+/* Small neutral meta pill (goal progress, 1-tap) */
+.nous-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    flex-shrink: 0;
+    padding: 1px 7px;
+    border-radius: 9999px;
+    font-size: 11px;
+    line-height: 16px;
+    font-weight: 500;
+    background: #f1f5f9;
+    color: #475569;
+}
+.nous-pill.is-met {
+    background: #ecfdf5;
+    color: #047857;
+}
+body.night-mode .nous-pill {
+    background: rgba(255, 255, 255, 0.08);
+    color: #cbd5e1;
+}
+body.night-mode .nous-pill.is-met {
+    background: rgba(16, 185, 129, 0.15);
+    color: #6ee7b7;
+}
+
+/* Week header day labels */
+.nous-day-head {
+    color: #94a3b8;
+    line-height: 1.2;
+}
+.nous-day-head .nous-day-letter {
+    font-size: 11px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+}
+.nous-day-head .nous-day-num {
+    font-size: 15px;
+    margin-top: 2px;
+    color: #64748b;
+}
+.nous-day-head.is-today .nous-day-letter,
+.nous-day-head.is-today .nous-day-num {
+    color: #5a7bc8;
+    font-weight: 700;
+}
+body.night-mode .nous-day-head.is-today .nous-day-letter,
+body.night-mode .nous-day-head.is-today .nous-day-num {
+    color: #a9bdea;
+}
+
+
+.add-habit-btn:hover {
+    color: #0f172a;
+}
+body.night-mode .add-habit-btn:hover {
+    color: #f8fafc;
+}
+.nous-icon-btn--strong {
+    color: #334155;
+}
+body.night-mode .nous-icon-btn--strong {
+    color: #cbd5e1;
 }
