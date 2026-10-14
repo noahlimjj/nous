@@ -2,84 +2,126 @@
     console.log("HabitsTab script starting execution...");
     const { useState, useEffect } = React;
 
-    // Notion-style Emoji Icons + SVG fallbacks
-    const ICONS = {
-        // Wellness & Mindfulness
-        yoga: "🧘",
-        meditation: "🧠",
-        grounding: "🦶",
-        breathing: "🌬️",
-        journal: "✍️",
-        gratitude: "🙏",
-        nature: "🌳",
+    // Bespoke vector symbols crafted for Nous minimalist aesthetic
+    const NOUS_SYMBOLS = {
+        // Study & Knowledge Work
+        study: { label: "study", path: "M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" },
+        reading: { label: "read", path: "M4 19.5A2.5 2.5 0 0 1 6.5 17H20 M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z M8 7h8 M8 11h6" },
+        coding: { label: "code", path: "M16 18l6-6-6-6 M8 6l-6 6 6 6" },
+        writing: { label: "write", path: "M12 19l7-7 3 3-7 7-5 1 2-4z M18 13l-1.5-1.5" },
+        bolt: { label: "energy", path: "M13 2L3 14h9l-1 8 10-12h-9l1-8z" },
+        target: { label: "target", path: "M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20zm0-4a6 6 0 1 0 0-12 6 6 0 0 0 0 12zm0-4a2 2 0 1 0 0-4 2 2 0 0 0 0 4z" },
+        wake: { label: "wake", path: "M12 3v2m0 14v2m9-9h-2M5 12H3m15.36-6.36l-1.41 1.41M7.05 16.95l-1.41 1.41m12.72 0l-1.41-1.41M7.05 7.05L5.64 5.64M16 12a4 4 0 1 1-8 0 4 4 0 0 1 8 0z" },
+        sleep: { label: "sleep", path: "M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" },
+        water: { label: "water", path: "M12 2.7l5.7 5.7a8 8 0 1 1-11.4 0z" },
+        coffee: { label: "coffee", path: "M18 8h1a4 4 0 0 1 0 8h-1 M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z M6 1v3 M10 1v3 M14 1v3" },
+        gym: { label: "gym", path: "M6 5v14 M18 5v14 M2 9v6 M22 9v6 M6 12h12 M4 9h2v6H4z M18 9h2v6h-2z" },
+        leaf: { label: "nature", path: "M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.5 19 2c1 2 2 4.2 2 8 0 5.5-4.8 10-10 10z M2 21l9-9" },
+        fire: { label: "streak", path: "M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.4-.5-2-1-3-1.1-2.1-.2-4 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.1.4-2.3 1-3a2.5 2.5 0 0 0 2.5 2.5z" },
+        star: { label: "star", path: "M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" },
+        bulb: { label: "idea", path: "M9 18h6m-5 3h4M12 2a7 7 0 0 0-7 7c0 2.5 1.5 4.5 3 6h8c1.5-1.5 3-3.5 3-6a7 7 0 0 0-7-7z" },
+        chart: { label: "chart", path: "M18 20V10M12 20V4M6 20v-6" },
+        heart: { label: "heart", path: "M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" },
+        music: { label: "music", path: "M9 18V5l12-2v13M9 9l12-2M6 21a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM18 19a3 3 0 1 0 0-6 3 3 0 0 0 0 6z" },
 
-        // Sports & Physical
-        bjj: "🥋",
-        gym: "💪",
-        running: "🏃",
-        walking: "🚶",
-        swim: "🏊", // Corrected from Mf to 🏊
-
-        // Health
-        sleep: "😴",
-        water: "💧",
-        eating: "🥗",
-        nophone: "📵",
-
-        // Study & Work
-        study: "📚",
-        reading: "📖",
-        deepwork: "⚡",
-        coding: "💻",
-        writing: "📝",
-
-        // General
-        fire: "🔥",
-        star: "⭐",
-        heart: "❤️",
-        leaf: "🍃",
-        coffee: "☕",
-        music: "🎵"
+        // System & Milestone icons (for full compatibility with Milestones tab)
+        trophy: { label: "trophy", path: "M8 21h8m-4-4v4M5 4h14a2 2 0 0 1 2 2v2a5 5 0 0 1-5 5h-4a5 5 0 0 1-5-5V6a2 2 0 0 1 2-2zM3 6h2v3a3 3 0 0 1-3-3zm18 0h-2v3a3 3 0 0 0 3-3z" },
+        calendar: { label: "calendar", path: "M19 4H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2zM16 2v4M8 2v4M3 10h18" },
+        edit: { label: "edit", path: "M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7 M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" }
     };
 
-    // Fallback SVG paths for legacy support or if we want hybrid
-    const SVG_PATHS = {
-        reading: "M4 19.5A2.5 2.5 0 0 1 6.5 17H20 M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z M8 7h8 M8 11h6 M8 15h4",
-        jamming: "M9 18V5l12-2v13 M9 9l12-2 M6 21a3 3 0 1 0 0-6 3 3 0 0 0 0 6z M18 19a3 3 0 1 0 0-6 3 3 0 0 0 0 6z M9 13l12-2 M6 18h.01",
-        sleep: "M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z M15 9l1.5 1 M13 13l1 1.5 M17 15l.5 1",
-        water: "M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z M8 14c0 2 1.79 4 4 4s4-2 4-4 M10 11l1.5 1.5 M12.5 9l1.5 1.5",
-        eating: "M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2 M7 2v9 M21 15c0 1.1-.9 2-2 2h-4a2 2 0 0 1-2-2V8h8v7z M17 2v6 M21 2v6 M13 2v6 M3 14h8v6H5a2 2 0 0 1-2-2v-4z M13 17h8",
-        journal: "M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z M14 2v6h6 M16 13H8 M16 17H8 M16 9H8 M8 5h2",
-        gratitude: "M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z M9 10l2 2 4-4",
-        coffee: "M17 8h1a4 4 0 0 1 0 8h-1 M3 8h14v9a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4V8z M6 1v3 M10 1v3 M14 1v3 M7 12h6",
-        study: "M22 10v6 M2 10l10-5 10 5-10 5z M6 12v5c0 2 3 3 6 3s6-1 6-3v-5 M18 12v8 M18 20l2 2m-4 0l2-2",
-        nature: "M12 22v-8 M16 7c0 4-4 5-4 8 M8 7c0 4 4 5 4 8 M12 7a4 4 0 0 0-4-4 M12 7a4 4 0 0 1 4-4 M12 2v5 M9 14c1.5 0 2.5.5 3 1.5.5-1 1.5-1.5 3-1.5",
-        nophone: "M16 2H8a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2z M12 18h.01 M4 4l16 16 M10 6h4 M9 11h6",
-        // General purpose icons (these were in the old ICONS, now moved to SVG_PATHS if they are SVGs)
-        heart: "M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z M12 8v6 M9 11h6",
-        star: "M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z M12 6v5 M10 9h4",
-        flame: "M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.07-2.14-.22-4.05 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.15.43-2.29 1-3a2.5 2.5 0 0 0 2.5 2.5z M12 18v-4 M10 15h4",
-        leaf: "M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.77 10-10 10Z M2 21l9-9 M14 9c-1 1-2 3-2 6 M11 10c2 0 4 1 5 3",
-        gym: "M6.5 6.5L17.5 17.5 M6.5 17.5L17.5 6.5 M2 12h4 M18 12h4 M12 2v4 M12 18v4 M4.93 4.93l2.83 2.83 M16.24 16.24l2.83 2.83 M4.93 19.07l2.83-2.83 M16.24 7.76l2.83-2.83",
-        brain: "M12 2a4 4 0 0 0-4 4c0 1.5.5 2.5 1.5 3.5L8 12c-1.5 0-3 1.5-3 3s1.5 3 3 3l1.5 2.5c0 1 1 1.5 2.5 1.5s2.5-.5 2.5-1.5L16 18c1.5 0 3-1.5 3-3s-1.5-3-3-3l-1.5-2.5c1-.9 1.5-2 1.5-3.5a4 4 0 0 0-4-4z M12 9v3 M10 15h4"
+    // Curated high-aesthetic habit icons for selection in Add/Edit habit modals
+    const CURATED_HABIT_ICONS = [
+        'study', 'reading', 'coding', 'writing',
+        'bolt', 'target', 'wake', 'sleep',
+        'water', 'coffee', 'gym', 'leaf',
+        'fire', 'star', 'bulb', 'chart',
+        'heart', 'music'
+    ];
+
+    // Emoji to custom vector symbol lookup
+    const EMOJI_TO_SYMBOL = {
+        '😴': 'sleep', '💤': 'sleep', '⏰': 'wake', '🌅': 'wake', '☀️': 'wake',
+        '📖': 'reading', '📚': 'study', '🥋': 'gym', '🤸': 'gym', '🏋️': 'gym',
+        '💪': 'gym', '🏃': 'gym', '🚶': 'gym', '🏊': 'gym', '🧘': 'leaf',
+        '🧠': 'target', '👁️': 'target', '🍃': 'leaf', '🌿': 'leaf', '🌱': 'leaf',
+        '🌳': 'leaf', '💧': 'water', '☕': 'coffee', '💻': 'coding', '📝': 'writing',
+        '✍️': 'writing', '🙏': 'heart', '🔥': 'fire', '⭐': 'star', '❤️': 'heart',
+        '🎵': 'music', '🥗': 'leaf', '🍎': 'leaf', '📵': 'target', '⚡': 'bolt',
+        '🎯': 'target', '🏆': 'target', '💼': 'study', '🎓': 'study',
+        '🔬': 'study', '💡': 'bulb', '🏅': 'star', '🩺': 'heart',
+        '🧪': 'study', '📅': 'chart', '📊': 'chart', '🔗': 'target', '✏️': 'writing'
     };
 
-    const COLORS = ['#FF6B6B', '#FF9F43', '#FECA57', '#26DE81', '#17C0EB', '#4B7BEC', '#A55EEA', '#FD79A8', '#000000', '#FFFFFF'];
+    const resolveIconKey = (rawName, fallback = 'study') => {
+        if (!rawName) return fallback;
+        if (NOUS_SYMBOLS[rawName]) return rawName;
+        if (EMOJI_TO_SYMBOL[rawName]) return EMOJI_TO_SYMBOL[rawName];
 
-    const Icon = ({ name, size = 20 }) => {
-        const iconDef = ICONS[name] || SVG_PATHS[name] || ICONS.leaf;
-        // Check if it's an emoji (simple check: length <= 4 chars or non-ascii)
-        const isEmoji = typeof iconDef === 'string' && !iconDef.startsWith('M');
+        const str = String(rawName).toLowerCase().trim();
+        if (NOUS_SYMBOLS[str]) return str;
+        if (EMOJI_TO_SYMBOL[str]) return EMOJI_TO_SYMBOL[str];
 
-        if (isEmoji) {
-            return React.createElement("span", { style: { fontSize: size + 'px', lineHeight: 1 } }, iconDef);
-        }
+        // Keyword resolution to curated clean geometric symbols
+        if (str.includes('sleep') || str.includes('bed') || str.includes('night')) return 'sleep';
+        if (str.includes('wake') || str.includes('morning') || str.includes('sun')) return 'wake';
+        if (str.includes('read') || str.includes('book')) return 'reading';
+        if (str.includes('study') || str.includes('exam')) return 'study';
+        if (str.includes('gym') || str.includes('lift') || str.includes('workout') || str.includes('fit') || str.includes('run') || str.includes('walk') || str.includes('swim') || str.includes('bjj') || str.includes('martial') || str.includes('sport')) return 'gym';
+        if (str.includes('meditat') || str.includes('mind') || str.includes('zen') || str.includes('yoga') || str.includes('breathe') || str.includes('eye') || str.includes('focus')) return 'target';
+        if (str.includes('water') || str.includes('hydrat')) return 'water';
+        if (str.includes('eat') || str.includes('food') || str.includes('diet') || str.includes('leaf') || str.includes('nature') || str.includes('green')) return 'leaf';
+        if (str.includes('coffee') || str.includes('tea')) return 'coffee';
+        if (str.includes('code') || str.includes('dev') || str.includes('program') || str.includes('tech')) return 'coding';
+        if (str.includes('write') || str.includes('journal') || str.includes('log') || str.includes('note')) return 'writing';
+        if (str.includes('target') || str.includes('goal')) return 'target';
+        if (str.includes('bolt') || str.includes('deep') || str.includes('energy') || str.includes('power')) return 'bolt';
+        if (str.includes('fire') || str.includes('streak')) return 'fire';
+        if (str.includes('star')) return 'star';
+        if (str.includes('music') || str.includes('audio') || str.includes('song')) return 'music';
+        if (str.includes('heart') || str.includes('love') || str.includes('health')) return 'heart';
+        if (str.includes('idea') || str.includes('bulb') || str.includes('think')) return 'bulb';
+        if (str.includes('chart') || str.includes('stat') || str.includes('track')) return 'chart';
+
+        return fallback;
+    };
+
+    // Preset habit colors (kept for internal consistency and safety)
+    const COLORS = [
+        '#FF6B6B', '#FF9F43', '#FECA57', '#26DE81', '#17C0EB',
+        '#4B7BEC', '#A55EEA', '#FD79A8', '#000000', '#FFFFFF'
+    ];
+
+    // Selectable symbols for Add / Edit habit modals
+    const ICONS = CURATED_HABIT_ICONS.reduce((acc, k) => {
+        acc[k] = k;
+        return acc;
+    }, {});
+
+    // Pure vector SVG Icon component
+    const Icon = ({ name, size = 20, className = '', color = 'currentColor', strokeWidth = 1.6, style = {} }) => {
+        const key = resolveIconKey(name);
+        const item = NOUS_SYMBOLS[key] || NOUS_SYMBOLS.leaf;
 
         return React.createElement("svg", {
-            width: size, height: size, viewBox: "0 0 24 24", fill: "none",
-            stroke: "currentColor", strokeWidth: "1.5", strokeLinecap: "round", strokeLinejoin: "round"
-        }, React.createElement("path", { d: iconDef }));
+            width: size,
+            height: size,
+            viewBox: "0 0 24 24",
+            fill: "none",
+            stroke: color,
+            strokeWidth: strokeWidth,
+            strokeLinecap: "round",
+            strokeLinejoin: "round",
+            className: className,
+            style: { flexShrink: 0, display: 'inline-block', verticalAlign: 'middle', ...style }
+        }, React.createElement("path", { d: item.path }));
     };
+
+    // Expose for Milestones and other tabs
+    window.NOUS_SYMBOLS = NOUS_SYMBOLS;
+    window.EMOJI_TO_SYMBOL = EMOJI_TO_SYMBOL;
+    window.resolveNousSymbol = resolveIconKey;
+    window.NousIcon = Icon;
 
     // Stopwatch icon component (same as index.js timer section)
     const StopwatchIcon = ({ size = 16 }) => React.createElement('svg', {
@@ -118,6 +160,7 @@
     const SysIcon = ({ name, size = 20 }) => {
         const paths = {
             check: "M20 6L9 17l-5-5",
+            circle: "M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z",
             plus: "M12 4v16m8-8H4",
             trash: "M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16",
             x: "M6 18L18 6M6 6l12 12",
@@ -129,7 +172,7 @@
         };
         return React.createElement("svg", {
             width: size, height: size, viewBox: "0 0 24 24", fill: "none",
-            stroke: "currentColor", strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round"
+            stroke: "currentColor", strokeWidth: name === 'check' ? "2.6" : "2", strokeLinecap: "round", strokeLinejoin: "round"
         }, React.createElement("path", { d: paths[name] || "" }));
     };
 
@@ -217,15 +260,17 @@
         // Use prop, or global, or default
         const appId = propAppId || (typeof __app_id !== 'undefined' ? __app_id : 'study-tracker-app');
         const [habits, setHabits] = useState([]);
+        const [sessions, setSessions] = useState([]);
         const [wallet, setWallet] = useState({ coins: 0 });
         const [showAddHabit, setShowAddHabit] = useState(false);
         const [editingHabit, setEditingHabit] = useState(null);
         const [weekOffset, setWeekOffset] = useState(0);
         const [notification, setNotification] = useState(null);
-        const [newHabit, setNewHabit] = useState({ title: "", difficulty: "medium", icon: "leaf", color: "#FFFFFF" });
+        const [newHabit, setNewHabit] = useState({ title: "", difficulty: "medium", icon: "study", color: "#111827", tracking_type: "timed", daily_goal_mins: 0, milestone_id: null });
         const [timers, setTimers] = useState({});
         const [expandedHabit, setExpandedHabit] = useState(null);
         const [selectedHabitId, setSelectedHabitId] = useState(null);
+        const [milestones, setMilestones] = useState([]);
         // Manual session state
         const [showManualSession, setShowManualSession] = useState(null); // habitId for which to show modal
         const [manualHours, setManualHours] = useState('0');
@@ -461,7 +506,24 @@
                 if (doc.exists()) setWallet(doc.data());
                 else window.setDoc(window.doc(db, `/artifacts/${appId}/users/${userId}/gamification/wallet`), { coins: 0 });
             });
-            return () => { unsub1(); unsub2(); };
+
+            let unsub3 = () => {};
+            try {
+                unsub3 = window.onSnapshot(window.collection(db, `/artifacts/${appId}/users/${userId}/milestones`), snap => {
+                    const mList = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+                    setMilestones(mList);
+                }, err => console.warn('[HabitsTab] milestones listener', err));
+            } catch (e) {}
+
+            let unsub4 = () => {};
+            try {
+                unsub4 = window.onSnapshot(window.collection(db, `/artifacts/${appId}/users/${userId}/sessions`), snap => {
+                    const sList = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+                    setSessions(sList);
+                }, err => console.warn('[HabitsTab] sessions listener', err));
+            } catch (e) {}
+
+            return () => { unsub1(); unsub2(); unsub3(); unsub4(); };
         }, [db, userId, appId]);
 
         // Hydrate timers from OfflineTimerManager on mount
@@ -805,6 +867,14 @@
                 }
             }
 
+            setSessions(prev => [...prev, {
+                habitId,
+                habitName: habit.title,
+                duration: elapsed,
+                localDate: toLocalDateString(new Date()),
+                isManual: false
+            }]);
+
             setTimers(prev => ({ ...prev, [habitId]: null }));
 
             // Broadcast timer stop to other tabs/PWA
@@ -945,6 +1015,31 @@
             return Math.max(0, timer.elapsedTime || 0);
         };
 
+        // Calculates total tracked ms for today (from completed sessions today + active running timer)
+        const getTodayLoggedMs = (habitId) => {
+            const todayStr = toLocalDateString(new Date());
+            const sessionMs = (sessions || []).reduce((acc, s) => {
+                if (s.habitId !== habitId) return acc;
+                let isToday = false;
+                if (s.localDate) {
+                    isToday = s.localDate === todayStr;
+                } else if (s.startTime) {
+                    const dt = s.startTime.toDate ? s.startTime.toDate() : new Date(s.startTime);
+                    isToday = toLocalDateString(dt) === todayStr;
+                } else if (s.endTime) {
+                    const dt = s.endTime.toDate ? s.endTime.toDate() : new Date(s.endTime);
+                    isToday = toLocalDateString(dt) === todayStr;
+                } else if (s.createdAt) {
+                    const dt = s.createdAt.toDate ? s.createdAt.toDate() : new Date(s.createdAt);
+                    isToday = toLocalDateString(dt) === todayStr;
+                }
+                return isToday ? acc + (s.duration || 0) : acc;
+            }, 0);
+
+            const currentElapsed = getElapsedTime(habitId);
+            return sessionMs + currentElapsed;
+        };
+
         const getWeekDays = () => {
             const days = [];
             const today = new Date();
@@ -966,64 +1061,113 @@
 
         const addHabit = async (e) => {
             e.preventDefault();
-            if (!newHabit.title.trim()) return;
+            const habitTitle = newHabit.title.trim();
+            if (!habitTitle) return;
 
-            if (!db || !userId) {
-                console.error("Habit creation failed: DB or UserID missing", { db: !!db, userId: !!userId });
-                showNotif("Error: Database unavailable");
-                return;
-            }
-            try {
-                const id = Date.now().toString();
-                // Assign a high order number to put it at the end
-                const maxOrder = habits.length > 0 ? Math.max(...habits.map(h => h.order || 0)) : 0;
-                await window.setDoc(window.doc(db, `/artifacts/${appId}/users/${userId}/habits/${id}`), {
-                    id, title: newHabit.title.trim(), difficulty: newHabit.difficulty,
-                    icon: newHabit.icon, color: newHabit.color, streak: 0, completionDates: [],
-                    order: maxOrder + 1
-                });
-                setNewHabit({ title: "", difficulty: "medium", icon: "leaf", color: "#FFFFFF" });
-                setShowAddHabit(false);
-                showNotif("habit created!");
-            } catch (error) {
-                console.error("Error creating habit:", error);
-                showNotif("failed to create habit");
+            const id = Date.now().toString();
+            const maxOrder = habits.length > 0 ? Math.max(...habits.map(h => h.order || 0)) : 0;
+            const createdHabit = {
+                id,
+                title: habitTitle,
+                difficulty: newHabit.difficulty || 'medium',
+                icon: newHabit.icon || 'study',
+                color: '#111827',
+                tracking_type: newHabit.tracking_type || 'timed',
+                target_duration_sec: newHabit.target_duration_sec || 1500,
+                daily_goal_mins: Number(newHabit.daily_goal_mins) || 0,
+                milestone_id: newHabit.milestone_id || null,
+                streak: 0,
+                completionDates: [],
+                order: maxOrder + 1
+            };
+
+            // 1. Optimistically update local state immediately so user sees it instantly
+            setHabits(prev => [...prev, createdHabit]);
+            setSelectedHabitId(id);
+            setNewHabit({ title: "", difficulty: "medium", icon: "study", color: "#111827", tracking_type: "timed", daily_goal_mins: 0, milestone_id: null });
+            setShowAddHabit(false);
+            showNotif("habit created!");
+
+            // 2. Persist to Firestore if available
+            if (db && userId) {
+                try {
+                    await window.setDoc(window.doc(db, `/artifacts/${appId}/users/${userId}/habits/${id}`), createdHabit);
+                } catch (error) {
+                    console.error("Error creating habit in db:", error);
+                }
             }
         };
 
         const saveHabit = async (e) => {
             e.preventDefault();
             if (!editingHabit || !editingHabit.title.trim()) return;
-            await window.updateDoc(window.doc(db, `/artifacts/${appId}/users/${userId}/habits/${editingHabit.id}`), {
-                title: editingHabit.title.trim(), icon: editingHabit.icon || 'leaf', color: editingHabit.color || '#26DE81', difficulty: editingHabit.difficulty || 'medium'
-            });
+            const updatedTitle = editingHabit.title.trim();
+            const updatedHabit = {
+                ...editingHabit,
+                title: updatedTitle,
+                icon: editingHabit.icon || 'study',
+                color: '#111827',
+                difficulty: editingHabit.difficulty || 'medium',
+                tracking_type: editingHabit.tracking_type || 'timed',
+                target_duration_sec: editingHabit.target_duration_sec || 1500,
+                daily_goal_mins: Number(editingHabit.daily_goal_mins) || 0,
+                milestone_id: editingHabit.milestone_id || null
+            };
+
+            // 1. Optimistically update local state immediately
+            setHabits(prev => prev.map(h => h.id === editingHabit.id ? updatedHabit : h));
             setEditingHabit(null);
             showNotif("habit updated!");
+
+            // 2. Persist to Firestore if available
+            if (db && userId) {
+                try {
+                    await window.updateDoc(window.doc(db, `/artifacts/${appId}/users/${userId}/habits/${editingHabit.id}`), {
+                        title: updatedHabit.title,
+                        icon: updatedHabit.icon,
+                        color: updatedHabit.color,
+                        difficulty: updatedHabit.difficulty,
+                        tracking_type: updatedHabit.tracking_type,
+                        target_duration_sec: updatedHabit.target_duration_sec,
+                        daily_goal_mins: updatedHabit.daily_goal_mins,
+                        milestone_id: updatedHabit.milestone_id
+                    });
+                } catch (error) {
+                    console.error("Error saving habit in db:", error);
+                }
+            }
         };
 
         const deleteHabit = async (id) => {
             if (!confirm('Delete this habit AND all its history/sessions? This cannot be undone.')) return;
 
-            try {
-                // 1. Delete all sessions for this habit
-                const sessionsRef = window.collection(db, `/artifacts/${appId}/users/${userId}/sessions`);
-                const q = window.query(sessionsRef, window.where('habitId', '==', id));
-                const snapshot = await window.getDocs(q);
+            // 1. Optimistically update local state immediately
+            setHabits(prev => prev.filter(h => h.id !== id));
+            if (selectedHabitId === id) {
+                const remaining = habits.filter(h => h.id !== id);
+                setSelectedHabitId(remaining.length > 0 ? remaining[0].id : null);
+            }
+            showNotif("habit deleted");
 
-                const batch = window.writeBatch(db);
-                snapshot.docs.forEach(doc => {
-                    batch.delete(doc.ref);
-                });
+            // 2. Persist to Firestore if available
+            if (db && userId) {
+                try {
+                    const sessionsRef = window.collection(db, `/artifacts/${appId}/users/${userId}/sessions`);
+                    const q = window.query(sessionsRef, window.where('habitId', '==', id));
+                    const snapshot = await window.getDocs(q);
 
-                // 2. Delete the habit itself
-                const habitRef = window.doc(db, `/artifacts/${appId}/users/${userId}/habits/${id}`);
-                batch.delete(habitRef);
+                    const batch = window.writeBatch(db);
+                    snapshot.docs.forEach(doc => {
+                        batch.delete(doc.ref);
+                    });
 
-                await batch.commit();
-                showNotif("habit & history deleted");
-            } catch (error) {
-                console.error("Error deleting habit:", error);
-                showNotif("error deleting habit");
+                    const habitRef = window.doc(db, `/artifacts/${appId}/users/${userId}/habits/${id}`);
+                    batch.delete(habitRef);
+
+                    await batch.commit();
+                } catch (error) {
+                    console.error("Error deleting habit:", error);
+                }
             }
         };
 
@@ -1035,15 +1179,28 @@
             const newDates = done ? dates.filter(d => d !== dateStr) : [...dates, dateStr];
             const coins = habit.difficulty === 'hard' ? 20 : habit.difficulty === 'medium' ? 10 : 5;
             const newStreak = calcStreak(newDates);
-            await window.updateDoc(window.doc(db, `/artifacts/${appId}/users/${userId}/habits/${habitId}`), {
-                completionDates: newDates, streak: newStreak
-            });
-            await window.updateDoc(window.doc(db, `/artifacts/${appId}/users/${userId}/gamification/wallet`), {
-                coins: Math.max(0, (wallet.coins || 0) + (done ? -coins : coins))
-            });
 
-            // If marking as done (not unchecking), open manual session modal to ask for duration
-            if (!done) {
+            // Optimistically update local state immediately
+            setHabits(prev => prev.map(h => h.id === habitId ? { ...h, completionDates: newDates, streak: newStreak } : h));
+            setWallet(prev => ({ ...prev, coins: Math.max(0, (prev.coins || 0) + (done ? -coins : coins)) }));
+
+            if (db && userId) {
+                try {
+                    await window.updateDoc(window.doc(db, `/artifacts/${appId}/users/${userId}/habits/${habitId}`), {
+                        completionDates: newDates, streak: newStreak
+                    });
+                    await window.setDoc(window.doc(db, `/artifacts/${appId}/users/${userId}/gamification/wallet`), {
+                        coins: Math.max(0, (wallet.coins || 0) + (done ? -coins : coins))
+                    }, { merge: true });
+                } catch (e) {
+                    console.error("Error saving toggleDate:", e);
+                }
+            }
+
+            // If marking as done (not unchecking):
+            // For binary habits, 1-tap completes without opening duration modal!
+            // For timed habits, open manual session modal to ask for duration.
+            if (!done && habit.tracking_type !== 'binary') {
                 openManualSession(habitId, dateStr);
             }
             // No confetti on habit completion - only on reward claims
@@ -1300,6 +1457,13 @@
                     isManual: true,
                     localDate: dateStr
                 });
+                setSessions(prev => [...prev, {
+                    habitId: habitId,
+                    habitName: habit.title,
+                    duration: totalMs,
+                    localDate: dateStr,
+                    isManual: true
+                }]);
                 showNotif(`manual session saved: ${hours > 0 ? hours + 'h ' : ''}${minutes}m`);
                 setShowManualSession(null);
             } catch (error) {
@@ -1353,43 +1517,52 @@
                     t.participantHabits[userId].habitId === h.id
                 );
 
-                return React.createElement("div", { className: `${isShared ? 'bg-purple-50 ring-2 ring-purple-400' : 'bg-white'} p-6 sm:p-8 rounded-2xl shadow-sm flex flex-col sm:flex-row sm:items-center gap-8 transition-all mb-8 border border-gray-100 dark:border-gray-700 dark:bg-gray-800` },
-                    // Habit Icon (using h.color/icon, replaces drag handle)
-                    !isMobile && React.createElement("div", { className: "hidden sm:block p-2 text-gray-400 transition" },
-                        React.createElement("div", {
-                            className: "w-12 h-12 rounded-2xl flex items-center justify-center text-white shadow-md",
-                            style: { backgroundColor: h.color || '#26DE81' }
-                        }, React.createElement(Icon, { name: h.icon || 'leaf', size: 24 }))
-                    ),
+                return React.createElement("div", {
+                    className: `${isShared ? "bg-purple-50/50 ring-2 ring-purple-400" : "bg-white"} p-6 sm:p-9 rounded-3xl shadow-sm transition-all mb-8 border border-gray-100 dark:border-gray-700/80 dark:bg-gray-800/90 relative`
+                },
+                    // Top Bar: Habit identity on left, minimalist actions & mode toggle on right
+                    React.createElement("div", { className: "flex items-center justify-between gap-4 mb-6 pb-4 border-b border-gray-100 dark:border-gray-700/50" },
+                        // Left: Habit selector + Symbol badge + Title + Edit Button
+                        React.createElement("div", { className: "flex items-center gap-3.5 relative z-30" },
+                            // Symbol badge (true circle, comfortable width, sleek monochrome neutral)
+                            React.createElement("div", {
+                                className: "rounded-full flex items-center justify-center bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200 border border-gray-200/80 dark:border-gray-700 shadow-sm flex-shrink-0 cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-750 transition-colors",
+                                style: { width: "44px", height: "44px", minWidth: "44px", minHeight: "44px", borderRadius: "50%" },
+                                onClick: () => setShowHabitSelector(!showHabitSelector),
+                                title: "Switch habit"
+                            }, React.createElement(Icon, { name: h.icon || "study", size: 21 })),
 
-                    // Main Content
-                    React.createElement("div", { className: "flex-grow flex flex-col" },
-                        // Title Row (with Dropdown)
-                        React.createElement("div", { className: "flex items-center gap-3 mb-2" },
-                            // Dropdown Trigger (styled as h3 per snippet)
-                            React.createElement("div", { className: "relative z-30" },
+                            // Dropdown & Title
+                            React.createElement("div", { className: "relative flex items-center gap-1.5" },
                                 React.createElement("button", {
                                     onClick: () => setShowHabitSelector(!showHabitSelector),
-                                    className: "text-2xl text-gray-800 dark:text-white flex items-center gap-2 hover:bg-gray-50 dark:hover:bg-gray-700 px-3 py-1.5 rounded-xl transition",
-                                    style: { fontWeight: 300 }
+                                    className: "text-xl sm:text-2xl text-gray-800 dark:text-white flex items-center gap-2 hover:text-blue-600 dark:hover:text-blue-400 py-1 rounded-xl transition font-light",
+                                    title: "Click to switch habit"
                                 },
-                                    h.title,
-                                    React.createElement(SysIcon, { name: "down", size: 20 })
+                                    React.createElement("span", { className: "tracking-tight" }, h.title),
+                                    React.createElement(SysIcon, { name: "down", size: 18 })
                                 ),
-                                // Dropdown Menu
+                                // Edit button (pencil) - passes full object with defaults!
+                                React.createElement("button", {
+                                    onClick: () => setEditingHabit({ ...h, difficulty: h.difficulty || "medium", icon: h.icon || "study", color: "#111827", daily_goal_mins: h.daily_goal_mins || 0 }),
+                                    className: "p-1.5 text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-gray-100 dark:hover:bg-gray-750 rounded-lg transition-colors ml-0.5",
+                                    title: "Edit habit details"
+                                }, React.createElement(SysIcon, { name: "edit", size: 16 })),
+
+                                // Dropdown menu
                                 showHabitSelector && React.createElement("div", {
                                     className: "absolute top-full left-0 mt-2 w-72 bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-700 overflow-hidden animate-in fade-in slide-in-from-top-2 z-50",
-                                    style: { maxHeight: '300px', overflowY: 'auto' }
+                                    style: { maxHeight: "300px", overflowY: "auto" }
                                 },
                                     habits.map(habit => React.createElement("button", {
                                         key: habit.id,
                                         onClick: () => { setSelectedHabitId(habit.id); setShowHabitSelector(false); },
-                                        className: `w-full text-left px-5 py-4 text-base flex items-center gap-3 hover:bg-gray-50 dark:hover:bg-gray-700 transition ${habit.id === h.id ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600' : 'text-gray-700 dark:text-gray-200'}`
+                                        className: `w-full text-left px-5 py-4 text-base flex items-center gap-3.5 hover:bg-gray-50 dark:hover:bg-gray-700 transition ${habit.id === h.id ? "bg-blue-50 dark:bg-blue-900/20 text-blue-600" : "text-gray-700 dark:text-gray-200"}`
                                     },
                                         React.createElement("div", {
-                                            className: "w-8 h-8 rounded-full flex items-center justify-center text-white text-xs",
-                                            style: { backgroundColor: habit.color || '#26DE81' }
-                                        }, React.createElement(Icon, { name: habit.icon || 'leaf', size: 14 })),
+                                            className: "rounded-full flex items-center justify-center bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200 border border-gray-200/60 dark:border-gray-700 flex-shrink-0",
+                                            style: { width: "36px", height: "36px", minWidth: "36px", minHeight: "36px", borderRadius: "50%" }
+                                        }, React.createElement(Icon, { name: habit.icon || "study", size: 16 })),
                                         React.createElement("span", { className: "truncate" }, habit.title)
                                     )),
                                     React.createElement("button", {
@@ -1401,131 +1574,259 @@
                                     )
                                 ),
                                 showHabitSelector && React.createElement("div", { className: "fixed inset-0 z-20", onClick: () => setShowHabitSelector(false) })
+                            )
+                        ),
+
+                        // Right side: Mode switcher + subtle actions (for timed habits)
+                        h.tracking_type !== "binary" ? React.createElement("div", { className: "flex items-center gap-2" },
+                            // Minimalist segmented pill switcher
+                            React.createElement("div", { className: "flex items-center bg-gray-100 dark:bg-gray-750 p-1 rounded-full text-xs" },
+                                React.createElement("button", {
+                                    onClick: () => h.timerMode === "timer" && toggleTimerMode(h.id),
+                                    className: `px-3 py-1 rounded-full transition-all flex items-center gap-1 font-light ${h.timerMode !== "timer" ? "bg-white dark:bg-gray-800 text-gray-900 dark:text-white shadow-sm font-medium" : "text-gray-500 hover:text-gray-700 dark:text-gray-400"}`
+                                }, React.createElement(StopwatchIcon, { size: 13 }), "stopwatch"),
+                                React.createElement("button", {
+                                    onClick: () => h.timerMode !== "timer" && toggleTimerMode(h.id),
+                                    className: `px-3 py-1 rounded-full transition-all flex items-center gap-1 font-light ${h.timerMode === "timer" ? "bg-white dark:bg-gray-800 text-gray-900 dark:text-white shadow-sm font-medium" : "text-gray-500 hover:text-gray-700 dark:text-gray-400"}`
+                                }, React.createElement(HourglassIcon, { size: 13 }), "countdown")
+                            ),
+                            // Manual Log (+)
+                            React.createElement("button", {
+                                onClick: () => openManualSession(h.id, toLocalDateString(new Date())),
+                                className: "p-2 text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700/60 rounded-full transition-colors",
+                                title: "Log manual session"
+                            }, React.createElement(SysIcon, { name: "plus", size: 16 })),
+                            // Reset button (only when timer exists/elapsed)
+                            (timer || elapsed > 0) && React.createElement("button", {
+                                onClick: () => resetTimer(h.id),
+                                className: "p-2 text-gray-400 hover:text-orange-600 hover:bg-orange-50 dark:hover:bg-orange-950/30 rounded-full transition-colors",
+                                title: "Reset timer to 0"
+                            }, React.createElement("svg", { width: 16, height: 16, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: 2, strokeLinecap: "round", strokeLinejoin: "round" },
+                                React.createElement("path", { d: "M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" }),
+                                React.createElement("path", { d: "M21 3v5h-5" }),
+                                React.createElement("path", { d: "M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" }),
+                                React.createElement("path", { d: "M3 21v-5h5" })
+                            ))
+                        ) : null
+                    ),
+
+                    // Center Hero: Timer or Binary Habit
+                    h.tracking_type === "binary" ? (
+                        (() => {
+                            const todayStr = toLocalDateString(new Date());
+                            const isDoneToday = (h.completionDates || []).includes(todayStr);
+                            return React.createElement("div", {
+                                className: "py-8 flex flex-col items-center justify-center cursor-pointer select-none",
+                                onClick: () => toggleDate(h.id, todayStr)
+                            },
+                                React.createElement("div", {
+                                    className: "rounded-full flex items-center justify-center transition-all duration-300 transform hover:scale-105 active:scale-95",
+                                    style: isDoneToday ? {
+                                        width: "80px", height: "80px", minWidth: "80px", minHeight: "80px",
+                                        borderRadius: "50%",
+                                        backgroundColor: "#10b981",
+                                        color: "#ffffff",
+                                        boxShadow: "0 10px 25px rgba(16, 185, 129, 0.4)",
+                                        display: "flex", alignItems: "center", justifyContent: "center"
+                                    } : {
+                                        width: "80px", height: "80px", minWidth: "80px", minHeight: "80px",
+                                        borderRadius: "50%",
+                                        backgroundColor: "#f3f4f6",
+                                        color: "#9ca3af",
+                                        border: "2px solid #e5e7eb",
+                                        display: "flex", alignItems: "center", justifyContent: "center"
+                                    }
+                                },
+                                    React.createElement(SysIcon, { name: isDoneToday ? "check" : "circle", size: 40 })
+                                ),
+                                React.createElement("div", {
+                                    className: "mt-4 text-base text-gray-700 dark:text-gray-200 font-light lowercase tracking-wide",
+                                    style: { fontFamily: '"Satoshi", sans-serif' }
+                                }, isDoneToday ? "completed today ✓" : "tap to check in today"),
+                                React.createElement("div", { className: "text-xs text-gray-400 font-light mt-1" }, "1-tap habit")
+                            );
+                        })()
+                    ) : (
+                        // Standard Timer Display & Centered Controls
+                        React.createElement("div", { className: "py-4 flex flex-col items-center justify-center text-center" },
+                            // Digits
+                            React.createElement("div", {
+                                className: `timer-display text-7xl sm:text-8xl font-thin tabular-nums tracking-tight ${isShared ? "text-purple-600" : "text-gray-900 dark:text-white"} select-none transition-colors ${h.timerMode === "timer" && !isRunning ? "cursor-pointer hover:opacity-80" : ""}`,
+                                style: { fontFamily: '"Satoshi", sans-serif', fontVariationSettings: '"wght" 200' },
+                                onClick: h.timerMode === "timer" && !isRunning ? () => openDurationPicker(h.id) : undefined,
+                                title: h.timerMode === "timer" && !isRunning ? "Click to customize countdown duration" : undefined
+                            },
+                                (() => {
+                                    const isTimerMode = h.timerMode === "timer";
+                                    const displayTime = isTimerMode ? getRemainingTime(h.id, h) : elapsed;
+                                    const formatted = formatTimerDisplay(displayTime);
+                                    const [mainTime, msTime] = formatted.split(".");
+                                    return [
+                                        React.createElement("span", { key: "time" }, mainTime),
+                                        React.createElement("span", { key: "ms", className: "milliseconds text-3xl sm:text-4xl text-gray-300 dark:text-gray-600 font-thin ml-1" }, `.${msTime}`)
+                                    ];
+                                })()
                             ),
 
-                            // Edit Button
-                            React.createElement("button", {
-                                onClick: () => setEditingHabit(h),
-                                className: "p-2 text-gray-300 hover:text-gray-500 transition",
-                                title: "Rename habit"
-                            }, React.createElement("svg", { width: 20, height: 20, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: 2, strokeLinecap: "round", strokeLinejoin: "round" },
-                                React.createElement("path", { d: "M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z" })
-                            ))
-                        ),
+                            // Subtitle helper for countdown target duration
+                            h.timerMode === "timer" && !isRunning && React.createElement("button", {
+                                onClick: () => openDurationPicker(h.id),
+                                className: "mt-2 text-xs text-gray-400 dark:text-gray-500 hover:text-blue-500 transition-colors font-light flex items-center gap-1.5"
+                            },
+                                React.createElement("span", null, `${Math.round((h.targetDuration || 1500000) / 60000)}m target`),
+                                React.createElement("span", { className: "text-gray-300 dark:text-gray-600" }, "•"),
+                                React.createElement("span", { className: "underline underline-offset-2" }, "click to adjust")
+                            ),
 
-
-
-                        // Timer Display
-                        React.createElement("div", {
-                            className: `timer-display text-7xl sm:text-8xl font-thin tabular-nums tracking-tight ${isShared ? 'text-purple-600' : 'text-gray-900 dark:text-white'} select-none cursor-pointer transition-colors hover:text-gray-700 dark:hover:text-gray-200`,
-                            style: { fontFamily: '"Satoshi", sans-serif', fontVariationSettings: '"wght" 200' },
-                            onClick: h.timerMode === 'timer' && !isRunning ? () => openDurationPicker(h.id) : undefined
-                        },
-                            (() => {
-                                const isTimerMode = h.timerMode === 'timer';
-                                const displayTime = isTimerMode ? getRemainingTime(h.id, h) : elapsed;
-                                const formatted = formatTimerDisplay(displayTime);
-                                const [mainTime, msTime] = formatted.split('.');
-                                return [
-                                    React.createElement("span", { key: "time" }, mainTime),
-                                    React.createElement("span", { key: "ms", className: "milliseconds text-3xl sm:text-4xl text-gray-300 dark:text-gray-600 font-thin ml-1" }, `.${msTime}`)
-                                ];
-                            })()
-                        ),
-
-                        // Progress bar for daily completion (below timer)
-                        React.createElement("div", { className: "mt-4 w-full" },
-                            (() => {
-                                const todayStr = toLocalDateString(new Date());
-                                const completedToday = habits.filter(habit =>
-                                    (habit.completionDates || []).includes(todayStr)
-                                ).length;
-                                const totalHabits = habits.length;
-                                const percentage = totalHabits > 0
-                                    ? Math.round((completedToday / totalHabits) * 100)
-                                    : 0;
-
-                                return React.createElement("div", null,
-                                    // Progress bar
-                                    React.createElement("div", {
-                                        className: "h-2 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden"
+                            // Centered Tactile Primary Action Controls (generous 24px gap between pause & stop buttons)
+                            React.createElement("div", {
+                                className: "flex items-center justify-center mt-6 mb-2",
+                                style: { display: "flex", alignItems: "center", justifyContent: "center", gap: "24px" }
+                            },
+                                !isRunning ? (
+                                    // Big Beautiful Tactile Play Button
+                                    React.createElement("button", {
+                                        onClick: () => startTimer(h.id),
+                                        className: "nous-play-btn",
+                                        title: "Start timer"
                                     },
+                                        React.createElement("svg", { width: 28, height: 28, viewBox: "0 0 24 24", fill: "currentColor", className: "ml-1" },
+                                            React.createElement("polygon", { points: "6 3 20 12 6 21 6 3" })
+                                        )
+                                    )
+                                ) : (
+                                    // Running Controls: Pause & Stop/Save
+                                    React.createElement(React.Fragment, null,
+                                        React.createElement("button", {
+                                            onClick: () => pauseTimer(h.id),
+                                            className: "nous-pause-btn",
+                                            title: "Pause timer"
+                                        },
+                                            React.createElement("svg", { width: 22, height: 22, viewBox: "0 0 24 24", fill: "currentColor" },
+                                                React.createElement("rect", { x: 6, y: 4, width: 4, height: 16, rx: 1 }),
+                                                React.createElement("rect", { x: 14, y: 4, width: 4, height: 16, rx: 1 })
+                                            )
+                                        ),
+                                        React.createElement("button", {
+                                            onClick: () => stopTimer(h.id),
+                                            className: "nous-stop-btn",
+                                            title: "Finish & log session"
+                                        },
+                                            React.createElement("svg", { width: 20, height: 20, viewBox: "0 0 24 24", fill: "currentColor" },
+                                                React.createElement("rect", { x: 5, y: 5, width: 14, height: 14, rx: 2 })
+                                            )
+                                        )
+                                    )
+                                )
+                            ),
+
+                            // Daily Goal / Countdown Progress Bar
+                            (() => {
+                                const hasDailyGoal = h.tracking_type !== "binary" && h.daily_goal_mins && h.daily_goal_mins > 0;
+                                const isCountdown = h.tracking_type !== "binary" && h.timerMode === "timer" && h.targetDuration > 0;
+                                if (!hasDailyGoal && !isCountdown) return null;
+
+                                if (hasDailyGoal) {
+                                    const targetMs = h.daily_goal_mins * 60 * 1000;
+                                    const todayLoggedMs = getTodayLoggedMs(h.id);
+                                    const goalPct = Math.min(100, Math.round((todayLoggedMs / targetMs) * 100));
+                                    const todayMins = Math.floor(todayLoggedMs / 60000);
+                                    const todaySecs = Math.floor((todayLoggedMs % 60000) / 1000);
+                                    const goalMins = h.daily_goal_mins;
+                                    const isAchieved = todayLoggedMs >= targetMs;
+
+                                    return React.createElement("div", { className: "w-full max-w-md mt-6 mx-auto px-2" },
                                         React.createElement("div", {
-                                            className: "h-full bg-gradient-to-r from-green-400 to-green-500 rounded-full transition-all duration-500",
-                                            style: { width: `${percentage}%` }
-                                        })
-                                    ),
-                                    // Label
+                                            className: "flex justify-between items-center text-xs text-gray-500 dark:text-gray-400 mb-1.5 font-light",
+                                            style: { fontFamily: '"Satoshi", sans-serif' }
+                                        },
+                                            React.createElement("span", { className: "flex items-center gap-1.5" },
+                                                React.createElement(Icon, { name: "target", size: 13, className: isAchieved ? "text-green-500" : "text-blue-500" }),
+                                                React.createElement("span", null, isAchieved
+                                                    ? `daily goal achieved! ${todayMins}m / ${goalMins}m`
+                                                    : `daily goal: ${todayMins}m ${isRunning ? `${todaySecs}s ` : ''}/ ${goalMins}m`
+                                                )
+                                            ),
+                                            React.createElement("span", {
+                                                className: `font-medium ${isAchieved ? "text-green-600 dark:text-green-400 font-semibold" : "text-blue-600 dark:text-blue-400"}`
+                                            }, isAchieved ? "100% ✓" : `${goalPct}%`)
+                                        ),
+                                        React.createElement("div", { className: "nous-progress-container" },
+                                            React.createElement("div", { className: "nous-progress-track" },
+                                                React.createElement("div", {
+                                                    className: `nous-progress-fill session-stream ${isRunning ? "is-active" : ""}`,
+                                                    style: { width: `${goalPct}%` }
+                                                },
+                                                    goalPct > 0 && React.createElement("div", { className: "nous-progress-beacon" })
+                                                )
+                                            )
+                                        )
+                                    );
+                                }
+
+                                // Fallback to session countdown bar
+                                const remainingTime = getRemainingTime(h.id, h);
+                                const elapsedSession = Math.max(0, h.targetDuration - remainingTime);
+                                const sessionPct = Math.min(100, Math.round((elapsedSession / h.targetDuration) * 100));
+                                const targetMins = Math.round(h.targetDuration / 60000);
+                                const elapsedMins = Math.floor(elapsedSession / 60000);
+                                const elapsedSecs = Math.floor((elapsedSession % 60000) / 1000);
+                                const sessionLabel = `session goal: ${targetMins}m target • ${elapsedMins}m ${elapsedSecs}s logged`;
+
+                                return React.createElement("div", { className: "w-full max-w-md mt-6 mx-auto px-2" },
                                     React.createElement("div", {
-                                        className: "text-xs text-gray-400 mt-1 text-center"
-                                    }, `${completedToday}/${totalHabits} habits • ${percentage}%`)
+                                        className: "flex justify-between items-center text-xs text-gray-400 dark:text-gray-500 mb-1.5 font-light",
+                                        style: { fontFamily: '"Satoshi", sans-serif' }
+                                    },
+                                        React.createElement("span", null, sessionLabel),
+                                        React.createElement("span", { className: "text-blue-600 dark:text-blue-400 font-medium" }, `${sessionPct}%`)
+                                    ),
+                                    React.createElement("div", { className: "nous-progress-container" },
+                                        React.createElement("div", { className: "nous-progress-track" },
+                                            React.createElement("div", {
+                                                className: `nous-progress-fill session-stream ${isRunning ? "is-active" : ""}`,
+                                                style: { width: `${sessionPct}%` }
+                                            },
+                                                sessionPct > 0 && React.createElement("div", { className: "nous-progress-beacon" })
+                                            )
+                                        )
+                                    )
                                 );
                             })()
                         )
                     ),
 
-                    // Controls
-                    React.createElement("div", { className: "flex items-center gap-1.5 flex-nowrap" },
-                        // Timer Control/Toggle - shows hourglass for timer mode, stopwatch for stopwatch mode
-                        React.createElement("button", {
-                            onClick: () => toggleTimerMode(h.id),
-                            className: `p-2 rounded-full hover:opacity-80 transition ${h.timerMode === 'timer' ? 'bg-blue-100 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400' : 'bg-indigo-50 text-indigo-600 dark:bg-indigo-900/20 dark:text-indigo-400'}`,
-                            title: h.timerMode === 'timer' ? "Countdown mode - Click to switch to stopwatch" : "Stopwatch mode - Click to switch to countdown"
-                        }, h.timerMode === 'timer' ? React.createElement(HourglassIcon, { size: 20 }) : React.createElement(StopwatchIcon, { size: 20 })),
-                        // Start/Pause
-                        isRunning ?
-                            React.createElement("button", {
-                                onClick: () => pauseTimer(h.id),
-                                className: "p-2 bg-yellow-100 text-yellow-600 rounded-full hover:bg-yellow-200 transition"
-                            }, React.createElement("svg", { width: 20, height: 20, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: 2, strokeLinecap: "round", strokeLinejoin: "round" },
-                                React.createElement("rect", { x: 6, y: 4, width: 4, height: 16 }),
-                                React.createElement("rect", { x: 14, y: 4, width: 4, height: 16 })
-                            )) :
-                            React.createElement("button", {
-                                onClick: () => startTimer(h.id),
-                                className: "p-2 bg-green-100 text-green-600 rounded-full hover:bg-green-200 transition"
-                            }, React.createElement("svg", { width: 20, height: 20, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: 2, strokeLinecap: "round", strokeLinejoin: "round" },
-                                React.createElement("polygon", { points: "5 3 19 12 5 21 5 3" })
-                            )),
+                    // Footer: Daily Habit Progress Bar (separated and cleanly spaced)
+                    (() => {
+                        const todayStr = toLocalDateString(new Date());
+                        const completedToday = habits.filter(habit =>
+                            (habit.completionDates || []).includes(todayStr)
+                        ).length;
+                        const totalHabits = habits.length;
+                        const percentage = totalHabits > 0
+                            ? Math.round((completedToday / totalHabits) * 100)
+                            : 0;
 
-                        // Stop
-                        React.createElement("button", {
-                            onClick: () => stopTimer(h.id),
-                            disabled: !timer,
-                            className: "p-2 bg-red-100 text-red-600 rounded-full hover:bg-red-200 transition disabled:opacity-50 disabled:cursor-not-allowed"
-                        }, React.createElement("svg", { width: 20, height: 20, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: 2, strokeLinecap: "round", strokeLinejoin: "round" },
-                            React.createElement("rect", { x: 3, y: 3, width: 18, height: 18, rx: 2 })
-                        )),
-
-                        // Manual Session
-                        React.createElement("button", {
-                            onClick: () => openManualSession(h.id, toLocalDateString(new Date())),
-                            className: "p-2 bg-blue-100 text-blue-600 rounded-full hover:bg-blue-200 transition"
-                        }, React.createElement("svg", { width: 20, height: 20, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: 2, strokeLinecap: "round", strokeLinejoin: "round" },
-                            React.createElement("circle", { cx: 12, cy: 12, r: 10 }),
-                            React.createElement("line", { x1: 12, y1: 8, x2: 12, y2: 16 }),
-                            React.createElement("line", { x1: 8, y1: 12, x2: 16, y2: 12 })
-                        )),
-
-                        // Reset
-                        React.createElement("button", {
-                            onClick: () => resetTimer(h.id),
-                            className: "p-2 bg-orange-100 text-orange-600 rounded-full hover:bg-orange-200 transition disabled:opacity-50 disabled:cursor-not-allowed",
-                            title: "Reset timer to 0"
-                        }, React.createElement("svg", { width: 20, height: 20, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: 2, strokeLinecap: "round", strokeLinejoin: "round" },
-                            React.createElement("path", { d: "M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" }),
-                            React.createElement("path", { d: "M21 3v5h-5" }),
-                            React.createElement("path", { d: "M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" }),
-                            React.createElement("path", { d: "M3 21v-5h5" })
-                        )),
-
-                        // Delete habit
-                        React.createElement("button", {
-                            onClick: () => deleteHabit(h.id),
-                            className: "p-2 bg-red-50 text-red-500 rounded-full hover:bg-red-100 transition",
-                            title: "Delete habit"
-                        }, React.createElement(SysIcon, { name: "trash", size: 20 }))
-                    )
+                        return React.createElement("div", { className: "w-full pt-5 mt-6 border-t border-gray-100 dark:border-gray-700/50" },
+                            React.createElement("div", {
+                                className: "flex justify-between items-center mb-2",
+                                style: { fontFamily: '"Satoshi", sans-serif' }
+                            },
+                                React.createElement("span", { className: "text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-200 tracking-tight" }, "daily habits completion"),
+                                React.createElement("span", { className: "text-blue-600 dark:text-blue-400 font-semibold text-xs sm:text-sm" }, `${completedToday}/${totalHabits} completed • ${percentage}%`)
+                            ),
+                            React.createElement("div", { className: "nous-progress-container" },
+                                React.createElement("div", { className: "nous-progress-track" },
+                                    React.createElement("div", {
+                                        className: `nous-progress-fill ${isRunning ? "is-active" : ""}`,
+                                        style: { width: `${percentage}%` }
+                                    },
+                                        percentage > 0 && React.createElement("div", { className: "nous-progress-beacon" })
+                                    )
+                                )
+                            )
+                        );
+                    })()
                 );
             })(),
 
@@ -1589,35 +1890,64 @@
                 },
                     // Main habit row
                     React.createElement("div", { style: rowStyle, className: "p-4" },
-                        // Timer toggle button - changed to Focus button - shows correct icon based on timer mode
+                        // Timer toggle button - changed to Focus button - shows correct icon based on timer mode or binary
                         React.createElement("button", {
                             onClick: () => {
                                 setSelectedHabitId(h.id);
                                 window.scrollTo({ top: 0, behavior: 'smooth' });
                             },
                             className: `p-1.5 rounded-lg transition ${selectedHabitId === h.id ? 'bg-blue-100 text-blue-600' : 'text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'}`,
-                            title: "Focus on this habit"
-                        }, h.timerMode === 'timer' ? React.createElement(HourglassIcon, { size: 16 }) : React.createElement(StopwatchIcon, { size: 16 })),
-                        React.createElement("div", { style: habitColStyle, className: "flex items-center gap-1" },
-                            // Hide color icon on mobile to save space
+                            title: h.tracking_type === 'binary' ? "Focus on 1-tap habit" : "Focus on this habit"
+                        }, h.tracking_type === 'binary' ? React.createElement(SysIcon, { name: "check", size: 16 }) : (h.timerMode === 'timer' ? React.createElement(HourglassIcon, { size: 16 }) : React.createElement(StopwatchIcon, { size: 16 }))),
+                        React.createElement("div", { style: habitColStyle, className: "flex items-center gap-3" },
+                            // Monochrome habit symbol badge (true circle, comfortable size)
                             !isMobile && React.createElement("div", {
-                                className: "w-8 h-8 rounded-full flex items-center justify-center text-white flex-shrink-0",
-                                style: { backgroundColor: h.color || '#26DE81' }
-                            }, React.createElement(Icon, { name: h.icon || 'leaf', size: 16 })),
+                                className: "rounded-full flex items-center justify-center bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200 border border-gray-200/60 dark:border-gray-700 flex-shrink-0",
+                                style: { width: "36px", height: "36px", minWidth: "36px", minHeight: "36px", borderRadius: "50%" }
+                            }, React.createElement(Icon, { name: h.icon || 'study', size: 16 })),
                             React.createElement("div", { className: "flex-1 min-w-0", style: { overflow: 'hidden' } },
                                 // Habit title with double click to edit
                                 React.createElement("div", {
-                                    className: `${isMobile ? 'text-xs' : 'text-sm'} font-medium text-gray-800 dark:text-white lowercase leading-tight cursor-pointer select-none hover:text-blue-600 transition-colors`,
+                                    className: `${isMobile ? 'text-xs' : 'text-sm'} font-medium text-gray-800 dark:text-white lowercase leading-tight cursor-pointer select-none hover:text-blue-600 transition-colors flex items-center gap-1.5`,
                                     style: { wordBreak: 'break-word', whiteSpace: 'normal' },
                                     onClick: () => setSelectedHabitId(h.id),
-                                    onDoubleClick: () => setEditingHabit({ ...h, difficulty: h.difficulty || 'medium', icon: h.icon || 'leaf', color: h.color || '#26DE81' }),
+                                    onDoubleClick: () => setEditingHabit({ ...h, difficulty: h.difficulty || 'medium', icon: h.icon || 'study', color: '#111827', daily_goal_mins: h.daily_goal_mins || 0 }),
                                     title: "Click to focus, double click to edit"
-                                }, h.title || 'untitled'),
+                                },
+                                    React.createElement("span", { className: "truncate" }, h.title || 'untitled'),
+                                    h.tracking_type === 'binary' && React.createElement("span", {
+                                        className: "text-[10px] px-1.5 py-0.2 rounded-full bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400 font-light lowercase flex-shrink-0",
+                                        title: "1-tap completion habit"
+                                    }, "1-tap")
+                                ),
                                 // Hide coins/streak/edit on mobile to save space
-                                !isMobile && React.createElement("div", { className: "flex items-center gap-1 text-xs text-gray-400 mt-0.5" },
+                                !isMobile && React.createElement("div", { className: "flex items-center gap-1.5 text-xs text-gray-400 mt-0.5" },
                                     React.createElement("span", null, `${coinVal}c`),
-                                    streak > 0 && React.createElement("span", { className: "text-orange-500" }, `🔥${streak}`),
-                                    React.createElement("button", { onClick: () => setEditingHabit({ ...h, difficulty: h.difficulty || 'medium', icon: h.icon || 'leaf', color: h.color || '#26DE81' }), className: "ml-1 p-1 text-gray-400 hover:text-blue-500" },
+                                    streak > 0 && React.createElement("span", { className: "text-orange-500 inline-flex items-center gap-0.5 font-medium" },
+                                        React.createElement(Icon, { name: "fire", size: 12, color: "#f97316" }),
+                                        streak
+                                    ),
+                                    // Daily goal badge if set
+                                    h.daily_goal_mins > 0 && (() => {
+                                        const loggedMins = Math.floor(getTodayLoggedMs(h.id) / 60000);
+                                        const isMet = loggedMins >= h.daily_goal_mins;
+                                        return React.createElement("span", {
+                                            className: `text-[10px] px-1.5 py-0.2 rounded-full font-light ${
+                                                isMet
+                                                    ? "bg-green-50 text-green-600 dark:bg-green-900/30 dark:text-green-400 font-medium"
+                                                    : "bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400"
+                                            }`,
+                                            title: `Daily goal: ${loggedMins}/${h.daily_goal_mins}m logged today`
+                                        }, isMet ? `goal ✓` : `${loggedMins}/${h.daily_goal_mins}m`);
+                                    })(),
+                                    (() => {
+                                        const linkedM = milestones.find(m => m.id === h.milestone_id);
+                                        return linkedM ? React.createElement("span", {
+                                            title: `Linked to ${linkedM.name}`,
+                                            className: "ml-0.5 inline-flex items-center text-blue-600 dark:text-blue-400"
+                                        }, React.createElement(Icon, { name: linkedM.emoji || 'target', size: 12, color: "#2563eb" })) : null;
+                                    })(),
+                                    React.createElement("button", { onClick: () => setEditingHabit({ ...h, difficulty: h.difficulty || 'medium', icon: h.icon || 'study', color: '#111827', daily_goal_mins: h.daily_goal_mins || 0 }), className: "ml-1 p-1 text-gray-400 hover:text-blue-500" },
                                         React.createElement(SysIcon, { name: "edit", size: 14 })
                                     )
                                 )
@@ -1683,36 +2013,78 @@
                             })
                         ),
 
-                        // Color Picker
+                        // Daily Goal (Optional)
                         React.createElement("div", null,
-                            React.createElement("label", { className: "block text-xs font-semibold text-gray-800 dark:text-white mb-3 uppercase tracking-wider ml-1" }, "color"),
-                            React.createElement("div", { className: "flex gap-4 flex-wrap" },
-                                COLORS.map(c => React.createElement("button", {
-                                    key: c, type: "button",
-                                    onClick: () => setNewHabit({ ...newHabit, color: c }),
-                                    style: {
-                                        backgroundColor: c,
-                                        width: '42px',
-                                        height: '42px',
-                                        borderRadius: '12px',
-                                        border: 'none',
-                                        boxShadow: newHabit.color === c ? '0 0 0 2px white, 0 0 0 4px #3b82f6' : 'none',
-                                        transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-                                        transform: newHabit.color === c ? 'scale(1.1)' : 'scale(1)'
-                                    }
-                                }))
+                            React.createElement("div", { className: "flex justify-between items-center mb-2" },
+                                React.createElement("label", { className: "block text-xs font-semibold text-gray-800 dark:text-white uppercase tracking-wider ml-1" }, "daily goal (optional)"),
+                                React.createElement("span", { className: "text-xs text-blue-600 dark:text-blue-400 font-light" },
+                                    newHabit.daily_goal_mins > 0
+                                        ? (newHabit.daily_goal_mins >= 60
+                                            ? `${Math.floor(newHabit.daily_goal_mins / 60)}h ${newHabit.daily_goal_mins % 60 ? (newHabit.daily_goal_mins % 60) + 'm' : ''} / day`
+                                            : `${newHabit.daily_goal_mins}m / day`)
+                                        : "no goal (optional)"
+                                )
+                            ),
+                            React.createElement("div", {
+                                className: "mb-2.5",
+                                style: { display: "grid", gridTemplateColumns: "repeat(6, minmax(0, 1fr))", gap: "8px" }
+                            },
+                                [
+                                    { mins: 0, label: "none" },
+                                    { mins: 15, label: "15m" },
+                                    { mins: 30, label: "30m" },
+                                    { mins: 45, label: "45m" },
+                                    { mins: 60, label: "1h" },
+                                    { mins: 120, label: "2h" }
+                                ].map(p => {
+                                    const isSel = (newHabit.daily_goal_mins || 0) === p.mins;
+                                    return React.createElement("button", {
+                                        key: p.mins,
+                                        type: "button",
+                                        onClick: () => setNewHabit({ ...newHabit, daily_goal_mins: p.mins }),
+                                        className: `py-2 px-1 text-xs rounded-xl border lowercase transition-all font-medium ${
+                                            isSel
+                                                ? "bg-gray-900 text-white dark:bg-white dark:text-gray-900 border-transparent shadow-sm"
+                                                : "bg-white dark:bg-gray-800 border-gray-100 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-750"
+                                        }`
+                                    }, p.label);
+                                })
+                            ),
+                            React.createElement("div", { className: "flex items-center gap-2" },
+                                React.createElement("span", { className: "text-xs text-gray-400 font-light lowercase" }, "or custom:"),
+                                React.createElement("input", {
+                                    type: "number",
+                                    min: "0",
+                                    max: "1440",
+                                    placeholder: "mins (e.g. 90)",
+                                    value: newHabit.daily_goal_mins > 0 ? newHabit.daily_goal_mins : "",
+                                    onChange: e => {
+                                        const v = parseInt(e.target.value, 10);
+                                        setNewHabit({ ...newHabit, daily_goal_mins: isNaN(v) || v < 0 ? 0 : v });
+                                    },
+                                    className: "w-28 px-3 py-1.5 text-xs rounded-lg border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white outline-none focus:border-blue-400"
+                                }),
+                                React.createElement("span", { className: "text-xs text-gray-400 font-light lowercase" }, "mins / day")
                             )
                         ),
 
-                        // Icon Picker
+                        // Icon Picker (Curated crisp symbols)
                         React.createElement("div", null,
-                            React.createElement("label", { className: "block text-xs font-semibold text-gray-800 dark:text-white mb-3 uppercase tracking-wider ml-1" }, "icon"),
-                            React.createElement("div", { className: "flex gap-3 flex-wrap" },
-                                Object.keys(ICONS).map(k => React.createElement("button", {
+                            React.createElement("label", { className: "block text-xs font-semibold text-gray-800 dark:text-white mb-3 uppercase tracking-wider ml-1" }, "symbol"),
+                            React.createElement("div", {
+                                style: { display: "grid", gridTemplateColumns: "repeat(6, minmax(0, 1fr))", gap: "8px" }
+                            },
+                                CURATED_HABIT_ICONS.map(k => React.createElement("button", {
                                     key: k, type: "button",
                                     onClick: () => setNewHabit({ ...newHabit, icon: k }),
-                                    className: `p-3 rounded-xl transition-all ${newHabit.icon === k ? 'bg-blue-500 text-white shadow-md transform scale-110' : 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'}`
-                                }, React.createElement(Icon, { name: k, size: 20 })))
+                                    style: { height: "42px" },
+                                    className: `rounded-xl border transition-all flex items-center justify-center ${
+                                        newHabit.icon === k
+                                            ? 'bg-gray-900 text-white dark:bg-white dark:text-gray-900 border-transparent shadow-sm transform scale-105'
+                                            : 'bg-white dark:bg-gray-800 border-gray-100 dark:border-gray-700 text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-750'
+                                    }`,
+                                    title: k
+                                }, React.createElement(Icon, { name: k, size: 18 })))
                             )
                         ),
 
@@ -1736,6 +2108,41 @@
                                         React.createElement("span", { className: "text-[10px] opacity-70" }, `+${coins} coins`)
                                     );
                                 })
+                            )
+                        ),
+
+                        // Tracking Type Selector
+                        React.createElement("div", null,
+                            React.createElement("label", { className: "block text-xs font-semibold text-gray-800 dark:text-white mb-3 uppercase tracking-wider ml-1" }, "tracking type"),
+                            React.createElement("div", { className: "grid grid-cols-2 gap-3" },
+                                [
+                                    { id: 'timed', label: '⏱️ timed focus', desc: 'track session timer' },
+                                    { id: 'binary', label: '✓ 1-tap check', desc: 'simple daily check-in' }
+                                ].map(t => {
+                                    const isSelected = (newHabit.tracking_type || 'timed') === t.id;
+                                    return React.createElement("button", {
+                                        key: t.id,
+                                        type: "button",
+                                        onClick: () => setNewHabit({ ...newHabit, tracking_type: t.id }),
+                                        className: `py-3 px-3 rounded-xl border lowercase transition-all text-sm font-medium flex flex-col items-center gap-0.5 ${isSelected ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 border-blue-200 dark:border-blue-700 shadow-sm' : 'bg-white dark:bg-gray-800 border-gray-100 dark:border-gray-700 text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-750'}`
+                                    },
+                                        React.createElement("span", null, t.label),
+                                        React.createElement("span", { className: "text-[10px] opacity-70 font-light" }, t.desc)
+                                    );
+                                })
+                            )
+                        ),
+
+                        // Link to Milestone
+                        milestones && milestones.length > 0 && React.createElement("div", null,
+                            React.createElement("label", { className: "block text-xs font-semibold text-gray-800 dark:text-white mb-2 uppercase tracking-wider ml-1" }, "link to milestone"),
+                            React.createElement("select", {
+                                value: newHabit.milestone_id || '',
+                                onChange: e => setNewHabit({ ...newHabit, milestone_id: e.target.value || null }),
+                                className: "w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-100 dark:focus:ring-blue-900 font-light"
+                            },
+                                React.createElement("option", { value: "" }, "none (unlinked)"),
+                                milestones.map(m => React.createElement("option", { key: m.id, value: m.id }, m.name))
                             )
                         ),
 
@@ -1779,36 +2186,78 @@
                             })
                         ),
 
-                        // Color Picker
+                        // Daily Goal (Optional)
                         React.createElement("div", null,
-                            React.createElement("label", { className: "block text-xs font-semibold text-gray-800 dark:text-white mb-3 uppercase tracking-wider ml-1" }, "color"),
-                            React.createElement("div", { className: "flex gap-4 flex-wrap" },
-                                COLORS.map(c => React.createElement("button", {
-                                    key: c, type: "button",
-                                    onClick: () => setEditingHabit({ ...editingHabit, color: c }),
-                                    style: {
-                                        backgroundColor: c,
-                                        width: '42px',
-                                        height: '42px',
-                                        borderRadius: '12px',
-                                        border: 'none',
-                                        boxShadow: editingHabit.color === c ? '0 0 0 2px white, 0 0 0 4px #3b82f6' : 'none',
-                                        transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-                                        transform: editingHabit.color === c ? 'scale(1.1)' : 'scale(1)'
-                                    }
-                                }))
+                            React.createElement("div", { className: "flex justify-between items-center mb-2" },
+                                React.createElement("label", { className: "block text-xs font-semibold text-gray-800 dark:text-white uppercase tracking-wider ml-1" }, "daily goal (optional)"),
+                                React.createElement("span", { className: "text-xs text-blue-600 dark:text-blue-400 font-light" },
+                                    editingHabit.daily_goal_mins > 0
+                                        ? (editingHabit.daily_goal_mins >= 60
+                                            ? `${Math.floor(editingHabit.daily_goal_mins / 60)}h ${editingHabit.daily_goal_mins % 60 ? (editingHabit.daily_goal_mins % 60) + 'm' : ''} / day`
+                                            : `${editingHabit.daily_goal_mins}m / day`)
+                                        : "no goal (optional)"
+                                )
+                            ),
+                            React.createElement("div", {
+                                className: "mb-2.5",
+                                style: { display: "grid", gridTemplateColumns: "repeat(6, minmax(0, 1fr))", gap: "8px" }
+                            },
+                                [
+                                    { mins: 0, label: "none" },
+                                    { mins: 15, label: "15m" },
+                                    { mins: 30, label: "30m" },
+                                    { mins: 45, label: "45m" },
+                                    { mins: 60, label: "1h" },
+                                    { mins: 120, label: "2h" }
+                                ].map(p => {
+                                    const isSel = (editingHabit.daily_goal_mins || 0) === p.mins;
+                                    return React.createElement("button", {
+                                        key: p.mins,
+                                        type: "button",
+                                        onClick: () => setEditingHabit({ ...editingHabit, daily_goal_mins: p.mins }),
+                                        className: `py-2 px-1 text-xs rounded-xl border lowercase transition-all font-medium ${
+                                            isSel
+                                                ? "bg-gray-900 text-white dark:bg-white dark:text-gray-900 border-transparent shadow-sm"
+                                                : "bg-white dark:bg-gray-800 border-gray-100 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-750"
+                                        }`
+                                    }, p.label);
+                                })
+                            ),
+                            React.createElement("div", { className: "flex items-center gap-2" },
+                                React.createElement("span", { className: "text-xs text-gray-400 font-light lowercase" }, "or custom:"),
+                                React.createElement("input", {
+                                    type: "number",
+                                    min: "0",
+                                    max: "1440",
+                                    placeholder: "mins (e.g. 90)",
+                                    value: editingHabit.daily_goal_mins > 0 ? editingHabit.daily_goal_mins : "",
+                                    onChange: e => {
+                                        const v = parseInt(e.target.value, 10);
+                                        setEditingHabit({ ...editingHabit, daily_goal_mins: isNaN(v) || v < 0 ? 0 : v });
+                                    },
+                                    className: "w-28 px-3 py-1.5 text-xs rounded-lg border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white outline-none focus:border-blue-400"
+                                }),
+                                React.createElement("span", { className: "text-xs text-gray-400 font-light lowercase" }, "mins / day")
                             )
                         ),
 
-                        // Icon Picker
+                        // Icon Picker (Curated crisp symbols)
                         React.createElement("div", null,
-                            React.createElement("label", { className: "block text-xs font-semibold text-gray-800 dark:text-white mb-3 uppercase tracking-wider ml-1" }, "icon"),
-                            React.createElement("div", { className: "flex gap-3 flex-wrap" },
-                                Object.keys(ICONS).map(k => React.createElement("button", {
+                            React.createElement("label", { className: "block text-xs font-semibold text-gray-800 dark:text-white mb-3 uppercase tracking-wider ml-1" }, "symbol"),
+                            React.createElement("div", {
+                                style: { display: "grid", gridTemplateColumns: "repeat(6, minmax(0, 1fr))", gap: "8px" }
+                            },
+                                CURATED_HABIT_ICONS.map(k => React.createElement("button", {
                                     key: k, type: "button",
                                     onClick: () => setEditingHabit({ ...editingHabit, icon: k }),
-                                    className: `p-3 rounded-xl transition-all ${editingHabit.icon === k ? 'bg-blue-500 text-white shadow-md transform scale-110' : 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'}`
-                                }, React.createElement(Icon, { name: k, size: 20 })))
+                                    style: { height: "42px" },
+                                    className: `rounded-xl border transition-all flex items-center justify-center ${
+                                        editingHabit.icon === k
+                                            ? 'bg-gray-900 text-white dark:bg-white dark:text-gray-900 border-transparent shadow-sm transform scale-105'
+                                            : 'bg-white dark:bg-gray-800 border-gray-100 dark:border-gray-700 text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-750'
+                                    }`,
+                                    title: k
+                                }, React.createElement(Icon, { name: k, size: 18 })))
                             )
                         ),
 
@@ -1832,6 +2281,41 @@
                                         React.createElement("span", { className: "text-[10px] opacity-70" }, `+${coins} coins`)
                                     );
                                 })
+                            )
+                        ),
+
+                        // Tracking Type Selector
+                        React.createElement("div", null,
+                            React.createElement("label", { className: "block text-xs font-semibold text-gray-800 dark:text-white mb-3 uppercase tracking-wider ml-1" }, "tracking type"),
+                            React.createElement("div", { className: "grid grid-cols-2 gap-3" },
+                                [
+                                    { id: 'timed', label: '⏱️ timed focus', desc: 'track session timer' },
+                                    { id: 'binary', label: '✓ 1-tap check', desc: 'simple daily check-in' }
+                                ].map(t => {
+                                    const isSelected = (editingHabit.tracking_type || 'timed') === t.id;
+                                    return React.createElement("button", {
+                                        key: t.id,
+                                        type: "button",
+                                        onClick: () => setEditingHabit({ ...editingHabit, tracking_type: t.id }),
+                                        className: `py-3 px-3 rounded-xl border lowercase transition-all text-sm font-medium flex flex-col items-center gap-0.5 ${isSelected ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 border-blue-200 dark:border-blue-700 shadow-sm' : 'bg-white dark:bg-gray-800 border-gray-100 dark:border-gray-700 text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-750'}`
+                                    },
+                                        React.createElement("span", null, t.label),
+                                        React.createElement("span", { className: "text-[10px] opacity-70 font-light" }, t.desc)
+                                    );
+                                })
+                            )
+                        ),
+
+                        // Link to Milestone
+                        milestones && milestones.length > 0 && React.createElement("div", null,
+                            React.createElement("label", { className: "block text-xs font-semibold text-gray-800 dark:text-white mb-2 uppercase tracking-wider ml-1" }, "link to milestone"),
+                            React.createElement("select", {
+                                value: editingHabit.milestone_id || '',
+                                onChange: e => setEditingHabit({ ...editingHabit, milestone_id: e.target.value || null }),
+                                className: "w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-100 dark:focus:ring-blue-900 font-light"
+                            },
+                                React.createElement("option", { value: "" }, "none (unlinked)"),
+                                milestones.map(m => React.createElement("option", { key: m.id, value: m.id }, m.name))
                             )
                         ),
 

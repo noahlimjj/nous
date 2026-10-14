@@ -1,0 +1,17 @@
+{
+  "appId": "app.nous.studytracker",
+  "appName": "Nous",
+  "webDir": "www",
+  "server": {
+    "androidScheme": "https",
+    "iosScheme": "https"
+  },
+  "ios": {
+    "backgroundColor": "#f8f9fb",
+    "contentInset": "always",
+    "limitsNavigationsToAppBoundDomains": false
+  },
+  "plugins": {
+    "App": {}
+  }
+}

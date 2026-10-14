@@ -4960,7 +4960,7 @@ Use lowercase text for habit names to match the app's aesthetic, but you may use
                             }
                         },
                             isGeneratingReport && React.createElement(LoaderIcon),
-                            isGeneratingReport ? 'generating...' : '✨ generate weekly report'
+                            isGeneratingReport ? 'generating...' : 'generate weekly report'
                         ),
                         React.createElement('button', {
                             onClick: () => handleGenerateTestReport('monthly'),
@@ -5584,6 +5584,7 @@ const GrowthTree = ({ sessions, db, userId, setNotification }) => {
 // MilestonesWidget - countdown cards for important upcoming dates (exams, deadlines, etc.)
 const MilestonesWidget = ({ db, userId }) => {
     const [milestones, setMilestones] = useState([]);
+    const [habits, setHabits] = useState([]);
     const [showForm, setShowForm] = useState(false);
     const [newName, setNewName] = useState('');
     const [newDate, setNewDate] = useState('');
@@ -5606,7 +5607,7 @@ const MilestonesWidget = ({ db, userId }) => {
         return () => { clearInterval(interval); window.removeEventListener('resize', onResize); };
     }, []);
 
-    // Firestore listener
+    // Firestore listener for milestones and habits
     useEffect(() => {
         if (!db || !userId) return;
         try {
@@ -5622,7 +5623,13 @@ const MilestonesWidget = ({ db, userId }) => {
             }, (err) => {
                 console.error('[Milestones] snapshot error:', err);
             });
-            return () => unsub();
+
+            const hCol = window.collection(db, `/artifacts/${appId}/users/${userId}/habits`);
+            const unsubH = window.onSnapshot(hCol, (snap) => {
+                setHabits(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+            }, (err) => console.warn('[Milestones] habits listener error:', err));
+
+            return () => { unsub(); unsubH(); };
         } catch (e) {
             console.error('[Milestones] setup error:', e);
         }
@@ -5712,7 +5719,17 @@ const MilestonesWidget = ({ db, userId }) => {
         return { border: '#10b981', bg: 'rgba(240,253,244,0.9)', numColor: '#059669', labelColor: '#10b981', chip: '#dcfce7', chipTxt: '#166534' };
     };
 
-    const EMOJIS = ['🎯','📝','📚','🏆','💼','🎓','🔬','💡','⚡','🏅','🩺','🧪','📅','🧠','📊'];
+    const renderMilestoneSymbol = (symbolNameOrEmoji, size = 20, color = 'currentColor', strokeWidth = 1.6) => {
+        if (typeof window.NousIcon === 'function') {
+            return React.createElement(window.NousIcon, { name: symbolNameOrEmoji, size, color, strokeWidth });
+        }
+        return React.createElement('span', null, symbolNameOrEmoji || '🎯');
+    };
+
+    const MILESTONE_SYMBOLS = [
+        'target', 'bolt', 'trophy', 'study', 'reading', 'briefcase',
+        'graduation', 'science', 'bulb', 'calendar', 'chart', 'star', 'fire', 'meditation'
+    ];
     const upcoming = milestones
         .filter(m => getCountdown(m).totalMs >= 0)
         .sort((a, b) => getCountdown(a).totalMs - getCountdown(b).totalMs); // most urgent first
@@ -5723,8 +5740,11 @@ const MilestonesWidget = ({ db, userId }) => {
     return React.createElement('div', { className: 'bg-white rounded-xl soft-shadow p-6' },
         // Header
         React.createElement('div', { className: 'flex items-center justify-between mb-5' },
-            React.createElement('div', { className: 'flex items-center gap-2' },
-                React.createElement('span', { style: { fontSize: '1.25rem' } }, '🎯'),
+            React.createElement('div', {
+                className: 'flex items-center',
+                style: { display: 'flex', alignItems: 'center', gap: '14px' }
+            },
+                renderMilestoneSymbol('target', 22, '#f43f5e', 2),
                 React.createElement('h2', { className: 'text-2xl text-calm-800', style: { fontWeight: 300 } }, 'milestones')
             ),
             React.createElement('button', {
@@ -5741,9 +5761,9 @@ const MilestonesWidget = ({ db, userId }) => {
                 React.createElement('select', {
                     value: newEmoji,
                     onChange: e => setNewEmoji(e.target.value),
-                    className: 'px-3 py-2.5 border rounded-xl bg-white text-xl',
-                    style: { borderColor: '#d1d7e3', minWidth: '64px' }
-                }, EMOJIS.map(em => React.createElement('option', { key: em, value: em }, em))),
+                    className: 'px-3 py-2.5 border rounded-xl bg-white text-sm font-medium',
+                    style: { borderColor: '#d1d7e3', minWidth: '96px' }
+                }, MILESTONE_SYMBOLS.map(sym => React.createElement('option', { key: sym, value: sym }, sym))),
                 React.createElement('input', {
                     type: 'text',
                     value: newName,
@@ -5777,7 +5797,9 @@ const MilestonesWidget = ({ db, userId }) => {
         // Empty state
         upcoming.length === 0 && !showForm
             ? React.createElement('div', { className: 'text-center py-8' },
-                React.createElement('div', { style: { fontSize: '2.5rem', marginBottom: '8px' } }, '📅'),
+                React.createElement('div', { style: { display: 'flex', justifyContent: 'center', marginBottom: '10px' } },
+                    renderMilestoneSymbol('calendar', 38, '#94a3b8', 1.5)
+                ),
                 React.createElement('p', { className: 'text-calm-500', style: { fontWeight: 300 } }, 'no upcoming milestones — add one to start counting down!')
               )
             : null,
@@ -5797,15 +5819,17 @@ const MilestonesWidget = ({ db, userId }) => {
                         : new Date(m.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
                     const countdownText = cd.totalMs > 0
                         ? `${cd.decimalDays} days`
-                        : 'today! 🎉';
+                        : 'today!';
 
                     return React.createElement('div', {
                         key: m.id,
-                        className: 'group relative flex items-center gap-3 rounded-xl px-3 py-2.5 transition',
-                        style: { background: u.bg, borderLeft: `3px solid ${u.border}` }
+                        className: 'group relative flex items-center rounded-xl px-3 py-2.5 transition',
+                        style: { background: u.bg, borderLeft: `3px solid ${u.border}`, gap: '14px' }
                     },
-                        // Emoji
-                        React.createElement('span', { style: { fontSize: '1.2rem', flexShrink: 0 } }, m.emoji || '🎯'),
+                        // Vector Symbol
+                        React.createElement('div', { style: { flexShrink: 0, display: 'flex', alignItems: 'center' } },
+                            renderMilestoneSymbol(m.emoji || 'target', 20, u.labelColor, 1.8)
+                        ),
 
                         // Name + date
                         React.createElement('div', { style: { flex: 1, minWidth: 0 } },
@@ -5843,18 +5867,22 @@ const MilestonesWidget = ({ db, userId }) => {
                                         className: 'truncate',
                                         style: { fontWeight: 500, fontSize: '0.9rem', color: '#1f2937' }
                                     }, m.name),
-                                    React.createElement('p', {
-                                        style: { fontSize: '0.75rem', color: u.labelColor, fontWeight: 400 }
-                                    }, countdownText + ' · ' + dateShort)
+                                    (() => {
+                                        const linkedHabits = habits.filter(h => h.milestone_id === m.id);
+                                        const extra = linkedHabits.length > 0 ? ` · ${linkedHabits.length} habit${linkedHabits.length > 1 ? 's' : ''}` : '';
+                                        return React.createElement('p', {
+                                            style: { fontSize: '0.75rem', color: u.labelColor, fontWeight: 400 }
+                                        }, countdownText + ' · ' + dateShort + extra);
+                                    })()
                                   )
                         ),
 
                         // Action buttons — always visible on mobile (no hover)
-                        editingId !== m.id && React.createElement('div', { className: 'flex gap-1 flex-shrink-0' },
+                        editingId !== m.id && React.createElement('div', { className: 'flex gap-1 flex-shrink-0 items-center' },
                             React.createElement('button', {
                                 onClick: () => startEdit(m),
-                                style: { fontSize: '0.8rem', background: 'none', border: 'none', cursor: 'pointer', padding: '4px', color: '#6B8DD6' }
-                            }, '✏️'),
+                                style: { background: 'none', border: 'none', cursor: 'pointer', padding: '4px', color: '#6B8DD6', display: 'flex', alignItems: 'center' }
+                            }, renderMilestoneSymbol('edit', 14, '#6B8DD6', 1.8)),
                             React.createElement('button', {
                                 onClick: () => handleDelete(m.id),
                                 style: { fontSize: '1rem', background: 'none', border: 'none', cursor: 'pointer', padding: '4px', color: '#9ca3af' }
@@ -5889,12 +5917,12 @@ const MilestonesWidget = ({ db, userId }) => {
                         }
                     },
                         // Action buttons (top-right): edit + delete on hover
-                        React.createElement('div', { className: 'absolute top-3 right-3 flex gap-1 opacity-0 group-hover:opacity-100 transition' },
+                        React.createElement('div', { className: 'absolute top-3 right-3 flex gap-1 opacity-0 group-hover:opacity-100 transition items-center' },
                             React.createElement('button', {
                                 onClick: () => editingId === m.id ? setEditingId(null) : startEdit(m),
-                                style: { color: '#6B8DD6', fontSize: '0.85rem', background: 'none', border: 'none', cursor: 'pointer', padding: '2px 6px', borderRadius: '6px' },
+                                style: { color: '#6B8DD6', background: 'none', border: 'none', cursor: 'pointer', padding: '2px 6px', borderRadius: '6px', display: 'flex', alignItems: 'center' },
                                 title: 'Edit'
-                            }, '✏️'),
+                            }, renderMilestoneSymbol('edit', 14, '#6B8DD6', 1.8)),
                             React.createElement('button', {
                                 onClick: () => handleDelete(m.id),
                                 style: { color: '#9ca3af', fontSize: '1.2rem', lineHeight: 1, background: 'none', border: 'none', cursor: 'pointer', padding: '2px 6px', borderRadius: '6px' },
@@ -5937,31 +5965,35 @@ const MilestonesWidget = ({ db, userId }) => {
                               )
                             // ---- NORMAL VIEW ----
                             : React.createElement(React.Fragment, null,
-                                // Emoji + name (click emoji to change it)
-                                React.createElement('div', { className: 'flex items-center gap-2' },
+                                // Vector Symbol + name (click symbol to change it)
+                                React.createElement('div', {
+                                    className: 'flex items-center',
+                                    style: { display: 'flex', alignItems: 'center', gap: '14px' }
+                                },
                                     React.createElement('div', { style: { position: 'relative' } },
                                         React.createElement('button', {
                                             onClick: () => setEditingEmojiId(editingEmojiId === m.id ? null : m.id),
-                                            title: 'Click to change emoji',
-                                            style: { fontSize: '1.6rem', background: 'none', border: 'none', cursor: 'pointer', padding: '2px', borderRadius: '6px', lineHeight: 1 }
-                                        }, m.emoji || '🎯'),
+                                            title: 'Click to change symbol',
+                                            style: { background: 'none', border: 'none', cursor: 'pointer', padding: '2px', borderRadius: '6px', display: 'flex', alignItems: 'center' }
+                                        }, renderMilestoneSymbol(m.emoji || 'target', 22, u.labelColor, 1.8)),
                                         editingEmojiId === m.id && React.createElement('div', {
                                             style: {
                                                 position: 'absolute', top: '110%', left: 0, zIndex: 50,
                                                 background: 'white', borderRadius: '12px', padding: '8px',
                                                 boxShadow: '0 8px 24px rgba(0,0,0,0.15)',
-                                                display: 'flex', flexWrap: 'wrap', gap: '4px', width: '168px'
+                                                display: 'flex', flexWrap: 'wrap', gap: '6px', width: '180px'
                                             }
                                         },
-                                            EMOJIS.map(em => React.createElement('button', {
-                                                key: em,
-                                                onClick: () => handleUpdateEmoji(m.id, em),
+                                            MILESTONE_SYMBOLS.map(sym => React.createElement('button', {
+                                                key: sym,
+                                                onClick: () => handleUpdateEmoji(m.id, sym),
                                                 style: {
-                                                    fontSize: '1.3rem', background: em === m.emoji ? '#f0f4ff' : 'none',
-                                                    border: 'none', cursor: 'pointer', borderRadius: '6px',
-                                                    padding: '4px', width: '36px', textAlign: 'center'
+                                                    background: sym === m.emoji ? '#eff6ff' : '#f8fafc',
+                                                    border: '1px solid #e2e8f0', cursor: 'pointer', borderRadius: '8px',
+                                                    padding: '6px', width: '36px', height: '36px', display: 'flex',
+                                                    alignItems: 'center', justifyContent: 'center'
                                                 }
-                                            }, em))
+                                            }, renderMilestoneSymbol(sym, 18, '#2563eb', 1.8)))
                                         )
                                     ),
                                     React.createElement('span', {
@@ -5976,10 +6008,18 @@ const MilestonesWidget = ({ db, userId }) => {
                                         React.createElement('div', { style: { fontSize: '3rem', fontWeight: 200, lineHeight: 1, color: u.numColor, fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.02em' } }, cd.decimalDays),
                                         React.createElement('div', { style: { fontSize: '1rem', fontWeight: 300, color: u.labelColor } }, 'days')
                                       )
-                                    : React.createElement('div', { style: { fontSize: '1.1rem', color: '#9ca3af', fontWeight: 300 } }, 'today! 🎉'),
+                                    : React.createElement('div', { style: { fontSize: '1.1rem', color: '#9ca3af', fontWeight: 300 } }, 'today!'),
 
                                 // Date label
-                                React.createElement('div', { style: { fontSize: '0.78rem', color: '#6b7280', fontWeight: 300 } }, dateStr)
+                                React.createElement('div', { style: { fontSize: '0.78rem', color: '#6b7280', fontWeight: 300 } }, dateStr),
+
+                                (() => {
+                                    const linkedHabits = habits.filter(h => h.milestone_id === m.id);
+                                    if (linkedHabits.length === 0) return null;
+                                    return React.createElement('div', {
+                                        style: { fontSize: '0.75rem', color: u.labelColor, fontWeight: 400, marginTop: '2px', display: 'flex', alignItems: 'center', gap: '4px' }
+                                    }, renderMilestoneSymbol('link', 12, u.labelColor, 1.8), `${linkedHabits.length} linked habit${linkedHabits.length > 1 ? 's' : ''}`);
+                                })()
                             )
                     );
                 })
@@ -8604,9 +8644,9 @@ function App() {
             if (!db || !userId) return;
             try {
                 const userDocRef = window.doc(db, 'users', userId);
-                await window.updateDoc(userDocRef, {
+                await window.setDoc(userDocRef, {
                     lastActive: window.serverTimestamp()
-                });
+                }, { merge: true });
             } catch (error) {
                 console.error("Error updating lastActive:", error);
             }
