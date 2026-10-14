@@ -185,7 +185,8 @@
             Timestamp,
             getDocs,
             writeBatch,
-            serverTimestamp
+            serverTimestamp,
+            arrayUnion
         } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
         import {
             getFunctions,
@@ -224,6 +225,7 @@
         window.deleteDoc = deleteDoc;
         window.Timestamp = Timestamp;
         window.getDocs = getDocs;
+        window.arrayUnion = arrayUnion;
         window.writeBatch = writeBatch;
         window.serverTimestamp = serverTimestamp;
         window.getFunctions = getFunctions;
@@ -367,7 +369,7 @@
     <script src="HabitsTab.js?v=127"></script>
     <script src="MoodTrackerTab.js?v=104"></script>
     <script src="components/CalendarChecklist.js?v=104"></script>
-    <script src="index.js?v=123"></script>
+    <script src="index.js?v=124"></script>
 
 </body>
 

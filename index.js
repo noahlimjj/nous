@@ -1180,6 +1180,12 @@ const Dashboard = ({ db, userId, setNotification, activeTimers, setActiveTimers,
     const [chatMessages, setChatMessages] = useState({});
     const [messageInput, setMessageInput] = useState({});
     const [chatOpen, setChatOpen] = useState({});
+    // Chat safety: blocked senders (synced on the user profile) and messages hidden after a report
+    const [blockedUsers, setBlockedUsers] = useState([]);
+    const [hiddenMessageIds, setHiddenMessageIds] = useState(() => {
+        try { return JSON.parse(localStorage.getItem('nous_hidden_messages') || '[]'); } catch (e) { return []; }
+    });
+    const [messageActionsFor, setMessageActionsFor] = useState(null);
     const [customTimerInputs, setCustomTimerInputs] = useState({}); // {habitId: {hours, minutes, seconds}}
     const [unreadMessages, setUnreadMessages] = useState({});
     const [lastReadTime, setLastReadTime] = useState({});
@@ -2881,6 +2887,56 @@ const Dashboard = ({ db, userId, setNotification, activeTimers, setActiveTimers,
         }
     };
 
+    useEffect(() => {
+        if (!db || !userId) return;
+        window.getDoc(window.doc(db, 'users', userId))
+            .then(snap => { if (snap.exists()) setBlockedUsers(snap.data().blockedUsers || []); })
+            .catch(e => console.warn('Could not load blocked users', e));
+    }, [db, userId]);
+
+    const hideMessage = (messageId) => {
+        setHiddenMessageIds(prev => {
+            const next = [...prev, messageId];
+            try { localStorage.setItem('nous_hidden_messages', JSON.stringify(next.slice(-500))); } catch (e) { /* storage unavailable */ }
+            return next;
+        });
+    };
+
+    // Report a chat message: hide it here and record it for review
+    const reportMessage = async (msg) => {
+        setMessageActionsFor(null);
+        hideMessage(msg.id);
+        try {
+            const appId = typeof __app_id !== 'undefined' ? __app_id : 'study-tracker-app';
+            await window.addDoc(window.collection(db, `artifacts/${appId}/users/${userId}/contentReports`), {
+                messageId: msg.id,
+                timerId: msg.timerId || null,
+                reportedUserId: msg.senderId,
+                reportedName: msg.senderName || null,
+                message: msg.message,
+                reporterId: userId,
+                createdAt: window.Timestamp.now()
+            });
+            setNotification({ type: 'success', message: 'Thanks for reporting. We review reports within 24 hours.' });
+        } catch (error) {
+            console.error('Error reporting message:', error);
+            setNotification({ type: 'error', message: 'Could not send the report. Please email noahlimjj@gmail.com.' });
+        }
+    };
+
+    // Block a user: their messages are hidden everywhere for this account
+    const blockUser = async (msg) => {
+        setMessageActionsFor(null);
+        if (!window.confirm(`Block ${msg.senderName || 'this user'}? You won't see their messages anymore.`)) return;
+        setBlockedUsers(prev => prev.includes(msg.senderId) ? prev : [...prev, msg.senderId]);
+        try {
+            await window.setDoc(window.doc(db, 'users', userId), { blockedUsers: window.arrayUnion(msg.senderId) }, { merge: true });
+            setNotification({ type: 'success', message: `${msg.senderName || 'User'} blocked.` });
+        } catch (error) {
+            console.error('Error blocking user:', error);
+        }
+    };
+
     // Scroll chat to bottom
     const scrollChatToBottom = (timerId) => {
         requestAnimationFrame(() => {
@@ -3144,7 +3200,7 @@ const Dashboard = ({ db, userId, setNotification, activeTimers, setActiveTimers,
                         if (item.type === 'sharedTimer') {
                             // Render Nous session with shared timer
                             const session = item.data;
-                            const messages = chatMessages[session.id] || [];
+                            const messages = (chatMessages[session.id] || []).filter(m => !blockedUsers.includes(m.senderId) && !hiddenMessageIds.includes(m.id));
 
                             // Calculate shared timer time
                             const currentElapsed = session.elapsedBeforePause || 0;
@@ -3396,10 +3452,26 @@ const Dashboard = ({ db, userId, setNotification, activeTimers, setActiveTimers,
                                                     className: `flex ${msg.senderId === userId ? 'justify-end' : 'justify-start'}`
                                                 },
                                                     React.createElement('div', {
-                                                        className: `${msg.senderId === userId ? 'bg-purple-100' : 'bg-gray-100'} rounded-lg px-3 py-2 max-w-xs`
+                                                        className: `${msg.senderId === userId ? 'bg-purple-100' : 'bg-gray-100'} rounded-lg px-3 py-2 max-w-xs`,
+                                                        onClick: msg.senderId !== userId ? () => setMessageActionsFor(messageActionsFor === msg.id ? null : msg.id) : undefined,
+                                                        style: msg.senderId !== userId ? { cursor: 'pointer' } : undefined,
+                                                        title: msg.senderId !== userId ? 'Tap to report or block' : undefined
                                                     },
                                                         React.createElement('div', { className: "text-xs text-gray-600 mb-1" }, msg.senderName),
-                                                        React.createElement('div', { className: "text-sm" }, msg.message)
+                                                        React.createElement('div', { className: "text-sm" }, msg.message),
+                                                        // Report / block actions for other people's messages
+                                                        messageActionsFor === msg.id && React.createElement('div', { className: "flex gap-3 mt-2 pt-2 border-t border-gray-200 text-xs" },
+                                                            React.createElement('button', {
+                                                                onClick: (e) => { e.stopPropagation(); reportMessage(msg); },
+                                                                className: "text-red-600 hover:underline",
+                                                                style: { fontWeight: 400 }
+                                                            }, "report"),
+                                                            React.createElement('button', {
+                                                                onClick: (e) => { e.stopPropagation(); blockUser(msg); },
+                                                                className: "text-gray-600 hover:underline",
+                                                                style: { fontWeight: 400 }
+                                                            }, `block ${msg.senderName || 'user'}`)
+                                                        )
                                                     )
                                                 )
                                             ) :
