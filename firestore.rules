@@ -86,13 +86,23 @@ service cloud.firestore {
       allow create: if request.auth != null &&
                       request.auth.uid in request.resource.data.participants;
 
-      // Allow participants to read shared timers
+      // Allow participants (and friends invited to join) to read shared timers
       allow read: if request.auth != null &&
-                    request.auth.uid in resource.data.participants;
+                    (request.auth.uid in resource.data.participants ||
+                     request.auth.uid in resource.data.get('invitedUserIds', []));
 
-      // Allow participants to update shared timers (pause/resume/stop)
+      // Allow participants to update shared timers (pause/resume/stop/invite)
       allow update: if request.auth != null &&
                       request.auth.uid in resource.data.participants;
+
+      // Allow an invited friend to join: they may only add themselves
+      allow update: if request.auth != null &&
+                      request.auth.uid in resource.data.get('invitedUserIds', []) &&
+                      request.resource.data.participants.hasAll(resource.data.participants) &&
+                      request.resource.data.participants.size() == resource.data.participants.size() + 1 &&
+                      request.auth.uid in request.resource.data.participants &&
+                      request.resource.data.diff(resource.data).affectedKeys()
+                        .hasOnly(['participants', 'participantNames', 'participantHabits', 'participantJoinOffsets']);
 
       // Allow participants to delete shared timers
       allow delete: if request.auth != null &&
