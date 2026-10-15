@@ -926,6 +926,138 @@ const AuthComponent = ({ auth, setNotification }) => {
 // --- Nous Together ---
 const nousHabitLabel = (habit) => (habit && (habit.title || habit.name)) || 'untitled';
 
+// Desktop notification when the page is in the background (web only; best effort)
+const nousNotify = (title, body) => {
+    try {
+        if (document.visibilityState === 'visible') return;
+        if (window.Notification && Notification.permission === 'granted') {
+            new Notification(title, { body, icon: '/icons/icon-192x192.png' });
+        }
+    } catch (e) { /* notifications unavailable */ }
+};
+const nousAskNotificationPermission = () => {
+    try {
+        if (window.Notification && Notification.permission === 'default') Notification.requestPermission();
+    } catch (e) { /* notifications unavailable */ }
+};
+
+// Remember a "join me" link across sign-in
+try {
+    const pendingJoin = new URLSearchParams(window.location.search).get('join');
+    if (pendingJoin) sessionStorage.setItem('nous_pending_join', pendingJoin);
+} catch (e) { /* storage unavailable */ }
+
+// Pomodoro icons in the app's line style (24px grid, 2px stroke)
+const PomodoroIcon = ({ size = 18 }) => React.createElement('svg', {
+    width: size, height: size, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor",
+    strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round"
+},
+    React.createElement('path', { d: "M12 7c-4.4 0-8 2.9-8 7s3.6 7 8 7 8-2.9 8-7-3.6-7-8-7z" }),
+    React.createElement('path', { d: "M12 7V4" }),
+    React.createElement('path', { d: "M8.5 5.5c1.2 1 2.3 1.5 3.5 1.5s2.3-.5 3.5-1.5" })
+);
+const BreakIcon = ({ size = 16 }) => React.createElement('svg', {
+    width: size, height: size, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor",
+    strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round"
+},
+    React.createElement('path', { d: "M10 2v2 M14 2v2 M16 8a1 1 0 0 1 1 1v8a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4V9a1 1 0 0 1 1-1h14a4 4 0 1 1 0 8h-1 M6 2v2" })
+);
+
+// Public web app address used for "join me" links
+const NOUS_WEB_URL = 'https://noahlimjj.github.io/nous/';
+const NOUS_POMODORO = { focusMs: 25 * 60 * 1000, breakMs: 5 * 60 * 1000 };
+const NOUS_TOGETHER_BONUS = { coins: 10, minMs: 5 * 60 * 1000 };
+const NOUS_PRESENCE_MS = 150 * 1000; // a participant counts as "here" if seen in the last 2.5 min
+
+const tsMillis = (ts) => (ts?.toMillis ? ts.toMillis() : (typeof ts === 'number' ? ts : null));
+
+// Total running time of a shared session (pauses excluded)
+const sharedElapsedMs = (timer, now = Date.now()) =>
+    (timer.elapsedBeforePause || 0) +
+    (!timer.isPaused && tsMillis(timer.startTime) ? Math.max(0, now - tsMillis(timer.startTime)) : 0);
+
+const sharedPomodoro = (timer) => (timer.pomodoro && timer.pomodoro.enabled ? timer.pomodoro : null);
+
+// Portion of `elapsed` that falls in focus blocks (all of it when pomodoro is off)
+const sharedFocusMs = (timer, elapsed) => {
+    const p = sharedPomodoro(timer);
+    if (!p) return elapsed;
+    const cycle = p.focusMs + p.breakMs;
+    return Math.floor(elapsed / cycle) * p.focusMs + Math.min(elapsed % cycle, p.focusMs);
+};
+
+const sharedPomodoroPhase = (timer, elapsed) => {
+    const p = sharedPomodoro(timer);
+    if (!p) return null;
+    const cycle = p.focusMs + p.breakMs;
+    const inCycle = elapsed % cycle;
+    const round = Math.floor(elapsed / cycle) + 1;
+    return inCycle < p.focusMs
+        ? { phase: 'focus', remainingMs: p.focusMs - inCycle, round }
+        : { phase: 'break', remainingMs: cycle - inCycle, round };
+};
+
+// Time credited to one participant: focus time since they joined
+const sharedCreditedMs = (timer, uid, elapsed) =>
+    Math.max(0, sharedFocusMs(timer, elapsed) - sharedFocusMs(timer, timer.participantJoinOffsets?.[uid] || 0));
+
+// Add this user (with the habit they chose) to a running session they were invited to or have a link for
+const joinSharedSession = async (db, userId, username, sessionId, habit) => {
+    const sessionRef = window.doc(db, 'sharedTimers', sessionId);
+    const snap = await window.getDoc(sessionRef);
+    if (!snap.exists() || snap.data().status !== 'active') {
+        throw new Error('This session has ended.');
+    }
+    const data = snap.data();
+    if (data.participants.includes(userId)) return data;
+    await window.updateDoc(sessionRef, {
+        participants: window.arrayUnion(userId),
+        participantNames: window.arrayUnion(username || 'friend'),
+        [`participantHabits.${userId}`]: { habitId: habit.id, habitName: nousHabitLabel(habit) },
+        [`participantJoinOffsets.${userId}`]: Math.max(0, Math.round(sharedElapsedMs(data)))
+    });
+    return data;
+};
+
+// Send a Nous Together request to one or more friends
+const sendNousRequest = async (db, userId, username, toFriends, habit) => {
+    await window.addDoc(window.collection(db, 'nousRequests'), {
+        fromUserId: userId,
+        fromUsername: username,
+        fromHabitId: habit.id,
+        fromHabitName: nousHabitLabel(habit),
+        toUserIds: toFriends.map(f => f.userId),
+        toUsernames: toFriends.map(f => f.username),
+        acceptedBy: [],
+        participantHabits: { [userId]: { habitId: habit.id, habitName: nousHabitLabel(habit) } },
+        status: 'pending',
+        createdAt: window.Timestamp.now()
+    });
+};
+
+// Consecutive days (ending today or yesterday) with at least one shared session.
+// `withUsername` limits it to sessions shared with that friend.
+const togetherStreakDays = (sessions, withUsername = null) => {
+    const days = new Set();
+    (sessions || []).forEach(s => {
+        if (!s.isShared) return;
+        if (withUsername && !(s.sharedWith || []).includes(withUsername)) return;
+        const ms = tsMillis(s.endTime) || tsMillis(s.startTime);
+        if (!ms) return;
+        const d = new Date(ms);
+        days.add(`${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`);
+    });
+    const key = (d) => `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+    const cursor = new Date();
+    if (!days.has(key(cursor))) cursor.setDate(cursor.getDate() - 1);
+    let streak = 0;
+    while (days.has(key(cursor))) {
+        streak++;
+        cursor.setDate(cursor.getDate() - 1);
+    }
+    return streak;
+};
+
 // Accept a (possibly group) Nous request with the habit this user will work on.
 // Starts the shared timer once every invited friend has accepted.
 // Returns { started, waitingFor }.
@@ -1228,6 +1360,11 @@ const Dashboard = ({ db, userId, setNotification, activeTimers, setActiveTimers,
     const [sharedTimers, setSharedTimers] = useState([]);
     const [nousHabitOptions, setNousHabitOptions] = useState([]); // every habit, for "what are you working on?"
     const [acceptingNousId, setAcceptingNousId] = useState(null);
+    const endedSessionIdsRef = React.useRef(new Set()); // sessions confirmed ended (never show again)
+    const [sharedTimersLoaded, setSharedTimersLoaded] = useState(false);
+    const [sessionSummary, setSessionSummary] = useState(null); // shown when a session I was in ends
+    const [pendingJoin, setPendingJoin] = useState(null); // session opened from a "join me" link
+    const [studyWithFriendId, setStudyWithFriendId] = useState(null); // "studying now" -> pick a habit
     const [tempHabitName, setTempHabitName] = useState('');
     const [draggedHabitId, setDraggedHabitId] = useState(null);
     const [dragOverIndex, setDragOverIndex] = useState(null);
@@ -1500,8 +1637,13 @@ const Dashboard = ({ db, userId, setNotification, activeTimers, setActiveTimers,
         );
 
         const unsubscribeSharedTimers = window.onSnapshot(sharedTimersQuery, async (snapshot) => {
-            const timersData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            const timersData = snapshot.docs
+                .map(doc => ({ id: doc.id, ...doc.data() }))
+                .filter(t => t.status === 'active' && !endedSessionIdsRef.current.has(t.id));
             setSharedTimers(timersData);
+            if (!snapshot.metadata.fromCache) setSharedTimersLoaded(true);
+        }, (error) => {
+            console.error("Error listening to shared sessions:", error);
         });
 
         return () => {
@@ -1682,7 +1824,8 @@ const Dashboard = ({ db, userId, setNotification, activeTimers, setActiveTimers,
                 if (window.OfflineTimerManager) window.OfflineTimerManager.reset(habitId);
                 try {
                     await window.updateDoc(window.doc(db, `/artifacts/${appId}/users/${userId}/habits/${habitId}`), {
-                        activeTimer: window.deleteField ? window.deleteField() : null
+                        activeTimer: window.deleteField ? window.deleteField() : null,
+                        timerStoppedAt: Date.now()
                     });
                 } catch (e) {
                     console.warn("[Nous Together] Could not clear habit timer after session ended:", e);
@@ -1697,14 +1840,15 @@ const Dashboard = ({ db, userId, setNotification, activeTimers, setActiveTimers,
             for (const timer of sharedTimers) {
                 const habitId = timer.participantHabits?.[userId]?.habitId;
                 if (timer.status !== 'active' || !habitId || habitId === 'nous_together') continue;
+                const firstSync = !syncedSharedHabitsRef.current[timer.id];
                 syncedSharedHabitsRef.current[timer.id] = habitId;
 
                 const startMs = timer.startTime?.toMillis ? timer.startTime.toMillis() : Date.now();
                 const joinOffset = timer.participantJoinOffsets?.[userId] || 0;
                 const baseElapsed = (timer.elapsedBeforePause || 0) - joinOffset;
                 const wanted = timer.isPaused
-                    ? { isRunning: false, startTime: startMs, elapsedTime: Math.max(0, baseElapsed) }
-                    : { isRunning: true, startTime: startMs, elapsedTime: baseElapsed };
+                    ? { isRunning: false, startTime: startMs, elapsedTime: Math.max(0, baseElapsed), sharedSessionId: timer.id }
+                    : { isRunning: true, startTime: startMs, elapsedTime: baseElapsed, sharedSessionId: timer.id };
 
                 try {
                     const habitRef = window.doc(db, `/artifacts/${appId}/users/${userId}/habits/${habitId}`);
@@ -1712,6 +1856,30 @@ const Dashboard = ({ db, userId, setNotification, activeTimers, setActiveTimers,
                     if (!habitSnap.exists()) continue;
                     const current = habitSnap.data().activeTimer || {};
                     const startCurrent = current.startTime?.toMillis ? current.startTime.toMillis() : current.startTime;
+                    // This habit's timer was stopped after the shared timer (re)started: don't fight it
+                    if (!current.isRunning && (habitSnap.data().timerStoppedAt || 0) >= startMs && !firstSync) continue;
+
+                    // A session taking over this habit: drop this device's offline copy of the solo timer
+                    if (firstSync && window.OfflineTimerManager) window.OfflineTimerManager.reset(habitId);
+
+                    // Joining with a habit whose own timer is already going: save that solo time first
+                    if (firstSync && startCurrent !== startMs && (current.isRunning || current.elapsedTime > 0)) {
+                        const soloMs = (current.elapsedTime || 0) + (current.isRunning && startCurrent ? Date.now() - startCurrent : 0);
+                        if (soloMs >= 60 * 1000) {
+                            const endTime = window.Timestamp.now();
+                            await window.addDoc(window.collection(db, `/artifacts/${appId}/users/${userId}/sessions`), {
+                                habitId,
+                                habitName: habitSnap.data().title || habitSnap.data().name || 'habit',
+                                startTime: window.Timestamp.fromMillis(endTime.toMillis() - Math.round(soloMs)),
+                                endTime,
+                                duration: Math.round(soloMs),
+                                isManual: false,
+                                source: 'saved_before_nous_together',
+                                createdAt: window.Timestamp.now()
+                            });
+                            setNotification({ type: 'success', message: `Saved your ${formatTimeDisplay(soloMs)} before joining.` });
+                        }
+                    }
                     if (current.isRunning === wanted.isRunning && startCurrent === wanted.startTime &&
                         (current.elapsedTime || 0) === wanted.elapsedTime) continue;
 
@@ -1721,6 +1889,7 @@ const Dashboard = ({ db, userId, setNotification, activeTimers, setActiveTimers,
                     if (wanted.isRunning) {
                         await window.setDoc(window.doc(db, 'users', userId), {
                             currentTopic: habitSnap.data().title || habitSnap.data().name || timer.participantHabits[userId].habitName || "Studying",
+                            topicUpdatedAt: window.serverTimestamp ? window.serverTimestamp() : new Date(),
                             lastActive: window.serverTimestamp()
                         }, { merge: true });
                     }
@@ -1732,6 +1901,201 @@ const Dashboard = ({ db, userId, setNotification, activeTimers, setActiveTimers,
 
         syncSharedToLocal();
     }, [db, userId, sharedTimers]);
+
+    // Clear habit timers that mirror a session which is no longer active (it ended while this app was closed)
+    useEffect(() => {
+        if (!db || !userId || !sharedTimersLoaded) return;
+        const activeIds = new Set(sharedTimers.map(t => t.id));
+        nousHabitOptions.forEach(habit => {
+            const mirroredFrom = habit.activeTimer && habit.activeTimer.sharedSessionId;
+            if (!mirroredFrom || activeIds.has(mirroredFrom)) return;
+            console.log(`[Nous Together] Clearing orphaned session timer on habit ${habit.id}`);
+            try { localStorage.setItem(`nous_timer_reset_${habit.id}`, Date.now().toString()); } catch (e) { /* storage unavailable */ }
+            if (window.OfflineTimerManager) window.OfflineTimerManager.reset(habit.id);
+            window.updateDoc(window.doc(db, `/artifacts/${appId}/users/${userId}/habits/${habit.id}`), {
+                activeTimer: window.deleteField(),
+                timerStoppedAt: Date.now()
+            }).catch(e => console.warn('[Nous Together] Could not clear orphaned timer:', e));
+            window.setDoc(window.doc(db, 'users', userId), { currentTopic: null }, { merge: true }).catch(() => {});
+        });
+    }, [db, userId, sharedTimersLoaded, sharedTimers, nousHabitOptions]);
+
+    // Presence inside a session: each participant marks themselves "here" every minute
+    useEffect(() => {
+        if (!db || !userId || sharedTimers.length === 0) return;
+        const ids = sharedTimers.map(t => t.id);
+        const beat = () => {
+            if (document.visibilityState !== 'visible') return;
+            ids.forEach(id => {
+                window.updateDoc(window.doc(db, 'sharedTimers', id), {
+                    [`participantLastSeen.${userId}`]: window.serverTimestamp(),
+                    lastActivityAt: window.serverTimestamp()
+                }).catch((error) => {
+                    // The session is gone (or we're no longer in it) but the query kept a stale copy
+                    if (error.code === 'not-found' || error.code === 'permission-denied') {
+                        endedSessionIdsRef.current.add(id);
+                        setSharedTimers(prev => prev.filter(t => t.id !== id));
+                    }
+                });
+            });
+        };
+        beat();
+        const interval = setInterval(beat, 60 * 1000);
+        document.addEventListener('visibilitychange', beat);
+        return () => {
+            clearInterval(interval);
+            document.removeEventListener('visibilitychange', beat);
+        };
+    }, [db, userId, sharedTimers.map(t => t.id).sort().join(',')]);
+
+    // When a session I was in ends (stopped, left or expired): summary card + together bonus
+    const lastSharedTimersRef = React.useRef({});
+    const summarizedSessionIdsRef = React.useRef(new Set());
+    const sessionsRef = React.useRef([]);
+    sessionsRef.current = sessions;
+    useEffect(() => {
+        const previous = lastSharedTimersRef.current;
+        const next = {};
+        sharedTimers.forEach(t => { next[t.id] = t; });
+        lastSharedTimersRef.current = next;
+
+        Object.values(previous).forEach(async (ended) => {
+            if (next[ended.id] || !ended.participants?.includes(userId)) return;
+            if (summarizedSessionIdsRef.current.has(ended.id)) return; // handle each ended session once
+            summarizedSessionIdsRef.current.add(ended.id);
+            const credited = sharedCreditedMs(ended, userId, sharedElapsedMs(ended));
+            const others = (ended.participantNames || []).filter((_, i) => ended.participants[i] !== userId);
+            const streak = togetherStreakDays([...sessionsRef.current, { isShared: true, endTime: Date.now() }]);
+            let bonus = 0;
+            if (credited >= NOUS_TOGETHER_BONUS.minMs) {
+                try {
+                    const walletRef = window.doc(db, `/artifacts/${appId}/users/${userId}/gamification/wallet`);
+                    const wallet = await window.getDoc(walletRef);
+                    const awarded = wallet.exists() ? (wallet.data().togetherAwards || []) : [];
+                    if (!awarded.includes(ended.id)) {
+                        await window.setDoc(walletRef, {
+                            coins: (wallet.exists() ? (wallet.data().coins || 0) : 0) + NOUS_TOGETHER_BONUS.coins,
+                            togetherAwards: window.arrayUnion(ended.id)
+                        }, { merge: true });
+                        bonus = NOUS_TOGETHER_BONUS.coins;
+                    }
+                } catch (e) {
+                    console.warn('[Nous Together] Could not add together bonus:', e);
+                }
+            }
+            setSessionSummary(prev => (prev && prev.id === ended.id && prev.bonus > bonus) ? prev : {
+                id: ended.id,
+                credited,
+                others,
+                habitName: ended.participantHabits?.[userId]?.habitName || 'Nous Together',
+                streak,
+                bonus
+            });
+            nousNotify('Nous session complete', `${formatTimeDisplay(credited)} with ${others.map(n => '@' + n).join(', ') || 'friends'}`);
+        });
+    }, [sharedTimers]);
+
+    // Pomodoro: chime and notify everyone when the shared phase changes
+    const pomodoroPhaseRef = React.useRef({});
+    useEffect(() => {
+        const running = sharedTimers.filter(t => sharedPomodoro(t) && !t.isPaused);
+        if (running.length === 0) return;
+        const interval = setInterval(() => {
+            running.forEach(t => {
+                const phase = sharedPomodoroPhase(t, sharedElapsedMs(t));
+                const key = `${phase.phase}-${phase.round}`;
+                const previous = pomodoroPhaseRef.current[t.id];
+                pomodoroPhaseRef.current[t.id] = key;
+                if (previous && previous !== key) {
+                    playPingSound();
+                    const p = sharedPomodoro(t);
+                    const mins = (ms) => Math.max(1, Math.round(ms / 60000));
+                    const message = phase.phase === 'break'
+                        ? `Break time: ${mins(p.breakMs)} minute${mins(p.breakMs) === 1 ? '' : 's'}`
+                        : `Focus round ${phase.round}: ${mins(p.focusMs)} minutes`;
+                    setNotification({ type: 'success', message });
+                    nousNotify('Nous Together', message);
+                }
+            });
+        }, 1000);
+        return () => clearInterval(interval);
+    }, [sharedTimers]);
+
+    // Chime + notification when a friend invites me
+    const seenInviteIdsRef = React.useRef(null);
+    useEffect(() => {
+        const ids = [...nousRequests.map(r => r.id), ...sessionInvites.map(i => i.id)];
+        if (seenInviteIdsRef.current === null) {
+            seenInviteIdsRef.current = new Set(ids); // don't alert for invites already waiting on load
+            return;
+        }
+        const fresh = [...nousRequests, ...sessionInvites].filter(r => !seenInviteIdsRef.current.has(r.id));
+        ids.forEach(id => seenInviteIdsRef.current.add(id));
+        if (fresh.length === 0) return;
+        const from = fresh[0].fromUsername || 'a friend';
+        playPingSound();
+        setNotification({ type: 'success', message: `@${from} wants to study together!` });
+        nousNotify('Study together?', `@${from} wants to study together on Nous`);
+    }, [nousRequests, sessionInvites]);
+
+    // Opened from a "join me" link: look up the session and ask what to work on
+    const pendingJoinClearRef = React.useRef(() => {});
+    useEffect(() => {
+        if (!db || !userId) return;
+        let sessionId = null;
+        try { sessionId = sessionStorage.getItem('nous_pending_join'); } catch (e) { /* storage unavailable */ }
+        if (!sessionId) return;
+        const clearPending = () => {
+            try { sessionStorage.removeItem('nous_pending_join'); } catch (e) { /* storage unavailable */ }
+            try {
+                const url = new URL(window.location.href);
+                url.searchParams.delete('join');
+                window.history.replaceState({}, '', url.toString());
+            } catch (e) { /* history unavailable */ }
+        };
+        (async () => {
+            try {
+                const snap = await window.getDoc(window.doc(db, 'sharedTimers', sessionId));
+                if (!snap.exists() || snap.data().status !== 'active') throw new Error('ended');
+                const data = snap.data();
+                if (data.participants.includes(userId)) { clearPending(); return; }
+                setPendingJoin({ id: sessionId, hostName: data.participantNames?.[0] || 'a friend', count: data.participants.length });
+            } catch (e) {
+                clearPending();
+                setNotification({ type: 'error', message: 'That study session has ended or the link is no longer valid.' });
+            }
+        })();
+        pendingJoinClearRef.current = clearPending;
+    }, [db, userId]);
+
+    const handleJoinFromLink = async (habit) => {
+        if (!pendingJoin) return;
+        try {
+            const profile = (await window.getDoc(window.doc(db, 'users', userId))).data() || {};
+            await joinSharedSession(db, userId, profile.username, pendingJoin.id, habit);
+            setNotification({ type: 'success', message: `Joined @${pendingJoin.hostName}'s session!` });
+            nousAskNotificationPermission();
+        } catch (error) {
+            setNotification({ type: 'error', message: error.message === 'This session has ended.' ? error.message : 'Could not join that session.' });
+        } finally {
+            setPendingJoin(null);
+            pendingJoinClearRef.current();
+        }
+    };
+
+    // "Studying now": send a request to a friend who is currently studying
+    const handleStudyWithFriend = async (friend, habit) => {
+        try {
+            const profile = (await window.getDoc(window.doc(db, 'users', userId))).data() || {};
+            await sendNousRequest(db, userId, profile.username || 'friend', [friend], habit);
+            setStudyWithFriendId(null);
+            setNotification({ type: 'success', message: `Request sent to @${friend.username}!` });
+            nousAskNotificationPermission();
+        } catch (error) {
+            console.error("Error sending Nous request:", error);
+            setNotification({ type: 'error', message: 'Could not send the request.' });
+        }
+    };
 
     // Listen for active timer changes from Firebase
     useEffect(() => {
@@ -1962,6 +2326,7 @@ const Dashboard = ({ db, userId, setNotification, activeTimers, setActiveTimers,
     const handleAcceptNousRequest = async (request, habit) => {
         try {
             const result = await acceptNousRequestWithHabit(db, userId, request, habit);
+            nousAskNotificationPermission();
             setAcceptingNousId(null);
             setNousRequests(prev => prev.filter(r => r.id !== request.id));
             setNotification({
@@ -2060,7 +2425,8 @@ const Dashboard = ({ db, userId, setNotification, activeTimers, setActiveTimers,
                 // HabitsTab.js uses this field and would restore the timer otherwise
                 const habitDocRef = window.doc(db, `/artifacts/${appId}/users/${userId}/habits/${habitId}`);
                 await window.updateDoc(habitDocRef, {
-                    activeTimer: window.deleteField ? window.deleteField() : null
+                    activeTimer: window.deleteField ? window.deleteField() : null,
+                    timerStoppedAt: Date.now()
                 });
                 console.log('[Reset Timer] Cleared both activeTimers collection and habit.activeTimer field');
 
@@ -2077,7 +2443,8 @@ const Dashboard = ({ db, userId, setNotification, activeTimers, setActiveTimers,
                 try {
                     const habitDocRef = window.doc(db, `/artifacts/${appId}/users/${userId}/habits/${habitId}`);
                     await window.updateDoc(habitDocRef, {
-                        activeTimer: window.deleteField ? window.deleteField() : null
+                        activeTimer: window.deleteField ? window.deleteField() : null,
+                        timerStoppedAt: Date.now()
                     });
                     console.log('[Reset Timer] Cleared habit.activeTimer field (no Dashboard timer)');
                 } catch (e) {
@@ -2323,6 +2690,7 @@ const Dashboard = ({ db, userId, setNotification, activeTimers, setActiveTimers,
 
             batch.set(userDocRef, {
                 currentTopic: habit.title || habit.name,
+                topicUpdatedAt: window.serverTimestamp ? window.serverTimestamp() : new Date(),
                 lastActive: window.serverTimestamp()
             }, { merge: true });
 
@@ -2402,19 +2770,33 @@ const Dashboard = ({ db, userId, setNotification, activeTimers, setActiveTimers,
         const timerData = activeTimers[habitId];
 
         if (timerData) {
+            // OPTIMISTIC UPDATE: Immediately update local state for instant UI response
+            setActiveTimers(prev => {
+                const newTimers = { ...prev };
+                delete newTimers[habitId];
+                return newTimers;
+            });
+
+            // Set reset timestamp to prevent conflict resolution from restoring it
+            try {
+                localStorage.setItem(`nous_timer_reset_${habitId}`, Date.now().toString());
+            } catch (e) {}
+
+            // Broadcast stop to other tabs/HabitsTab
+            try {
+                if (typeof BroadcastChannel !== 'undefined') {
+                    const bc = new BroadcastChannel('nous-timer-sync');
+                    bc.postMessage({ type: 'timer-stop', habitId, userId });
+                    bc.close();
+                }
+            } catch (e) {}
+
             // OFFLINE MODE: Use offline timer manager
             if (!navigator.onLine && window.OfflineTimerManager) {
                 console.log('[Offline] Stopping timer and queuing for sync');
                 const result = window.OfflineTimerManager.stop(habitId, habitName || timerData.habitName);
 
                 if (result) {
-                    // Remove from local state
-                    setActiveTimers(prev => {
-                        const newTimers = { ...prev };
-                        delete newTimers[habitId];
-                        return newTimers;
-                    });
-
                     const hoursText = result.hoursTracked.toFixed(2);
                     setNotification({
                         type: 'success',
@@ -2422,6 +2804,11 @@ const Dashboard = ({ db, userId, setNotification, activeTimers, setActiveTimers,
                     });
                 }
                 return;
+            }
+
+            // ONLINE MODE: clear from OfflineTimerManager so it does not persist in localStorage
+            if (window.OfflineTimerManager) {
+                window.OfflineTimerManager.reset(habitId);
             }
 
             try {
@@ -2453,6 +2840,14 @@ const Dashboard = ({ db, userId, setNotification, activeTimers, setActiveTimers,
                 // Delete from activeTimers collection
                 const timerDocRef = window.doc(db, `/artifacts/${appId}/users/${userId}/activeTimers/${habitId}`);
                 await window.deleteDoc(timerDocRef);
+
+                // CRITICAL FIX: Also clear activeTimer field on habit document
+                // HabitsTab.js uses this field and would restore the timer otherwise
+                const habitDocRef = window.doc(db, `/artifacts/${appId}/users/${userId}/habits/${habitId}`);
+                await window.updateDoc(habitDocRef, {
+                    activeTimer: window.deleteField ? window.deleteField() : null,
+                    timerStoppedAt: Date.now()
+                }).catch(e => console.warn('Could not clear habit.activeTimer:', e));
 
                 // Clear currentTopic and lastActive in user profile if no other timers are active
                 const remainingTimers = Object.keys(activeTimers).filter(id => id !== habitId);
@@ -2654,11 +3049,7 @@ const Dashboard = ({ db, userId, setNotification, activeTimers, setActiveTimers,
             }
 
             // Calculate total elapsed time for the shared timer
-            const currentElapsed = session.elapsedBeforePause || 0;
-            const sessionElapsed = !session.isPaused && session.startTime
-                ? Date.now() - session.startTime.toMillis()
-                : 0;
-            const totalElapsed = currentElapsed + sessionElapsed;
+            const totalElapsed = sharedElapsedMs(session);
 
             if (totalElapsed > 0) {
                 const endTime = window.Timestamp.now();
@@ -2678,8 +3069,8 @@ const Dashboard = ({ db, userId, setNotification, activeTimers, setActiveTimers,
 
                         console.log(`[NOUS] Saving session for participant ${participantId} with habit:`, participantHabit);
 
-                        // Latecomers are credited only from when they joined
-                        const participantElapsed = Math.max(0, totalElapsed - (session.participantJoinOffsets?.[participantId] || 0));
+                        // Credit focus time since this participant joined (pomodoro breaks excluded)
+                        const participantElapsed = sharedCreditedMs(session, participantId, totalElapsed);
                         if (participantElapsed <= 0) return { success: true, participantId };
 
                         // Save session for this participant with their habit
@@ -2691,6 +3082,7 @@ const Dashboard = ({ db, userId, setNotification, activeTimers, setActiveTimers,
                             endTime: endTime,
                             duration: Math.round(participantElapsed),
                             isShared: true,
+                            nousSessionId: sessionId,
                             sharedWith: otherParticipants,
                             createdAt: window.Timestamp.now()
                         });
@@ -2718,8 +3110,26 @@ const Dashboard = ({ db, userId, setNotification, activeTimers, setActiveTimers,
                 }
             }
 
-            // Delete the shared timer - always do this even if some saves failed
+            // Clear local habit timer mirror for this user
+            const myHabit = session.participantHabits?.[userId];
+            if (myHabit && myHabit.habitId) {
+                try {
+                    localStorage.setItem(`nous_timer_reset_${myHabit.habitId}`, Date.now().toString());
+                } catch (e) {}
+                if (window.OfflineTimerManager) window.OfflineTimerManager.reset(myHabit.habitId);
+                try {
+                    await window.updateDoc(window.doc(db, `/artifacts/${appId}/users/${userId}/habits/${myHabit.habitId}`), {
+                        activeTimer: window.deleteField ? window.deleteField() : null,
+                        timerStoppedAt: Date.now()
+                    });
+                } catch (e) {}
+            }
+
+            // Mark ended first (a normal change every participant's query reliably receives),
+            // then delete - always do this even if some saves failed
             const sessionDocRef = window.doc(db, 'sharedTimers', sessionId);
+            endedSessionIdsRef.current.add(sessionId);
+            await window.updateDoc(sessionDocRef, { status: 'ended', endedAt: window.serverTimestamp() }).catch(() => {});
             await window.deleteDoc(sessionDocRef);
 
             setNotification({ type: 'success', message: `Shared session saved! (${formatTimeDisplay(totalElapsed)})` });
@@ -2728,6 +3138,122 @@ const Dashboard = ({ db, userId, setNotification, activeTimers, setActiveTimers,
             setNotification({ type: 'error', message: `Failed to stop timer: ${error.message}` });
         }
     };
+
+    // Leave a session without ending it for everyone; this user's time is saved
+    const leaveSharedTimer = async (sessionId) => {
+        const session = sharedTimers.find(t => t.id === sessionId);
+        if (!session) return;
+        if (!window.confirm('Leave this session? Your time so far will be saved and the others can keep going.')) return;
+        try {
+            const elapsed = sharedElapsedMs(session);
+            const credited = sharedCreditedMs(session, userId, elapsed);
+            const myIndex = session.participants.indexOf(userId);
+            const others = session.participantNames.filter((_, i) => i !== myIndex);
+            const habit = session.participantHabits?.[userId];
+            if (credited > 0 && habit) {
+                const endTime = window.Timestamp.now();
+                await window.addDoc(window.collection(db, `/artifacts/${appId}/users/${userId}/sessions`), {
+                    habitId: habit.habitId,
+                    habitName: habit.habitName,
+                    startTime: window.Timestamp.fromMillis(endTime.toMillis() - Math.round(credited)),
+                    endTime,
+                    duration: Math.round(credited),
+                    isShared: true,
+                    nousSessionId: sessionId,
+                    sharedWith: others,
+                    createdAt: window.Timestamp.now()
+                });
+            }
+            if (habit && habit.habitId) {
+                try {
+                    localStorage.setItem(`nous_timer_reset_${habit.habitId}`, Date.now().toString());
+                } catch (e) {}
+                if (window.OfflineTimerManager) window.OfflineTimerManager.reset(habit.habitId);
+                try {
+                    await window.updateDoc(window.doc(db, `/artifacts/${appId}/users/${userId}/habits/${habit.habitId}`), {
+                        activeTimer: window.deleteField ? window.deleteField() : null,
+                        timerStoppedAt: Date.now()
+                    });
+                } catch (e) {
+                    console.warn("[Nous Together] Could not clear habit timer on leave:", e);
+                }
+            }
+            const sessionRef = window.doc(db, 'sharedTimers', sessionId);
+            if (session.participants.length <= 1) {
+                endedSessionIdsRef.current.add(sessionId);
+                await window.updateDoc(sessionRef, { status: 'ended', endedAt: window.serverTimestamp() }).catch(() => {});
+                await window.deleteDoc(sessionRef);
+            } else {
+                await window.updateDoc(sessionRef, {
+                    participants: session.participants.filter(id => id !== userId),
+                    participantNames: others,
+                    [`participantHabits.${userId}`]: window.deleteField(),
+                    lastActivityAt: window.serverTimestamp()
+                });
+            }
+            setNotification({ type: 'success', message: `You left the session. ${formatTimeDisplay(credited)} saved.` });
+        } catch (error) {
+            console.error("Error leaving session:", error);
+            setNotification({ type: 'error', message: 'Failed to leave session.' });
+        }
+    };
+
+    // Shared 25/5 pomodoro: everyone's phase is computed from the same clock
+    const toggleSharedPomodoro = async (sessionId) => {
+        const session = sharedTimers.find(t => t.id === sessionId);
+        if (!session) return;
+        const enabled = !sharedPomodoro(session);
+        try {
+            await window.updateDoc(window.doc(db, 'sharedTimers', sessionId), {
+                pomodoro: { enabled, ...NOUS_POMODORO },
+                timerMode: 'stopwatch',
+                lastActivityAt: window.serverTimestamp()
+            });
+            setNotification({ type: 'success', message: enabled ? 'Pomodoro on: 25 min focus, 5 min break.' : 'Pomodoro off.' });
+        } catch (error) {
+            console.error("Error toggling pomodoro:", error);
+            setNotification({ type: 'error', message: 'Failed to change pomodoro.' });
+        }
+    };
+
+    // "Join me" link: anyone signed in with the link can join this session
+    const shareSessionLink = async (sessionId) => {
+        try {
+            await window.updateDoc(window.doc(db, 'sharedTimers', sessionId), {
+                linkJoinEnabled: true,
+                lastActivityAt: window.serverTimestamp()
+            });
+            const link = `${NOUS_WEB_URL}?join=${sessionId}`;
+            if (navigator.share) {
+                try {
+                    await navigator.share({ title: 'Study with me on Nous', text: 'Join my study session on Nous', url: link });
+                    return;
+                } catch (e) { /* share sheet dismissed; fall back to copying */ }
+            }
+            await navigator.clipboard.writeText(link);
+            setNotification({ type: 'success', message: 'Join link copied. Anyone signed in with it can join.' });
+        } catch (error) {
+            console.error("Error sharing session link:", error);
+            setNotification({ type: 'error', message: 'Could not create a join link.' });
+        }
+    };
+
+    // Habit timer buttons for a habit that mirrors a session act on the session itself
+    useEffect(() => {
+        const onAction = (e) => {
+            const { action, sessionId } = e.detail || {};
+            const session = sharedTimers.find(t => t.id === sessionId);
+            if (!session) return;
+            if (action === 'pause' && !session.isPaused) pauseSharedTimer(sessionId);
+            else if (action === 'resume' && session.isPaused) resumeSharedTimer(sessionId);
+            else if (action === 'leave') {
+                if (session.participants.length > 1) leaveSharedTimer(sessionId);
+                else stopSharedTimer(sessionId);
+            }
+        };
+        window.addEventListener('nous-session-action', onAction);
+        return () => window.removeEventListener('nous-session-action', onAction);
+    }, [sharedTimers]);
 
     // Load friends list for inviting to existing session
     useEffect(() => {
@@ -2774,6 +3300,10 @@ const Dashboard = ({ db, userId, setNotification, activeTimers, setActiveTimers,
         };
 
         fetchFriends();
+        const refresh = setInterval(() => {
+            if (navigator.onLine) fetchFriends();
+        }, 60 * 1000);
+        return () => clearInterval(refresh);
     }, [db, userId]);
 
     // Calculate real-time daily hours for all friends in Dashboard
@@ -2898,16 +3428,7 @@ const Dashboard = ({ db, userId, setNotification, activeTimers, setActiveTimers,
             const userProfile = userDoc.data();
 
             // Add this user to the session with the habit they chose
-            if (!sessionData.participants.includes(userId)) {
-                const elapsedAtJoin = (sessionData.elapsedBeforePause || 0) +
-                    (!sessionData.isPaused && sessionData.startTime ? Date.now() - sessionData.startTime.toMillis() : 0);
-                await window.updateDoc(sessionRef, {
-                    participants: window.arrayUnion(userId),
-                    participantNames: window.arrayUnion(userProfile?.username || 'friend'),
-                    [`participantHabits.${userId}`]: { habitId: habit.id, habitName: nousHabitLabel(habit) },
-                    [`participantJoinOffsets.${userId}`]: Math.max(0, Math.round(elapsedAtJoin))
-                });
-            }
+            await joinSharedSession(db, userId, userProfile?.username, invite.sessionId, habit);
             setAcceptingNousId(null);
 
             // Mark invite as accepted
@@ -3155,6 +3676,99 @@ const Dashboard = ({ db, userId, setNotification, activeTimers, setActiveTimers,
             React.createElement(MilestonesWidget, { db, userId })
         ),
 
+        // Opened from a "join me" link
+        pendingJoin && React.createElement('div', { className: "lg:col-span-3 bg-purple-50 border border-purple-200 rounded-lg p-4" },
+            React.createElement('h3', { className: "text-lg text-purple-900 mb-1", style: { fontWeight: 400 } },
+                `Join @${pendingJoin.hostName}'s study session`
+            ),
+            React.createElement('p', { className: "text-sm text-purple-700 mb-3", style: { fontWeight: 300 } },
+                `${pendingJoin.count} studying now · what are you working on?`
+            ),
+            nousHabitOptions.length > 0
+                ? React.createElement('div', { className: "flex flex-wrap gap-2" },
+                    nousHabitOptions.map(habit => React.createElement('button', {
+                        key: habit.id,
+                        onClick: () => handleJoinFromLink(habit),
+                        className: "px-3 py-1 rounded-full border border-purple-200 text-purple-800 hover:bg-purple-50 transition text-sm",
+                        style: { fontWeight: 400 }
+                    }, nousHabitLabel(habit))),
+                    React.createElement('button', {
+                        onClick: () => { setPendingJoin(null); pendingJoinClearRef.current(); },
+                        className: "px-3 py-1 rounded-full text-gray-500 hover:text-gray-700 transition text-sm",
+                        style: { fontWeight: 400 }
+                    }, "not now"))
+                : React.createElement('p', { className: "text-sm text-gray-500", style: { fontWeight: 300 } }, "add a habit first, then open the link again.")
+        ),
+
+        // Friends who are studying right now
+        (() => {
+            const now = Date.now();
+            const inMySession = new Set(sharedTimers.flatMap(t => t.participants || []));
+            const studying = friends.filter(f => f.currentTopic && f.topicUpdatedAt &&
+                now - toDate(f.topicUpdatedAt).getTime() < 5 * 60 * 1000 && !inMySession.has(f.userId));
+            if (studying.length === 0) return null;
+            return React.createElement('div', { className: "lg:col-span-3 bg-white border border-gray-100 rounded-lg p-4 soft-shadow" },
+                React.createElement('h3', { className: "text-sm text-gray-500 mb-3", style: { fontWeight: 400 } }, "studying now"),
+                React.createElement('div', { className: "space-y-2" },
+                    studying.map(friend => React.createElement('div', { key: friend.userId },
+                        React.createElement('div', { className: "flex items-center justify-between gap-3" },
+                            React.createElement('div', { className: "flex items-center gap-2 min-w-0" },
+                                React.createElement('span', { className: "w-2 h-2 bg-green-500 rounded-full animate-pulse flex-shrink-0" }),
+                                React.createElement('span', { className: "text-gray-800 truncate", style: { fontWeight: 400 } },
+                                    `@${friend.username}`,
+                                    React.createElement('span', { className: "text-gray-500", style: { fontWeight: 300 } }, ` · ${friend.currentTopic}`)
+                                )
+                            ),
+                            React.createElement('button', {
+                                onClick: () => setStudyWithFriendId(studyWithFriendId === friend.userId ? null : friend.userId),
+                                className: "px-3 py-1 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition text-sm flex-shrink-0",
+                                style: { fontWeight: 400 }
+                            }, "study together")
+                        ),
+                        studyWithFriendId === friend.userId && React.createElement('div', { className: "mt-2 pl-4" },
+                            React.createElement('p', { className: "text-sm text-gray-600 mb-2", style: { fontWeight: 400 } }, "what are you working on?"),
+                            React.createElement('div', { className: "flex flex-wrap gap-2" },
+                                nousHabitOptions.map(habit => React.createElement('button', {
+                                    key: habit.id,
+                                    onClick: () => handleStudyWithFriend(friend, habit),
+                                    className: "px-3 py-1 rounded-full border border-purple-200 text-purple-800 hover:bg-purple-50 transition text-sm",
+                                    style: { fontWeight: 400 }
+                                }, nousHabitLabel(habit)))
+                            )
+                        )
+                    ))
+                )
+            );
+        })(),
+
+        // Session finished summary
+        sessionSummary && React.createElement('div', {
+            className: "fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50",
+            onClick: () => setSessionSummary(null)
+        },
+            React.createElement('div', {
+                className: "bg-white rounded-2xl p-6 max-w-sm w-full m-4 soft-shadow-lg text-center",
+                onClick: (e) => e.stopPropagation()
+            },
+                React.createElement('p', { className: "text-sm text-purple-600 mb-1", style: { fontWeight: 400 } }, "session complete"),
+                React.createElement('p', { className: "text-4xl text-gray-900 mb-1", style: { fontWeight: 300 } }, formatTimeDisplay(sessionSummary.credited)),
+                React.createElement('p', { className: "text-sm text-gray-500 mb-4", style: { fontWeight: 300 } },
+                    `${sessionSummary.habitName}${sessionSummary.others.length ? ' with ' + sessionSummary.others.map(n => '@' + n).join(', ') : ''}`
+                ),
+                React.createElement('div', { className: "flex justify-center gap-3 mb-5 text-sm" },
+                    sessionSummary.streak > 0 && React.createElement('span', { className: "px-3 py-1 rounded-full bg-orange-50 text-orange-600", style: { fontWeight: 400 } },
+                        `🔥 ${sessionSummary.streak}-day together streak`),
+                    sessionSummary.bonus > 0 && React.createElement('span', { className: "px-3 py-1 rounded-full bg-yellow-50 text-yellow-700", style: { fontWeight: 400 } },
+                        `+${sessionSummary.bonus} coins`)
+                ),
+                React.createElement('button', {
+                    onClick: () => setSessionSummary(null),
+                    className: "w-full py-3 bg-purple-600 text-white rounded-xl hover:bg-purple-700 transition",
+                    style: { fontWeight: 400 }
+                }, "nice")
+            )
+        ),
+
         // Nous Requests
         nousRequests.length > 0 && React.createElement('div', { className: "lg:col-span-3 bg-purple-50 border border-purple-200 rounded-lg p-4" },
             React.createElement('h3', { className: "text-lg text-purple-900 mb-3", style: { fontWeight: 400 } },
@@ -3310,15 +3924,36 @@ const Dashboard = ({ db, userId, setNotification, activeTimers, setActiveTimers,
                                                 const participantName = session.participantNames[idx];
                                                 const participantHabit = session.participantHabits?.[participantId];
                                                 const isCurrentUser = participantId === userId;
+                                                const lastSeen = tsMillis(session.participantLastSeen?.[participantId]);
+                                                const isHere = isCurrentUser || (lastSeen && currentTime - lastSeen < NOUS_PRESENCE_MS);
                                                 return React.createElement('div', {
                                                     key: participantId,
-                                                    className: `text-sm ${isCurrentUser ? 'text-purple-900 font-medium' : 'text-purple-700'}`,
+                                                    className: `text-sm flex items-center gap-2 ${isCurrentUser ? 'text-purple-900' : 'text-purple-700'}`,
                                                     style: { fontWeight: isCurrentUser ? 500 : 300 }
                                                 },
-                                                    `${isCurrentUser ? '👤 You' : `👥 @${participantName}`} • ${participantHabit?.habitName || 'Nous Together'}`
+                                                    React.createElement('span', {
+                                                        className: `w-2 h-2 rounded-full flex-shrink-0 ${isHere ? 'bg-green-500' : 'bg-gray-300'}`,
+                                                        title: isHere ? 'here' : 'away'
+                                                    }),
+                                                    `${isCurrentUser ? 'You' : `@${participantName}`} • ${participantHabit?.habitName || 'Nous Together'}`,
+                                                    !isCurrentUser && React.createElement('span', { className: "text-xs text-gray-400", style: { fontWeight: 300 } }, isHere ? 'here' : 'away')
                                                 );
                                             })
                                         ),
+
+                                        // Shared pomodoro phase
+                                        (() => {
+                                            const phase = sharedPomodoroPhase(session, currentElapsed + sessionElapsed);
+                                            if (!phase) return null;
+                                            const mins = Math.floor(phase.remainingMs / 60000);
+                                            const secs = Math.floor((phase.remainingMs % 60000) / 1000);
+                                            return React.createElement('div', {
+                                                className: `text-sm px-3 py-2 rounded-lg flex items-center gap-2 ${phase.phase === 'focus' ? 'bg-purple-100 text-purple-800' : 'bg-green-100 text-green-800'}`,
+                                                style: { fontWeight: 400 }
+                                            },
+                                                phase.phase === 'focus' ? React.createElement(PomodoroIcon, { size: 16 }) : React.createElement(BreakIcon, { size: 16 }),
+                                                `${phase.phase} · ${mins}:${String(secs).padStart(2, '0')} left · round ${phase.round}${session.isPaused ? ' · paused' : ''}`);
+                                        })(),
 
                                         // Ping notification
                                         pings[session.id] && React.createElement('div', {
@@ -3427,9 +4062,39 @@ const Dashboard = ({ db, userId, setNotification, activeTimers, setActiveTimers,
                                                     ),
                                                 React.createElement('button', {
                                                     onClick: () => stopSharedTimer(session.id),
-                                                    className: "p-3 bg-purple-100 text-purple-600 rounded-full hover:bg-purple-200 transition"
+                                                    className: "p-3 bg-purple-100 text-purple-600 rounded-full hover:bg-purple-200 transition",
+                                                    title: "End session for everyone"
                                                 },
                                                     React.createElement(StopIcon)
+                                                ),
+                                                // Leave (keeps the session going for others)
+                                                session.participants.length > 1 && React.createElement('button', {
+                                                    onClick: () => leaveSharedTimer(session.id),
+                                                    className: "p-3 bg-purple-100 text-purple-600 rounded-full hover:bg-purple-200 transition",
+                                                    title: "Leave session (your time is saved)"
+                                                },
+                                                    React.createElement('svg', { width: "20", height: "20", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round" },
+                                                        React.createElement('path', { d: "M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" }),
+                                                        React.createElement('path', { d: "M16 17l5-5-5-5" }),
+                                                        React.createElement('path', { d: "M21 12H9" })
+                                                    )
+                                                ),
+                                                // Shared pomodoro toggle
+                                                React.createElement('button', {
+                                                    onClick: () => toggleSharedPomodoro(session.id),
+                                                    className: `p-3 rounded-full transition ${sharedPomodoro(session) ? 'bg-purple-600 text-white' : 'bg-purple-100 text-purple-600 hover:bg-purple-200'}`,
+                                                    title: sharedPomodoro(session) ? 'Pomodoro on (25/5). Click to turn off' : 'Pomodoro: 25 min focus, 5 min break'
+                                                }, React.createElement(PomodoroIcon, { size: 20 })),
+                                                // Share a "join me" link
+                                                React.createElement('button', {
+                                                    onClick: () => shareSessionLink(session.id),
+                                                    className: "p-3 bg-purple-100 text-purple-600 rounded-full hover:bg-purple-200 transition",
+                                                    title: "Share a join link"
+                                                },
+                                                    React.createElement('svg', { width: "20", height: "20", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round" },
+                                                        React.createElement('path', { d: "M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" }),
+                                                        React.createElement('path', { d: "M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" })
+                                                    )
                                                 ),
                                                 // Chat button with notification badge
                                                 React.createElement('button', {
@@ -7324,6 +7989,21 @@ const Friends = ({ db, userId, setNotification, userProfile }) => {
         fetchSuggestedFriends();
     }, [db, userId, friends]);
 
+    // My shared sessions, for "N-day streak together" on each friend
+    const [sharedSessions, setSharedSessions] = useState([]);
+    useEffect(() => {
+        if (!db || !userId) return;
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'study-tracker-app';
+        const q = window.query(
+            window.collection(db, `/artifacts/${appId}/users/${userId}/sessions`),
+            window.where('isShared', '==', true)
+        );
+        const unsubscribe = window.onSnapshot(q,
+            snap => setSharedSessions(snap.docs.map(d => d.data())),
+            err => console.warn('Could not load shared sessions:', err));
+        return () => unsubscribe();
+    }, [db, userId]);
+
     // Load user's habits for Nous Together modal
     useEffect(() => {
         if (!db || !userId) return;
@@ -7561,6 +8241,7 @@ const Friends = ({ db, userId, setNotification, userProfile }) => {
             };
 
             await window.addDoc(window.collection(db, 'nousRequests'), requestData);
+            nousAskNotificationPermission();
 
             setNotification({
                 type: 'success',
@@ -7845,7 +8526,8 @@ const Friends = ({ db, userId, setNotification, userProfile }) => {
                                             })()
                                         ),
                                         // Current topic - more prominent when active
-                                        friend.currentTopic && React.createElement('div', { className: "mb-2 p-2 bg-blue-50 rounded-lg border border-blue-200" },
+                                        friend.currentTopic && friend.topicUpdatedAt && (Date.now() - toDate(friend.topicUpdatedAt).getTime() < 5 * 60 * 1000) &&
+                                        React.createElement('div', { className: "mb-2 p-2 bg-blue-50 rounded-lg border border-blue-200" },
                                             React.createElement('div', { className: "flex items-center gap-2" },
                                                 React.createElement('span', { className: "text-sm text-blue-600", style: { fontWeight: 400 } },
                                                     `📚 Working on: ${friend.currentTopic}`
@@ -7864,7 +8546,12 @@ const Friends = ({ db, userId, setNotification, userProfile }) => {
                                         React.createElement('div', { className: "flex items-center gap-4 text-sm text-calm-700 mt-1", style: { fontWeight: 300 } },
                                             React.createElement('span', null,
                                                 `Today: ${(friendsDailyHours[friend.userId] !== undefined ? friendsDailyHours[friend.userId] : friend.stats?.hoursToday || 0).toFixed(1)}h`
-                                            )
+                                            ),
+                                            (() => {
+                                                const together = togetherStreakDays(sharedSessions, friend.username);
+                                                return together > 0 && React.createElement('span', { className: "text-orange-600" },
+                                                    `🔥 ${together}-day streak together`);
+                                            })()
                                         )
                                     ),
                                     React.createElement('button', {

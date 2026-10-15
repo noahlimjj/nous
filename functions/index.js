@@ -566,6 +566,91 @@ exports.sendMonthlyReports = onSchedule(
 );
 
 // ============================================================
+// CLOUD FUNCTION: End abandoned Nous Together sessions
+// A session with no activity (heartbeat, pause, join...) for 3 hours is
+// ended and everyone's time up to the last activity is saved. Pending
+// requests older than 2 hours are expired.
+// ============================================================
+const STALE_SESSION_MS = 3 * 60 * 60 * 1000;
+const STALE_REQUEST_MS = 2 * 60 * 60 * 1000;
+const millis = (ts) => (ts && typeof ts.toMillis === "function" ? ts.toMillis() : 0);
+
+function sharedFocusMs(timer, elapsed) {
+    const p = timer.pomodoro && timer.pomodoro.enabled ? timer.pomodoro : null;
+    if (!p) return elapsed;
+    const cycle = p.focusMs + p.breakMs;
+    return Math.floor(elapsed / cycle) * p.focusMs + Math.min(elapsed % cycle, p.focusMs);
+}
+
+exports.expireStaleSharedTimers = onSchedule(
+    { schedule: "every 30 minutes", timeZone: "Asia/Singapore" },
+    async () => {
+        const now = Date.now();
+
+        const timersSnap = await db.collection("sharedTimers").where("status", "==", "active").get();
+        let ended = 0;
+        for (const doc of timersSnap.docs) {
+            const t = doc.data();
+            const lastActivity = Math.max(millis(t.lastActivityAt), millis(t.lastUpdated), millis(t.startTime), millis(t.createdAt));
+            if (!lastActivity || now - lastActivity < STALE_SESSION_MS) continue;
+
+            const elapsed = (t.elapsedBeforePause || 0) +
+                (!t.isPaused && millis(t.startTime) ? Math.max(0, lastActivity - millis(t.startTime)) : 0);
+            const participants = t.participants || [];
+            const names = t.participantNames || [];
+
+            // Mark ended first so every participant's "active sessions" query drops it reliably
+            await doc.ref.update({ status: "ended", endedAt: admin.firestore.FieldValue.serverTimestamp() });
+
+            const batch = db.batch();
+            participants.forEach((uid, idx) => {
+                const habit = (t.participantHabits || {})[uid];
+                const credited = Math.max(0, sharedFocusMs(t, elapsed) - sharedFocusMs(t, (t.participantJoinOffsets || {})[uid] || 0));
+                if (!habit || credited <= 0) return;
+                const ref = db.collection(`artifacts/${APP_ID}/users/${uid}/sessions`).doc();
+                batch.set(ref, {
+                    habitId: habit.habitId,
+                    habitName: habit.habitName,
+                    startTime: admin.firestore.Timestamp.fromMillis(lastActivity - Math.round(credited)),
+                    endTime: admin.firestore.Timestamp.fromMillis(lastActivity),
+                    duration: Math.round(credited),
+                    isShared: true,
+                    autoEnded: true,
+                    nousSessionId: doc.id,
+                    sharedWith: names.filter((_, i) => i !== idx),
+                    createdAt: admin.firestore.FieldValue.serverTimestamp()
+                });
+            });
+            // Stop the habit timers the app mirrored from this session (their apps may be closed)
+            for (const uid of participants) {
+                const habit = (t.participantHabits || {})[uid];
+                if (!habit || !habit.habitId) continue;
+                const habitRef = db.doc(`artifacts/${APP_ID}/users/${uid}/habits/${habit.habitId}`);
+                const habitSnap = await habitRef.get();
+                if (habitSnap.exists && habitSnap.data().activeTimer) {
+                    batch.update(habitRef, { activeTimer: admin.firestore.FieldValue.delete(), timerStoppedAt: Date.now() });
+                }
+            }
+            batch.delete(doc.ref);
+            await batch.commit();
+            ended++;
+        }
+
+        const requestsSnap = await db.collection("nousRequests").where("status", "==", "pending").get();
+        let expired = 0;
+        for (const doc of requestsSnap.docs) {
+            const created = millis(doc.data().createdAt);
+            if (created && now - created > STALE_REQUEST_MS) {
+                await doc.ref.update({ status: "expired", expiredAt: admin.firestore.FieldValue.serverTimestamp() });
+                expired++;
+            }
+        }
+
+        console.log(`🧹 Nous Together cleanup: ended ${ended} stale session(s), expired ${expired} request(s)`);
+    }
+);
+
+// ============================================================
 // HELPER: Send reports to all opted-in users
 // ============================================================
 async function sendReportsToAllUsers(periodType) {

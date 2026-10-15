@@ -793,6 +793,21 @@
                 setTimers(prev => {
                     const next = { ...prev };
                     habitsData.forEach(h => {
+                        const stoppedAt = h.timerStoppedAt || 0;
+                        const remoteStart = h.activeTimer && (h.activeTimer.startTime?.toMillis ? h.activeTimer.startTime.toMillis() : h.activeTimer.startTime);
+
+                        // A running timer that started before the latest stop is a zombie (written back by a
+                        // device that hadn't seen the stop yet): ignore it and remove it from Firestore
+                        if (h.activeTimer && h.activeTimer.isRunning && !h.activeTimer.sharedSessionId && stoppedAt && remoteStart && remoteStart < stoppedAt) {
+                            console.log(`[HabitsTab] Ignoring stale running timer for ${h.id} (stopped after it started)`);
+                            next[h.id] = null;
+                            if (window.OfflineTimerManager) window.OfflineTimerManager.reset(h.id);
+                            window.updateDoc(window.doc(db, `/artifacts/${appId}/users/${userId}/habits/${h.id}`), {
+                                activeTimer: window.deleteField ? window.deleteField() : null
+                            }).catch(e => console.warn("Could not clear stale timer:", e));
+                            return;
+                        }
+
                         if (h.activeTimer) {
                             // Clear any stale reset marker when valid timer arrives from Firestore
                             try {
@@ -814,7 +829,11 @@
                                 wasRecentlyReset = resetTimestamp && (Date.now() - parseInt(resetTimestamp)) < 10000;
                             } catch (e) { /* ignore localStorage errors */ }
 
-                            if (wasRecentlyReset) {
+                            // Stopped on another device (or by a session ending) after this copy started
+                            const localStart = prev[h.id].originalStartTime || prev[h.id].startTime || 0;
+                            const stoppedElsewhere = stoppedAt && localStart && stoppedAt >= localStart;
+
+                            if (wasRecentlyReset || stoppedElsewhere) {
                                 // Timer was intentionally reset - trust Firestore, clear local state
                                 console.log(`[HabitsTab] Timer ${h.id} was recently reset, clearing local state`);
                                 next[h.id] = null;
@@ -875,6 +894,36 @@
 
             return () => { unsub1(); unsub2(); unsub3(); unsub4(); };
         }, [db, userId, appId]);
+
+        // Presence: while a timer runs, refresh "studying now" for friends every 2 minutes
+        const runningHabitId = Object.keys(timers).find(id => timers[id] && timers[id].isRunning) || null;
+        const habitsRef = React.useRef(habits);
+        habitsRef.current = habits;
+        const runningHabitTitle = (habits.find(h => h.id === runningHabitId) || {}).title || null;
+        useEffect(() => {
+            if (!db || !userId || !runningHabitId) return;
+            const beat = () => {
+                const habit = habitsRef.current.find(h => h.id === runningHabitId);
+                window.setDoc(window.doc(db, 'users', userId), {
+                    currentTopic: (habit && habit.title) || 'Studying',
+                    topicUpdatedAt: window.serverTimestamp ? window.serverTimestamp() : new Date(),
+                    lastActive: window.serverTimestamp ? window.serverTimestamp() : new Date()
+                }, { merge: true }).catch(() => { /* presence is best-effort */ });
+            };
+            beat();
+            const interval = setInterval(beat, 2 * 60 * 1000);
+            return () => clearInterval(interval);
+        }, [db, userId, runningHabitId, runningHabitTitle]);
+
+        // No timer running any more (stopped, paused, or cleared from another device): clear "working on"
+        const lastRunningHabitRef = React.useRef(null);
+        useEffect(() => {
+            if (lastRunningHabitRef.current && !runningHabitId && db && userId) {
+                window.setDoc(window.doc(db, 'users', userId), { currentTopic: null }, { merge: true })
+                    .catch(() => { /* presence is best-effort */ });
+            }
+            lastRunningHabitRef.current = runningHabitId;
+        }, [db, userId, runningHabitId]);
 
         // iOS app: keep the widget snapshot and scheduled reminders current
         useEffect(() => {
@@ -988,11 +1037,9 @@
 
                 if (type === 'timer-stop' || type === 'timer-reset') {
                     // Set reset timestamp to prevent restoration by conflict resolution
-                    if (type === 'timer-reset') {
-                        try {
-                            localStorage.setItem(`nous_timer_reset_${habitId}`, Date.now().toString());
-                        } catch (e) { /* ignore localStorage errors */ }
-                    }
+                    try {
+                        localStorage.setItem(`nous_timer_reset_${habitId}`, Date.now().toString());
+                    } catch (e) { /* ignore localStorage errors */ }
 
                     // Clear local timer state from another tab
                     setTimers(prev => {
@@ -1021,7 +1068,19 @@
         const showNotif = (msg) => { setNotification(msg); setTimeout(() => setNotification(null), 3000); };
 
         // Timer functions
+        // A habit timer that mirrors an active Nous Together session is controlled by the session:
+        // stop = leave (time saved once), pause/play = pause/resume for everyone.
+        const sharedSessionFor = (habitId) => (sharedTimers || []).find(t =>
+            t.status === 'active' &&
+            t.participants && t.participants.includes(userId) &&
+            t.participantHabits && t.participantHabits[userId] &&
+            t.participantHabits[userId].habitId === habitId);
+        const sendSessionAction = (action, sessionId) =>
+            window.dispatchEvent(new CustomEvent('nous-session-action', { detail: { action, sessionId } }));
+
         const startTimer = (habitId) => {
+            const shared = sharedSessionFor(habitId);
+            if (shared) { sendSessionAction('resume', shared.id); return; }
             const habit = habits.find(h => h.id === habitId);
 
             // CRITICAL: Initialize AudioContext during user interaction (click)
@@ -1067,6 +1126,7 @@
                 // Set current topic for friends to see
                 batch.set(userRef, {
                     currentTopic: habit.title || "Studying",
+                    topicUpdatedAt: window.serverTimestamp ? window.serverTimestamp() : new Date(),
                     lastActive: window.serverTimestamp ? window.serverTimestamp() : new Date()
                 }, { merge: true });
 
@@ -1085,6 +1145,8 @@
         };
 
         const pauseTimer = (habitId) => {
+            const shared = sharedSessionFor(habitId);
+            if (shared) { sendSessionAction('pause', shared.id); return; }
             setTimers(prev => {
                 const timer = prev[habitId];
                 if (!timer) return prev;
@@ -1111,6 +1173,8 @@
         };
 
         const stopTimer = async (habitId, isAutoComplete = false) => {
+            const shared = sharedSessionFor(habitId);
+            if (shared) { sendSessionAction('leave', shared.id); return; }
             // Prevent duplicate saves - check if this timer was already stopped
             if (stoppedTimersRef.current.has(habitId)) {
                 return;
@@ -1126,22 +1190,36 @@
 
             const elapsed = timer.isRunning ? (Date.now() - timer.startTime) + timer.elapsedTime : timer.elapsedTime;
 
-            // Clear active timer from Firestore
+            // OPTIMISTIC UPDATE: Stop local timer immediately so UI stops ticking
+            setTimers(prev => ({ ...prev, [habitId]: null }));
+
+            // Save stop timestamp to prevent cross-device/snapshot conflict resolution from resurrecting it
+            try {
+                localStorage.setItem(`nous_timer_reset_${habitId}`, Date.now().toString());
+            } catch (e) {
+                console.warn('[HabitsTab] Could not save reset timestamp:', e);
+            }
+
+            // Broadcast timer stop to other tabs/PWA immediately
+            if (timerBroadcastRef.current) {
+                timerBroadcastRef.current.postMessage({ type: 'timer-stop', habitId, userId });
+                console.log(`[HabitsTab] Broadcast timer-stop for ${habitId}`);
+            }
+
+            // Clear active timer from BOTH Firestore locations
             if (db && userId) {
                 const batch = window.writeBatch(db);
                 const habitRef = window.doc(db, `/artifacts/${appId}/users/${userId}/habits/${habitId}`);
+                const activeTimerRef = window.doc(db, `/artifacts/${appId}/users/${userId}/activeTimers/${habitId}`);
+                const userRef = window.doc(db, 'users', userId);
 
                 batch.update(habitRef, {
-                    activeTimer: window.deleteField ? window.deleteField() : null
+                    activeTimer: window.deleteField ? window.deleteField() : null,
+                    // Shared stop marker: every device drops any copy of this timer that started earlier
+                    timerStoppedAt: Date.now()
                 });
+                batch.delete(activeTimerRef);
 
-                // Clear current topic if no other timers are running (check local state)
-                // We use a small delay or check other habits to be sure, but for now assuming single-tasking
-                // is the norm. To be safe, we only clear if THIS was the active topic.
-                // ideally we'd query all active timers but that's async. 
-                // Simple approach: Set to null. If another timer is running, its next tick or status update should set it back?
-                // Better: Just set it to null. Authenticity > Persistence for now.
-                const userRef = window.doc(db, 'users', userId);
                 batch.set(userRef, {
                     currentTopic: null,
                     lastActive: window.serverTimestamp ? window.serverTimestamp() : new Date()
@@ -1191,7 +1269,6 @@
                 const MAX_TIMER_AGE = 24 * 60 * 60 * 1000;
                 if (elapsed > MAX_TIMER_AGE) {
                     console.error(`Timer duration exceeds 24h (${Math.round(elapsed / 3600000)}h), discarding as orphaned`);
-                    setTimers(prev => ({ ...prev, [habitId]: null }));
                     stoppedTimersRef.current.delete(habitId);
                     showNotif("timer data discarded (too old)");
                     return;
@@ -1250,21 +1327,17 @@
                 isManual: false
             }]);
 
-            setTimers(prev => ({ ...prev, [habitId]: null }));
-
-            // Broadcast timer stop to other tabs/PWA
-            if (timerBroadcastRef.current) {
-                timerBroadcastRef.current.postMessage({ type: 'timer-stop', habitId, userId });
-                console.log(`[HabitsTab] Broadcast timer-stop for ${habitId}`);
-            }
-
-            // Clean up the stopped ref after a short delay
+            // Clean up the stopped ref after a safe delay
             setTimeout(() => {
                 stoppedTimersRef.current.delete(habitId);
-            }, 1000);
+            }, 3000);
         };
 
         const resetTimer = (habitId) => {
+            if (sharedSessionFor(habitId)) {
+                showNotif("this timer is part of a nous session. use leave or end in the session card");
+                return;
+            }
             console.log(`[HabitsTab] Resetting timer for ${habitId}`);
             setTimers(prev => ({ ...prev, [habitId]: null }));
 
@@ -1289,7 +1362,8 @@
 
                 // 2. Clear activeTimer field on habit document
                 window.updateDoc(window.doc(db, `/artifacts/${appId}/users/${userId}/habits/${habitId}`), {
-                    activeTimer: window.deleteField ? window.deleteField() : null
+                    activeTimer: window.deleteField ? window.deleteField() : null,
+                    timerStoppedAt: Date.now()
                 }).then(() => console.log(`[HabitsTab] Cleared activeTimer for ${habitId} in DB`))
                     .catch(e => console.error("Error clearing on reset:", e));
             }
