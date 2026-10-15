@@ -7,12 +7,6 @@ const db = admin.firestore();
 
 // --- Configuration ---
 const APP_ID = "study-tracker-app";
-const DEEPSEEK_API_URL = "https://api.deepseek.com/chat/completions";
-
-// API key read from .env (locally) or Firebase environment variable (deployed)
-// To set for production: firebase functions:config:set deepseek.key="YOUR_KEY"
-// Or set DEEPSEEK_API_KEY in the Firebase console environment variables
-const getApiKey = () => process.env.DEEPSEEK_API_KEY || "";
 
 // ============================================================
 // HELPER: Gather user data for a given period
@@ -250,117 +244,61 @@ function toLocalDateString(date) {
 }
 
 // ============================================================
-// HELPER: Call DeepSeek API for narrative
+// HELPER: Plain-language summary written from the report numbers
+// (same rules as buildSummary in index.js; no AI)
 // ============================================================
-async function generateAINarrative(reportData, apiKey) {
-    const { stats, comparison, periodType, habits } = reportData;
+function buildSummary(data) {
+    const { username, periodType, stats, comparison } = data;
+    const period = periodType === 'weekly' ? 'week' : 'month';
+    const plural = (n, word) => `${n} ${word}${n === 1 ? '' : 's'}`;
+    const paragraphs = [`hey ${username},`];
 
-    const prompt = `You are a warm, encouraging study coach writing a brief ${periodType} progress report for a student named "${reportData.username}".
-
-Here is their data for this period (${reportData.periodLabel}):
-
-STUDY STATS:
-- Total study time: ${stats.totalHours} hours across ${stats.totalSessions} sessions
-- Daily average: ${stats.dailyAvgHours} hours/day
-- Active study days: ${stats.studyDays} out of ${stats.daysInPeriod} days
-- Best study day: ${stats.bestDay || "N/A"}
-- Peak study hour: ${stats.peakHour || "N/A"}
-
-HABIT BREAKDOWN:
-${stats.habitBreakdown.map(h => `- ${h.name}: ${h.hours}h (${h.sessions} sessions, ${h.percentOfTotal}%)`).join("\n")}
-
-COMPARISON VS PREVIOUS ${periodType.toUpperCase()}:
-- Previous period: ${comparison.prevTotalHours}h → This period: ${stats.totalHours}h
-- Change: ${comparison.changePercent > 0 ? "+" : ""}${comparison.changePercent}% (${comparison.direction})
-
-ACTIVE STREAKS:
-${stats.topStreaks.length > 0 ? stats.topStreaks.map(s => `- ${s.title}: ${s.streak}-day streak 🔥`).join("\n") : "No active streaks"}
-
-MOOD:
-${stats.avgMood ? `Average mood: ${stats.avgMood}/10` : "No mood data this period"}
-
-Write a SHORT, personal email body (3-4 paragraphs, ~150 words max). Be specific with their data. Use a conversational, warm tone. Include:
-1. A warm greeting and highlight of their top achievement this period
-2. A specific, data-backed observation (use the EXACT numbers provided above — do not round, estimate, or invent any figures)
-3. One actionable suggestion for next ${periodType === "weekly" ? "week" : "month"}
-4. An encouraging sign-off
-
-CRITICAL: Only reference the exact numbers provided above. Never invent, estimate, or approximate any hours, sessions, or percentages. If a value is 0, say so honestly.
-Do NOT use generic platitudes. Reference their actual numbers and habit names. Keep it brief and scannable.
-Use lowercase text to match the app's aesthetic. No markdown formatting — just plain text with line breaks.`;
-
-
-    try {
-        const response = await fetch(DEEPSEEK_API_URL, {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                "Authorization": `Bearer ${apiKey}`
-            },
-            body: JSON.stringify({
-                model: "deepseek-chat",
-                messages: [
-                    { role: "system", content: "You are a helpful, warm study coach. Write in lowercase to match the app's mindful aesthetic. Be concise and data-driven." },
-                    { role: "user", content: prompt }
-                ],
-                max_tokens: 500,
-                temperature: 0.7
-            })
-        });
-
-        if (!response.ok) {
-            const errText = await response.text();
-            console.error("DeepSeek API error:", response.status, errText);
-            return generateFallbackNarrative(reportData);
-        }
-
-        const data = await response.json();
-        return data.choices?.[0]?.message?.content || generateFallbackNarrative(reportData);
-    } catch (error) {
-        console.error("DeepSeek API call failed:", error);
-        return generateFallbackNarrative(reportData);
+    if (!stats.totalSessions) {
+        paragraphs.push(`no sessions were logged this ${period}. that's okay, breaks are part of it.`);
+        paragraphs.push('one 10-minute session is enough to restart. your habits are right where you left them.');
+        paragraphs.push('— nous');
+        return paragraphs.join('\n\n');
     }
-}
 
-// Fallback narrative when AI is unavailable
-function generateFallbackNarrative(reportData) {
-    const { stats, comparison, periodType } = reportData;
-    const topHabit = stats.habitBreakdown[0];
-
-    let text = `hey ${reportData.username},\n\n`;
-
-    if (stats.totalSessions === 0) {
-        text += `looks like it was a quiet ${periodType === "weekly" ? "week" : "month"}. no sessions logged this period — that's okay, we all need breaks sometimes.\n\n`;
-        text += `whenever you're ready to get back into it, your habits are right where you left them. even 10 minutes counts.\n\n`;
+    // Headline: total time and change vs the previous period
+    let headline = `you focused for ${stats.totalHours}h across ${plural(stats.totalSessions, 'session')} this ${period}`;
+    if (comparison.prevTotalHours > 0) {
+        if (comparison.direction === 'up') headline += `, up ${comparison.changePercent}% from ${comparison.prevTotalHours}h last ${period}.`;
+        else if (comparison.direction === 'down') headline += `, down ${Math.abs(comparison.changePercent)}% from ${comparison.prevTotalHours}h last ${period}.`;
+        else headline += `, the same as last ${period}.`;
     } else {
-        text += `you put in ${stats.totalHours} hours across ${stats.totalSessions} sessions this ${periodType === "weekly" ? "week" : "month"}`;
-        if (comparison.direction === "up" && comparison.changePercent > 0) {
-            text += ` — that's ${comparison.changePercent}% more than last ${periodType === "weekly" ? "week" : "month"}! 📈`;
-        } else if (comparison.direction === "down") {
-            text += `. a bit less than last ${periodType === "weekly" ? "week" : "month"}, but consistency matters more than volume.`;
-        }
-        text += "\n\n";
-
-        if (topHabit) {
-            text += `your top focus was ${topHabit.name} at ${topHabit.hours}h (${topHabit.percentOfTotal}% of your time). `;
-        }
-        if (stats.bestDay) {
-            text += `${stats.bestDay}s tend to be your most productive day. `;
-        }
-        if (stats.topStreaks.length > 0) {
-            text += `and you're on a ${stats.topStreaks[0].streak}-day streak with ${stats.topStreaks[0].title} — keep it going! 🔥`;
-        }
-        text += "\n\n";
+        headline += '.';
     }
+    paragraphs.push(headline);
 
-    text += `keep showing up. — nous`;
-    return text;
+    // Details: top habit, consistency, timing, streak, mood
+    const details = [];
+    const topHabit = stats.habitBreakdown[0];
+    if (topHabit) details.push(`most of it went to ${topHabit.name} (${topHabit.hours}h, ${topHabit.percentOfTotal}%).`);
+    const consistency = stats.daysInPeriod > 0 ? stats.studyDays / stats.daysInPeriod : 0;
+    details.push(`you studied on ${stats.studyDays} of ${stats.daysInPeriod} days${consistency >= 0.7 ? ', great consistency' : ''}.`);
+    if (stats.bestDay && stats.peakHour) details.push(`${String(stats.bestDay).toLowerCase()} was your strongest day, and you focus best around ${stats.peakHour}.`);
+    else if (stats.bestDay) details.push(`${String(stats.bestDay).toLowerCase()} was your strongest day.`);
+    if (stats.topStreaks.length > 0) details.push(`you're on a ${stats.topStreaks[0].streak}-day streak with ${stats.topStreaks[0].title}.`);
+    if (stats.avgMood != null) details.push(`your average mood was ${stats.avgMood}/10.`);
+    paragraphs.push(details.join(' '));
+
+    // One suggestion, first rule that applies
+    let tip;
+    if (consistency < 0.5) tip = `try a short session on more days. showing up often beats long sessions.`;
+    else if (comparison.direction === 'down' && comparison.prevTotalHours > 0) tip = `aim to get back to ${comparison.prevTotalHours}h.`;
+    else if (stats.peakHour) tip = `protect your ${stats.peakHour} slot for your hardest work.`;
+    else tip = 'keep the same rhythm going.';
+    paragraphs.push(`next ${period}: ${tip}`);
+
+    paragraphs.push('— nous');
+    return paragraphs.join('\n\n');
 }
 
 // ============================================================
 // HELPER: Build HTML email
 // ============================================================
-function buildEmailHTML(reportData, aiNarrative) {
+function buildEmailHTML(reportData, summary) {
     const { stats, comparison, periodType, periodLabel } = reportData;
     const topHabit = stats.habitBreakdown[0];
 
@@ -392,8 +330,8 @@ function buildEmailHTML(reportData, aiNarrative) {
         ? `<span style="color: ${trendColor}; font-weight: 600;">${trendIcon} ${comparison.changePercent > 0 ? "+" : ""}${comparison.changePercent}%</span> vs last ${periodType === "weekly" ? "week" : "month"}`
         : `same as last ${periodType === "weekly" ? "week" : "month"}`;
 
-    // AI narrative formatted for email
-    const narrativeHTML = aiNarrative
+    // Summary formatted for email
+    const narrativeHTML = summary
         .split("\n\n")
         .map(p => `<p style="margin: 0 0 16px 0; font-size: 15px; line-height: 1.7; color: #374151;">${p.replace(/\n/g, "<br>")}</p>`)
         .join("");
@@ -468,9 +406,9 @@ function buildEmailHTML(reportData, aiNarrative) {
             </div>` : ""}
         </div>
 
-        <!-- AI Insights Card -->
+        <!-- Summary Card -->
         <div style="background: #ffffff; border-radius: 20px; padding: 32px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); margin-bottom: 20px;">
-            <p style="margin: 0 0 16px 0; font-size: 12px; color: #9ca3af; text-transform: uppercase; letter-spacing: 2px; font-weight: 600;">✨ your personal insights</p>
+            <p style="margin: 0 0 16px 0; font-size: 12px; color: #9ca3af; text-transform: uppercase; letter-spacing: 2px; font-weight: 600;">your summary</p>
             ${narrativeHTML}
         </div>
 
@@ -540,12 +478,11 @@ exports.generateReport = onCall(
             // 1. Gather data
             const reportData = await gatherReportData(userId, periodType);
 
-            // 2. Generate AI narrative
-            const apiKey = getApiKey();
-            const aiNarrative = await generateAINarrative(reportData, apiKey);
+            // 2. Write the summary
+            const summary = buildSummary(reportData);
 
             // 3. Build HTML email
-            const htmlEmail = buildEmailHTML(reportData, aiNarrative);
+            const htmlEmail = buildEmailHTML(reportData, summary);
 
             // 4. Get user email from Firebase Auth
             let userEmail = null;
@@ -575,7 +512,7 @@ exports.generateReport = onCall(
                 periodLabel: reportData.periodLabel,
                 stats: reportData.stats,
                 comparison: reportData.comparison,
-                aiNarrative,
+                summary,
                 htmlEmail,
                 emailSent: emailResult?.success || false,
                 emailRecipient: reportEmail || null,
@@ -588,7 +525,7 @@ exports.generateReport = onCall(
                 periodLabel: reportData.periodLabel,
                 stats: reportData.stats,
                 comparison: reportData.comparison,
-                aiNarrative,
+                summary,
                 htmlPreview: htmlEmail,
                 emailSent: emailResult?.success || false,
                 emailRecipient: reportEmail || null
@@ -629,66 +566,6 @@ exports.sendMonthlyReports = onSchedule(
 );
 
 // ============================================================
-// CLOUD FUNCTION: AI narrative for an in-app report (callable)
-// Keeps the DeepSeek key on the server; the app sends only the
-// stats it already computed and gets back the narrative text.
-// ============================================================
-const num = (v) => (Number.isFinite(Number(v)) ? Number(v) : 0);
-const str = (v, max) => String(v ?? "").slice(0, max);
-
-exports.generateReportNarrative = onCall(
-    { cors: true, invoker: "public" },
-    async (request) => {
-        if (!request.auth) {
-            throw new Error("Authentication required.");
-        }
-
-        const d = request.data || {};
-        const s = d.stats || {};
-        const c = d.comparison || {};
-        const periodType = d.periodType === "monthly" ? "monthly" : "weekly";
-
-        // Whitelist and bound every field so the prompt can't be repurposed
-        const reportData = {
-            username: str(d.username, 40) || "there",
-            periodType,
-            periodLabel: str(d.periodLabel, 60),
-            stats: {
-                totalHours: num(s.totalHours),
-                totalSessions: num(s.totalSessions),
-                dailyAvgHours: num(s.dailyAvgHours),
-                studyDays: num(s.studyDays),
-                daysInPeriod: num(s.daysInPeriod),
-                bestDay: str(s.bestDay, 20) || null,
-                peakHour: str(s.peakHour, 20) || null,
-                avgMood: s.avgMood == null ? null : num(s.avgMood),
-                habitBreakdown: (Array.isArray(s.habitBreakdown) ? s.habitBreakdown : []).slice(0, 12).map(h => ({
-                    name: str(h.name, 40),
-                    hours: num(h.hours),
-                    sessions: num(h.sessions),
-                    percentOfTotal: num(h.percentOfTotal)
-                })),
-                topStreaks: (Array.isArray(s.topStreaks) ? s.topStreaks : []).slice(0, 3).map(t => ({
-                    title: str(t.title, 40),
-                    streak: num(t.streak)
-                }))
-            },
-            comparison: {
-                prevTotalHours: num(c.prevTotalHours),
-                changePercent: num(c.changePercent),
-                direction: ["up", "down", "same"].includes(c.direction) ? c.direction : "same"
-            }
-        };
-
-        const apiKey = getApiKey();
-        const narrative = apiKey
-            ? await generateAINarrative(reportData, apiKey)
-            : generateFallbackNarrative(reportData);
-        return { narrative };
-    }
-);
-
-// ============================================================
 // HELPER: Send reports to all opted-in users
 // ============================================================
 async function sendReportsToAllUsers(periodType) {
@@ -700,7 +577,6 @@ async function sendReportsToAllUsers(periodType) {
 
         console.log(`Found ${usersSnap.size} users with reports enabled`);
 
-        const apiKey = getApiKey();
         let successCount = 0;
         let failCount = 0;
 
@@ -729,8 +605,8 @@ async function sendReportsToAllUsers(periodType) {
 
                 // Generate report
                 const reportData = await gatherReportData(userId, periodType);
-                const aiNarrative = await generateAINarrative(reportData, apiKey);
-                const htmlEmail = buildEmailHTML(reportData, aiNarrative);
+                const summary = buildSummary(reportData);
+                const htmlEmail = buildEmailHTML(reportData, summary);
 
                 // Send
                 const subject = `nous — your ${periodType} study report (${reportData.stats.totalHours}h)`;
@@ -742,7 +618,7 @@ async function sendReportsToAllUsers(periodType) {
                     periodLabel: reportData.periodLabel,
                     stats: reportData.stats,
                     comparison: reportData.comparison,
-                    aiNarrative,
+                    summary,
                     emailSent: true,
                     emailRecipient: email,
                     createdAt: admin.firestore.FieldValue.serverTimestamp()

@@ -4448,24 +4448,14 @@ const Settings = ({ auth, userId, db, userProfile, setNotification, isNightMode,
                 direction: stats.totalHours > prevTotalHours ? 'up' : stats.totalHours < prevTotalHours ? 'down' : 'same'
             };
 
-            // 6. Call DeepSeek API for AI narrative
-            console.log('[Report] Calling DeepSeek API...');
-            let aiNarrative;
-            try {
-                aiNarrative = await callDeepSeekForReport({
-                    username: userProfile?.username || 'there',
-                    periodType, periodLabel, stats, comparison
-                });
-            } catch (apiErr) {
-                console.warn('[Report] DeepSeek API failed, using fallback:', apiErr);
-                aiNarrative = generateFallbackNarrative({
-                    username: userProfile?.username || 'there',
-                    periodType, stats, comparison
-                });
-            }
+            // 6. Write the summary from the numbers
+            const summary = buildSummary({
+                username: userProfile?.username || 'there',
+                periodType, stats, comparison
+            });
 
             // 7. Build HTML email
-            const htmlPreview = buildReportEmail({ periodType, periodLabel, stats, comparison }, aiNarrative);
+            const htmlPreview = buildReportEmail({ periodType, periodLabel, stats, comparison }, summary);
 
             // 8. Save report to Firestore
             try {
@@ -4474,7 +4464,7 @@ const Settings = ({ auth, userId, db, userProfile, setNotification, isNightMode,
                     periodLabel,
                     stats,
                     comparison,
-                    aiNarrative,
+                    summary,
                     createdAt: window.serverTimestamp ? window.serverTimestamp() : new Date()
                 });
 
@@ -4500,10 +4490,10 @@ const Settings = ({ auth, userId, db, userProfile, setNotification, isNightMode,
                 periodLabel,
                 stats,
                 comparison,
-                aiNarrative,
+                summary,
                 htmlPreview
             });
-            setNotification({ type: 'success', message: `${periodType} report generated! ✨` });
+            setNotification({ type: 'success', message: `${periodType} report generated!` });
 
         } catch (error) {
             console.error('Error generating report:', error);
@@ -4575,38 +4565,57 @@ const Settings = ({ auth, userId, db, userProfile, setNotification, isNightMode,
         return { totalHours, totalSessions: sessions.length, dailyAvgHours, habitBreakdown, bestDay, peakHour, avgMood, topStreaks, studyDays, daysInPeriod };
     }
 
-    // Helper: AI narrative via the generateReportNarrative Cloud Function
-    // (the DeepSeek key stays on the server; callers fall back on error)
-    async function callDeepSeekForReport(data) {
-        const generateNarrative = window.httpsCallable(window.getFunctions(), 'generateReportNarrative');
-        const result = await generateNarrative(data);
-        return result.data?.narrative || generateFallbackNarrative(data);
-    }
+    // Helper: plain-language summary written from the report numbers (no AI)
+    function buildSummary(data) {
+        const { username, periodType, stats, comparison } = data;
+        const period = periodType === 'weekly' ? 'week' : 'month';
+        const plural = (n, word) => `${n} ${word}${n === 1 ? '' : 's'}`;
+        const paragraphs = [`hey ${username},`];
 
-    // Helper: Fallback narrative when AI is unavailable
-    function generateFallbackNarrative(data) {
-        const { username, stats, comparison, periodType } = data;
-        const topHabit = stats.habitBreakdown[0];
-        const periodName = periodType === 'weekly' ? 'week' : 'month';
-        let text = `hey ${username},\n\n`;
-
-        if (stats.totalSessions === 0) {
-            text += `looks like it was a quiet ${periodName}. no sessions logged — that's okay, we all need breaks.\n\n`;
-            text += `whenever you're ready, your habits are right where you left them.\n\n`;
-        } else {
-            text += `you put in ${stats.totalHours} hours across ${stats.totalSessions} sessions this ${periodName}`;
-            if (comparison.direction === 'up' && comparison.changePercent > 0) text += ` — ${comparison.changePercent}% more than last ${periodName}! 📈`;
-            text += '\n\n';
-            if (topHabit) text += `top focus: ${topHabit.name} at ${topHabit.hours}h. `;
-            if (stats.topStreaks.length > 0) text += `you're on a ${stats.topStreaks[0].streak}-day streak with ${stats.topStreaks[0].title} 🔥`;
-            text += '\n\n';
+        if (!stats.totalSessions) {
+            paragraphs.push(`no sessions were logged this ${period}. that's okay, breaks are part of it.`);
+            paragraphs.push('one 10-minute session is enough to restart. your habits are right where you left them.');
+            paragraphs.push('— nous');
+            return paragraphs.join('\n\n');
         }
-        text += 'keep showing up. — nous';
-        return text;
+
+        // Headline: total time and change vs the previous period
+        let headline = `you focused for ${stats.totalHours}h across ${plural(stats.totalSessions, 'session')} this ${period}`;
+        if (comparison.prevTotalHours > 0) {
+            if (comparison.direction === 'up') headline += `, up ${comparison.changePercent}% from ${comparison.prevTotalHours}h last ${period}.`;
+            else if (comparison.direction === 'down') headline += `, down ${Math.abs(comparison.changePercent)}% from ${comparison.prevTotalHours}h last ${period}.`;
+            else headline += `, the same as last ${period}.`;
+        } else {
+            headline += '.';
+        }
+        paragraphs.push(headline);
+
+        // Details: top habit, consistency, timing, streak, mood
+        const details = [];
+        const topHabit = stats.habitBreakdown[0];
+        if (topHabit) details.push(`most of it went to ${topHabit.name} (${topHabit.hours}h, ${topHabit.percentOfTotal}%).`);
+        const consistency = stats.daysInPeriod > 0 ? stats.studyDays / stats.daysInPeriod : 0;
+        details.push(`you studied on ${stats.studyDays} of ${stats.daysInPeriod} days${consistency >= 0.7 ? ', great consistency' : ''}.`);
+        if (stats.bestDay && stats.peakHour) details.push(`${String(stats.bestDay).toLowerCase()} was your strongest day, and you focus best around ${stats.peakHour}.`);
+        else if (stats.bestDay) details.push(`${String(stats.bestDay).toLowerCase()} was your strongest day.`);
+        if (stats.topStreaks.length > 0) details.push(`you're on a ${stats.topStreaks[0].streak}-day streak with ${stats.topStreaks[0].title}.`);
+        if (stats.avgMood != null) details.push(`your average mood was ${stats.avgMood}/10.`);
+        paragraphs.push(details.join(' '));
+
+        // One suggestion, first rule that applies
+        let tip;
+        if (consistency < 0.5) tip = `try a short session on more days. showing up often beats long sessions.`;
+        else if (comparison.direction === 'down' && comparison.prevTotalHours > 0) tip = `aim to get back to ${comparison.prevTotalHours}h.`;
+        else if (stats.peakHour) tip = `protect your ${stats.peakHour} slot for your hardest work.`;
+        else tip = 'keep the same rhythm going.';
+        paragraphs.push(`next ${period}: ${tip}`);
+
+        paragraphs.push('— nous');
+        return paragraphs.join('\n\n');
     }
 
     // Helper: Build HTML email
-    function buildReportEmail(data, aiNarrative) {
+    function buildReportEmail(data, summary) {
         const { periodType, periodLabel, stats, comparison } = data;
         const colors = ['#6B8DD6', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#14b8a6'];
 
@@ -4625,9 +4634,9 @@ const Settings = ({ auth, userId, db, userProfile, setNotification, isNightMode,
             ? `<span style="color:${trendColor};font-weight:600;">${trendIcon} ${comparison.changePercent > 0 ? '+' : ''}${comparison.changePercent}%</span> vs last ${periodType === 'weekly' ? 'week' : 'month'}`
             : `same as last ${periodType === 'weekly' ? 'week' : 'month'}`;
 
-        const narrativeHTML = aiNarrative.split('\n\n').map(p => `<p style="margin:0 0 16px 0;font-size:15px;line-height:1.7;color:#374151;">${p.replace(/\n/g, '<br>')}</p>`).join('');
+        const narrativeHTML = summary.split('\n\n').map(p => `<p style="margin:0 0 16px 0;font-size:15px;line-height:1.7;color:#374151;">${p.replace(/\n/g, '<br>')}</p>`).join('');
 
-        return `<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>nous — ${periodType} report</title></head><body style="margin:0;padding:0;background-color:#f8f9fb;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;"><div style="max-width:560px;margin:0 auto;padding:40px 20px;"><div style="text-align:center;margin-bottom:32px;"><div style="display:inline-block;width:48px;height:48px;border:2px solid #5d6b86;border-radius:50%;line-height:48px;text-align:center;font-size:24px;color:#5d6b86;font-weight:300;font-family:Georgia,serif;">n</div><p style="margin:12px 0 0 0;font-size:13px;color:#9ca3af;text-transform:uppercase;letter-spacing:3px;font-weight:600;">${periodType} report</p><p style="margin:4px 0 0 0;font-size:14px;color:#6b7280;">${periodLabel}</p></div><div style="background:#ffffff;border-radius:20px;padding:32px;box-shadow:0 1px 3px rgba(0,0,0,0.06);margin-bottom:20px;"><div style="text-align:center;padding-bottom:24px;border-bottom:1px solid #f3f4f6;margin-bottom:24px;"><p style="margin:0;font-size:48px;font-weight:200;color:#1f2937;letter-spacing:-2px;">${stats.totalHours}h</p><p style="margin:4px 0 0 0;font-size:14px;color:#9ca3af;">total study time</p><p style="margin:8px 0 0 0;font-size:13px;color:#6b7280;">${trendText}</p></div><table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px;"><tr><td style="text-align:center;padding:12px;"><p style="margin:0;font-size:28px;font-weight:300;color:#1f2937;">${stats.totalSessions}</p><p style="margin:4px 0 0 0;font-size:12px;color:#9ca3af;text-transform:uppercase;letter-spacing:1px;">sessions</p></td><td style="text-align:center;padding:12px;border-left:1px solid #f3f4f6;border-right:1px solid #f3f4f6;"><p style="margin:0;font-size:28px;font-weight:300;color:#1f2937;">${stats.dailyAvgHours}h</p><p style="margin:4px 0 0 0;font-size:12px;color:#9ca3af;text-transform:uppercase;letter-spacing:1px;">daily avg</p></td><td style="text-align:center;padding:12px;"><p style="margin:0;font-size:28px;font-weight:300;color:#1f2937;">${stats.studyDays}/${stats.daysInPeriod}</p><p style="margin:4px 0 0 0;font-size:12px;color:#9ca3af;text-transform:uppercase;letter-spacing:1px;">active days</p></td></tr></table>${stats.habitBreakdown.length > 0 ? `<div style="margin-bottom:24px;"><p style="margin:0 0 12px 0;font-size:12px;color:#9ca3af;text-transform:uppercase;letter-spacing:2px;font-weight:600;">habit breakdown</p><table width="100%" cellpadding="0" cellspacing="0">${habitBarsHTML}</table></div>` : ''}${streakHTML ? `<div style="margin-bottom:24px;"><p style="margin:0 0 8px 0;font-size:12px;color:#9ca3af;text-transform:uppercase;letter-spacing:2px;font-weight:600;">active streaks</p><div>${streakHTML}</div></div>` : ''}${stats.avgMood ? `<div style="margin-bottom:24px;padding:16px;background:#f0fdf4;border-radius:12px;"><p style="margin:0;font-size:14px;color:#15803d;">🧠 average mood: <strong>${stats.avgMood}/10</strong></p></div>` : ''}</div><div style="background:#ffffff;border-radius:20px;padding:32px;box-shadow:0 1px 3px rgba(0,0,0,0.06);margin-bottom:20px;"><p style="margin:0 0 16px 0;font-size:12px;color:#9ca3af;text-transform:uppercase;letter-spacing:2px;font-weight:600;">✨ your personal insights</p>${narrativeHTML}</div><div style="text-align:center;padding:20px;"><p style="margin:0;font-size:13px;color:#9ca3af;">sent with 💙 by nous</p></div></div></body></html>`;
+        return `<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>nous — ${periodType} report</title></head><body style="margin:0;padding:0;background-color:#f8f9fb;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;"><div style="max-width:560px;margin:0 auto;padding:40px 20px;"><div style="text-align:center;margin-bottom:32px;"><div style="display:inline-block;width:48px;height:48px;border:2px solid #5d6b86;border-radius:50%;line-height:48px;text-align:center;font-size:24px;color:#5d6b86;font-weight:300;font-family:Georgia,serif;">n</div><p style="margin:12px 0 0 0;font-size:13px;color:#9ca3af;text-transform:uppercase;letter-spacing:3px;font-weight:600;">${periodType} report</p><p style="margin:4px 0 0 0;font-size:14px;color:#6b7280;">${periodLabel}</p></div><div style="background:#ffffff;border-radius:20px;padding:32px;box-shadow:0 1px 3px rgba(0,0,0,0.06);margin-bottom:20px;"><div style="text-align:center;padding-bottom:24px;border-bottom:1px solid #f3f4f6;margin-bottom:24px;"><p style="margin:0;font-size:48px;font-weight:200;color:#1f2937;letter-spacing:-2px;">${stats.totalHours}h</p><p style="margin:4px 0 0 0;font-size:14px;color:#9ca3af;">total study time</p><p style="margin:8px 0 0 0;font-size:13px;color:#6b7280;">${trendText}</p></div><table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px;"><tr><td style="text-align:center;padding:12px;"><p style="margin:0;font-size:28px;font-weight:300;color:#1f2937;">${stats.totalSessions}</p><p style="margin:4px 0 0 0;font-size:12px;color:#9ca3af;text-transform:uppercase;letter-spacing:1px;">sessions</p></td><td style="text-align:center;padding:12px;border-left:1px solid #f3f4f6;border-right:1px solid #f3f4f6;"><p style="margin:0;font-size:28px;font-weight:300;color:#1f2937;">${stats.dailyAvgHours}h</p><p style="margin:4px 0 0 0;font-size:12px;color:#9ca3af;text-transform:uppercase;letter-spacing:1px;">daily avg</p></td><td style="text-align:center;padding:12px;"><p style="margin:0;font-size:28px;font-weight:300;color:#1f2937;">${stats.studyDays}/${stats.daysInPeriod}</p><p style="margin:4px 0 0 0;font-size:12px;color:#9ca3af;text-transform:uppercase;letter-spacing:1px;">active days</p></td></tr></table>${stats.habitBreakdown.length > 0 ? `<div style="margin-bottom:24px;"><p style="margin:0 0 12px 0;font-size:12px;color:#9ca3af;text-transform:uppercase;letter-spacing:2px;font-weight:600;">habit breakdown</p><table width="100%" cellpadding="0" cellspacing="0">${habitBarsHTML}</table></div>` : ''}${streakHTML ? `<div style="margin-bottom:24px;"><p style="margin:0 0 8px 0;font-size:12px;color:#9ca3af;text-transform:uppercase;letter-spacing:2px;font-weight:600;">active streaks</p><div>${streakHTML}</div></div>` : ''}${stats.avgMood ? `<div style="margin-bottom:24px;padding:16px;background:#f0fdf4;border-radius:12px;"><p style="margin:0;font-size:14px;color:#15803d;">🧠 average mood: <strong>${stats.avgMood}/10</strong></p></div>` : ''}</div><div style="background:#ffffff;border-radius:20px;padding:32px;box-shadow:0 1px 3px rgba(0,0,0,0.06);margin-bottom:20px;"><p style="margin:0 0 16px 0;font-size:12px;color:#9ca3af;text-transform:uppercase;letter-spacing:2px;font-weight:600;">your summary</p>${narrativeHTML}</div><div style="text-align:center;padding:20px;"><p style="margin:0;font-size:13px;color:#9ca3af;">sent with 💙 by nous</p></div></div></body></html>`;
     }
 
     const handleSaveUsername = async () => {
@@ -4961,7 +4970,7 @@ const Settings = ({ auth, userId, db, userProfile, setNotification, isNightMode,
                 React.createElement('div', null,
                     React.createElement('h3', { className: "text-xl text-gray-700", style: { fontWeight: 400 } }, "email reports"),
                     React.createElement('p', { className: "text-sm text-gray-500 mt-1", style: { fontWeight: 300 } },
-                        "receive AI-powered study reports with personalized insights"
+                        "weekly and monthly study summaries, sent to your email"
                     )
                 )
             ),
@@ -5143,13 +5152,13 @@ const Settings = ({ auth, userId, db, userProfile, setNotification, isNightMode,
                             )
                         ),
 
-                        // AI narrative
-                        reportPreview.aiNarrative && React.createElement('div', {
+                        // Summary
+                        reportPreview.summary && React.createElement('div', {
                             className: "bg-white rounded-xl p-4 text-sm text-gray-600 leading-relaxed",
                             style: { fontWeight: 300, whiteSpace: 'pre-wrap' }
                         },
-                            React.createElement('p', { className: "text-xs text-gray-400 uppercase tracking-wider font-semibold mb-2" }, '✨ ai insights'),
-                            reportPreview.aiNarrative
+                            React.createElement('p', { className: "text-xs text-gray-400 uppercase tracking-wider font-semibold mb-2" }, 'summary'),
+                            reportPreview.summary
                         ),
 
                         // Email preview button
