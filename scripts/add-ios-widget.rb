@@ -26,7 +26,8 @@ end
 end
 ensure_file(app_group, 'App.entitlements')
 
-# Firebase config for push (gitignored; download with `firebase apps:sdkconfig IOS`)
+# Firebase config for push (gitignored; download with `firebase apps:sdkconfig IOS`;
+# Xcode Cloud writes it from GOOGLE_SERVICE_INFO_PLIST_BASE64 in ci_post_clone.sh)
 plist_ref = ensure_file(app_group, 'GoogleService-Info.plist')
 app.resources_build_phase.add_file_reference(plist_ref, true)
 app.build_configurations.each do |config|
