@@ -12,6 +12,13 @@
     "limitsNavigationsToAppBoundDomains": false
   },
   "plugins": {
-    "App": {}
+    "App": {},
+    "FirebaseMessaging": {
+      "presentationOptions": [
+        "badge",
+        "sound",
+        "alert"
+      ]
+    }
   }
 }

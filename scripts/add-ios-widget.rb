@@ -25,6 +25,10 @@ end
   app.source_build_phase.add_file_reference(ref, true)
 end
 ensure_file(app_group, 'App.entitlements')
+
+# Firebase config for push (gitignored; download with `firebase apps:sdkconfig IOS`)
+plist_ref = ensure_file(app_group, 'GoogleService-Info.plist')
+app.resources_build_phase.add_file_reference(plist_ref, true)
 app.build_configurations.each do |config|
   config.build_settings['CODE_SIGN_ENTITLEMENTS'] = 'App/App.entitlements'
 end

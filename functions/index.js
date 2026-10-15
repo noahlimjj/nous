@@ -1,9 +1,13 @@
 const { onCall } = require("firebase-functions/v2/https");
 const { onSchedule } = require("firebase-functions/v2/scheduler");
-const admin = require("firebase-admin");
+const { onDocumentCreated } = require("firebase-functions/v2/firestore");
+const { initializeApp } = require("firebase-admin/app");
+const { getFirestore, Timestamp, FieldValue } = require("firebase-admin/firestore");
+const { getAuth } = require("firebase-admin/auth");
+const { getMessaging } = require("firebase-admin/messaging");
 
-admin.initializeApp();
-const db = admin.firestore();
+initializeApp();
+const db = getFirestore();
 
 // --- Configuration ---
 const APP_ID = "study-tracker-app";
@@ -39,8 +43,8 @@ async function gatherReportData(userId, periodType) {
     // 1. Fetch sessions for the period
     const sessionsRef = db.collection(`artifacts/${APP_ID}/users/${userId}/sessions`);
     const sessionsSnap = await sessionsRef
-        .where("startTime", ">=", admin.firestore.Timestamp.fromDate(startDate))
-        .where("startTime", "<=", admin.firestore.Timestamp.fromDate(endDate))
+        .where("startTime", ">=", Timestamp.fromDate(startDate))
+        .where("startTime", "<=", Timestamp.fromDate(endDate))
         .get();
 
     const sessions = sessionsSnap.docs.map(doc => {
@@ -106,8 +110,8 @@ async function gatherReportData(userId, periodType) {
     prevEndDate.setHours(23, 59, 59, 999);
 
     const prevSessionsSnap = await sessionsRef
-        .where("startTime", ">=", admin.firestore.Timestamp.fromDate(prevStartDate))
-        .where("startTime", "<=", admin.firestore.Timestamp.fromDate(prevEndDate))
+        .where("startTime", ">=", Timestamp.fromDate(prevStartDate))
+        .where("startTime", "<=", Timestamp.fromDate(prevEndDate))
         .get();
 
     const prevSessions = prevSessionsSnap.docs.map(doc => ({
@@ -441,7 +445,7 @@ async function sendEmail(to, subject, htmlContent) {
                 subject: subject,
                 html: htmlContent
             },
-            createdAt: admin.firestore.FieldValue.serverTimestamp()
+            createdAt: FieldValue.serverTimestamp()
         });
         console.log(`📧 Email queued for ${to}: "${subject}"`);
         return { success: true, method: "firestore-mail-queue" };
@@ -487,7 +491,7 @@ exports.generateReport = onCall(
             // 4. Get user email from Firebase Auth
             let userEmail = null;
             try {
-                const authUser = await admin.auth().getUser(userId);
+                const authUser = await getAuth().getUser(userId);
                 userEmail = authUser.email;
             } catch (e) {
                 console.warn("Could not get user email from Auth:", e.message);
@@ -516,7 +520,7 @@ exports.generateReport = onCall(
                 htmlEmail,
                 emailSent: emailResult?.success || false,
                 emailRecipient: reportEmail || null,
-                createdAt: admin.firestore.FieldValue.serverTimestamp()
+                createdAt: FieldValue.serverTimestamp()
             });
 
             return {
@@ -600,7 +604,7 @@ exports.expireStaleSharedTimers = onSchedule(
             const names = t.participantNames || [];
 
             // Mark ended first so every participant's "active sessions" query drops it reliably
-            await doc.ref.update({ status: "ended", endedAt: admin.firestore.FieldValue.serverTimestamp() });
+            await doc.ref.update({ status: "ended", endedAt: FieldValue.serverTimestamp() });
 
             const batch = db.batch();
             participants.forEach((uid, idx) => {
@@ -611,14 +615,14 @@ exports.expireStaleSharedTimers = onSchedule(
                 batch.set(ref, {
                     habitId: habit.habitId,
                     habitName: habit.habitName,
-                    startTime: admin.firestore.Timestamp.fromMillis(lastActivity - Math.round(credited)),
-                    endTime: admin.firestore.Timestamp.fromMillis(lastActivity),
+                    startTime: Timestamp.fromMillis(lastActivity - Math.round(credited)),
+                    endTime: Timestamp.fromMillis(lastActivity),
                     duration: Math.round(credited),
                     isShared: true,
                     autoEnded: true,
                     nousSessionId: doc.id,
                     sharedWith: names.filter((_, i) => i !== idx),
-                    createdAt: admin.firestore.FieldValue.serverTimestamp()
+                    createdAt: FieldValue.serverTimestamp()
                 });
             });
             // Stop the habit timers the app mirrored from this session (their apps may be closed)
@@ -628,7 +632,7 @@ exports.expireStaleSharedTimers = onSchedule(
                 const habitRef = db.doc(`artifacts/${APP_ID}/users/${uid}/habits/${habit.habitId}`);
                 const habitSnap = await habitRef.get();
                 if (habitSnap.exists && habitSnap.data().activeTimer) {
-                    batch.update(habitRef, { activeTimer: admin.firestore.FieldValue.delete(), timerStoppedAt: Date.now() });
+                    batch.update(habitRef, { activeTimer: FieldValue.delete(), timerStoppedAt: Date.now() });
                 }
             }
             batch.delete(doc.ref);
@@ -641,7 +645,7 @@ exports.expireStaleSharedTimers = onSchedule(
         for (const doc of requestsSnap.docs) {
             const created = millis(doc.data().createdAt);
             if (created && now - created > STALE_REQUEST_MS) {
-                await doc.ref.update({ status: "expired", expiredAt: admin.firestore.FieldValue.serverTimestamp() });
+                await doc.ref.update({ status: "expired", expiredAt: FieldValue.serverTimestamp() });
                 expired++;
             }
         }
@@ -679,7 +683,7 @@ async function sendReportsToAllUsers(periodType) {
                 let email = userData.reportEmail;
                 if (!email) {
                     try {
-                        const authUser = await admin.auth().getUser(userId);
+                        const authUser = await getAuth().getUser(userId);
                         email = authUser.email;
                     } catch (e) {
                         console.warn(`No email for user ${userId}`);
@@ -706,7 +710,7 @@ async function sendReportsToAllUsers(periodType) {
                     summary,
                     emailSent: true,
                     emailRecipient: email,
-                    createdAt: admin.firestore.FieldValue.serverTimestamp()
+                    createdAt: FieldValue.serverTimestamp()
                 });
 
                 successCount++;
@@ -722,3 +726,58 @@ async function sendReportsToAllUsers(periodType) {
         console.error("Report job failed:", error);
     }
 }
+
+// --- Push notifications (iOS app) ---
+// Device tokens live in artifacts/{APP_ID}/users/{uid}/private/push { tokens: [] },
+// written by the app once the user allows notifications.
+const PUSH_REGION = "asia-southeast1"; // must match the Firestore location
+
+async function pushToUser(userId, title, body, data = {}) {
+    if (!userId) return;
+    const ref = db.doc(`artifacts/${APP_ID}/users/${userId}/private/push`);
+    const snap = await ref.get();
+    const tokens = (snap.exists && snap.data().tokens) || [];
+    if (!tokens.length) return;
+
+    const res = await getMessaging().sendEachForMulticast({
+        tokens,
+        notification: { title, body },
+        data,
+        apns: { payload: { aps: { sound: "default" } } }
+    });
+    const dead = tokens.filter((_, i) => {
+        const err = res.responses[i].error;
+        return err && ["messaging/registration-token-not-registered", "messaging/invalid-registration-token"].includes(err.code);
+    });
+    if (dead.length) await ref.update({ tokens: FieldValue.arrayRemove(...dead) });
+}
+
+exports.pushNousRequest = onDocumentCreated(
+    { document: "nousRequests/{requestId}", region: PUSH_REGION },
+    async (event) => {
+        const r = event.data && event.data.data();
+        if (!r || r.status !== "pending") return;
+        const habit = r.fromHabitName ? ` on ${r.fromHabitName}` : "";
+        await Promise.all((r.toUserIds || []).map(uid =>
+            pushToUser(uid, "nous together", `@${r.fromUsername || "a friend"} wants to study${habit} with you`, { type: "nousRequest" })
+                .catch(e => console.error(`push to ${uid} failed:`, e))));
+    }
+);
+
+exports.pushSessionInvite = onDocumentCreated(
+    { document: "sessionInvites/{inviteId}", region: PUSH_REGION },
+    async (event) => {
+        const r = event.data && event.data.data();
+        if (!r || r.status !== "pending") return;
+        await pushToUser(r.toUserId, "nous together", `@${r.fromUsername || "a friend"} invited you to their study session`, { type: "sessionInvite" });
+    }
+);
+
+exports.pushFriendRequest = onDocumentCreated(
+    { document: "friendRequests/{requestId}", region: PUSH_REGION },
+    async (event) => {
+        const r = event.data && event.data.data();
+        if (!r || r.status !== "pending") return;
+        await pushToUser(r.toUserId, "new friend request", `@${r.fromUsername || "someone"} wants to be friends`, { type: "friendRequest" });
+    }
+);

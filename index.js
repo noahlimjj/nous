@@ -936,10 +936,46 @@ const nousNotify = (title, body) => {
     } catch (e) { /* notifications unavailable */ }
 };
 const nousAskNotificationPermission = () => {
+    if (nousPushAvailable()) { nousPushRegister(true); return; }
     try {
         if (window.Notification && Notification.permission === 'default') Notification.requestPermission();
     } catch (e) { /* notifications unavailable */ }
 };
+
+// iOS app: push alerts for friend requests and study invites (sent by Cloud Functions).
+// The device token is stored under the signed-in user and removed on sign-out.
+let nousPushUser = null; // { db, userId, token }
+const nousPushAvailable = () => !!(window.Capacitor && typeof window.Capacitor.isNativePlatform === 'function' &&
+    window.Capacitor.isNativePlatform() && window.Capacitor.isPluginAvailable && window.Capacitor.isPluginAvailable('FirebaseMessaging'));
+const nousPushCall = (method) => window.Capacitor.nativePromise('FirebaseMessaging', method, {});
+const nousPushDoc = (db, userId) => window.doc(db, 'artifacts', 'study-tracker-app', 'users', userId, 'private', 'push');
+const nousPushRegister = async (prompt) => {
+    if (!nousPushAvailable() || !nousPushUser) return;
+    try {
+        let { receive } = await nousPushCall('checkPermissions');
+        if (receive !== 'granted' && prompt) ({ receive } = await nousPushCall('requestPermissions'));
+        if (receive !== 'granted') return;
+        const { token } = await nousPushCall('getToken');
+        const user = nousPushUser;
+        if (!token || !user || user.token === token) return;
+        await window.setDoc(nousPushDoc(user.db, user.userId), { tokens: window.arrayUnion(token), updatedAt: Date.now() }, { merge: true });
+        user.token = token;
+    } catch (e) { console.warn('Push registration failed:', e); }
+};
+const nousPushSetUser = (db, userId) => {
+    if (nousPushUser && nousPushUser.userId === userId) return;
+    nousPushUser = userId ? { db, userId, token: null } : null;
+    if (nousPushUser) nousPushRegister(false);
+};
+const nousPushUnregister = async () => {
+    const user = nousPushUser;
+    nousPushUser = null;
+    if (!user || !user.token) return;
+    try {
+        await window.updateDoc(nousPushDoc(user.db, user.userId), { tokens: window.arrayRemove(user.token) });
+    } catch (e) { /* best effort */ }
+};
+window.nousPushRegister = nousPushRegister;
 
 // Remember a "join me" link across sign-in
 try {
@@ -5043,6 +5079,7 @@ const Settings = ({ auth, userId, db, userProfile, setNotification, isNightMode,
         try {
             const res = await window.NousNative.call('requestNotificationPermission');
             if (res && res.granted) {
+                window.nousPushRegister && window.nousPushRegister(false);
                 updateReminderPrefs({ ...reminderPrefs, enabled: true });
                 setNotification({ type: 'success', message: `Reminder set for ${reminderPrefs.time} daily` });
             } else {
@@ -5422,7 +5459,8 @@ const Settings = ({ auth, userId, db, userProfile, setNotification, isNightMode,
         }
     };
 
-    const handleLogout = () => {
+    const handleLogout = async () => {
+        await nousPushUnregister();
         window.signOut(auth);
     };
 
@@ -8110,6 +8148,7 @@ const Friends = ({ db, userId, setNotification, userProfile }) => {
             });
 
             setNotification({ type: 'success', message: `Friend request sent to @${toUser.username}!` });
+            nousAskNotificationPermission();
             setSearchResult(null);
             setSearchTerm('');
             setFriendCodeInput('');
@@ -8136,6 +8175,7 @@ const Friends = ({ db, userId, setNotification, userProfile }) => {
             });
 
             setNotification({ type: 'success', message: `You're now friends with @${request.fromUsername}!` });
+            nousAskNotificationPermission();
 
             // Refresh friends list
             setFriendRequests(prev => prev.filter(r => r.id !== request.id));
@@ -9413,6 +9453,7 @@ function App() {
                     if (user) {
                         setUser(user);
                         setUserId(user.uid);
+                        nousPushSetUser(dbInstance, user.uid);
                         // Expose to window for debugging
                         window.userId = user.uid;
                     } else {
@@ -9430,6 +9471,7 @@ function App() {
                             // Otherwise, no user and no token, so clear state.
                             setUser(null);
                             setUserId(null);
+                            nousPushSetUser(null, null);
                             // Clear window references
                             window.userId = null;
                         }

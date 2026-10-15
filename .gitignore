@@ -79,3 +79,4 @@ create-test-friend.js
 # Cloud Functions secrets
 functions/.env
 functions/test-report-output.html
+ios/App/App/GoogleService-Info.plist
