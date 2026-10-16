@@ -32,7 +32,16 @@ fi
 # workflow (base64 of ios/App/App/GoogleService-Info.plist).
 PLIST_PATH="$REPO_ROOT/ios/App/App/GoogleService-Info.plist"
 if [ -n "$GOOGLE_SERVICE_INFO_PLIST_BASE64" ]; then
-    echo "$GOOGLE_SERVICE_INFO_PLIST_BASE64" | base64 --decode > "$PLIST_PATH"
+    echo "GOOGLE_SERVICE_INFO_PLIST_BASE64 is set (${#GOOGLE_SERVICE_INFO_PLIST_BASE64} chars)"
+    # Tolerate whitespace or line breaks picked up when pasting the value
+    printf '%s' "$GOOGLE_SERVICE_INFO_PLIST_BASE64" | tr -d ' \t\r\n' | base64 -D > "$PLIST_PATH" || {
+        echo "error: GOOGLE_SERVICE_INFO_PLIST_BASE64 is not valid base64"
+        exit 1
+    }
+    if ! plutil -lint "$PLIST_PATH" >/dev/null; then
+        echo "error: GOOGLE_SERVICE_INFO_PLIST_BASE64 did not decode to a valid plist"
+        exit 1
+    fi
     echo "✓ Wrote GoogleService-Info.plist"
 elif [ ! -f "$PLIST_PATH" ]; then
     echo "error: GOOGLE_SERVICE_INFO_PLIST_BASE64 is not set; add it as a secret in the Xcode Cloud workflow"
