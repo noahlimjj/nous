@@ -162,6 +162,9 @@ const LoaderIcon = () => React.createElement('svg', {
     className: "animate-spin"
 }, React.createElement('line', { x1: "12", y1: "2", x2: "12", y2: "6" }), React.createElement('line', { x1: "12", y1: "18", x2: "12", y2: "22" }), React.createElement('line', { x1: "4.93", y1: "4.93", x2: "7.76", y2: "7.76" }), React.createElement('line', { x1: "16.24", y1: "16.24", x2: "19.07", y2: "19.07" }), React.createElement('line', { x1: "2", y1: "12", x2: "6", y2: "12" }), React.createElement('line', { x1: "18", y1: "12", x2: "22", y2: "12" }), React.createElement('line', { x1: "4.93", y1: "19.07", x2: "7.76", y2: "16.24" }), React.createElement('line', { x1: "16.24", y1: "7.76", x2: "19.07", y2: "4.93" }));
 
+// True inside the iOS app (Capacitor), false in the browser
+const nousIsNative = () => !!(window.Capacitor && typeof window.Capacitor.isNativePlatform === 'function' && window.Capacitor.isNativePlatform());
+
 const GoogleIcon = () => React.createElement('svg', {
     xmlns: "http://www.w3.org/2000/svg",
     width: "20",
@@ -172,6 +175,16 @@ const GoogleIcon = () => React.createElement('svg', {
     React.createElement('path', { fill: "#FF3D00", d: "M6.306,14.691l6.571,4.819C14.655,15.108,18.961,12,24,12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C16.318,4,9.656,8.337,6.306,14.691z" }),
     React.createElement('path', { fill: "#4CAF50", d: "M24,44c5.166,0,9.86-1.977,13.409-5.192l-6.19-5.238C29.211,35.091,26.715,36,24,36c-5.202,0-9.619-3.317-11.283-7.946l-6.522,5.025C9.505,39.556,16.227,44,24,44z" }),
     React.createElement('path', { fill: "#1976D2", d: "M43.611,20.083H42V20H24v8h11.303c-0.792,2.237-2.231,4.166-4.087,5.571c0.001-0.001,0.002-0.001,0.003-0.002l6.19,5.238C36.971,39.205,44,34,44,24C44,22.659,43.862,21.35,43.611,20.083z" })
+);
+
+const AppleIcon = () => React.createElement('svg', {
+    xmlns: "http://www.w3.org/2000/svg",
+    width: "18",
+    height: "18",
+    viewBox: "0 0 24 24",
+    fill: "currentColor"
+},
+    React.createElement('path', { d: "M16.37 12.6c-.02-2.3 1.88-3.4 1.97-3.46-1.07-1.57-2.74-1.78-3.33-1.8-1.42-.14-2.77.83-3.49.83-.72 0-1.83-.81-3.01-.79-1.55.02-2.98.9-3.78 2.29-1.61 2.8-.41 6.94 1.16 9.21.77 1.11 1.68 2.36 2.88 2.31 1.16-.05 1.6-.75 3-.75s1.79.75 3.01.72c1.25-.02 2.04-1.13 2.8-2.25.88-1.29 1.24-2.54 1.26-2.6-.03-.01-2.42-.93-2.47-3.71zM14.08 5.85c.64-.77 1.07-1.85.95-2.92-.92.04-2.03.61-2.69 1.38-.59.68-1.11 1.78-.97 2.83 1.02.08 2.07-.52 2.71-1.29z" })
 );
 
 const SettingsIcon = () => React.createElement('svg', {
@@ -849,7 +862,26 @@ const AuthComponent = ({ auth, setNotification }) => {
         }
     };
 
+    const handleNativeSignIn = async (providerId) => {
+        try {
+            const method = providerId === 'apple.com' ? 'signInWithApple' : 'signInWithGoogle';
+            const result = await window.Capacitor.nativePromise('FirebaseAuthentication', method, {});
+            const cred = result && result.credential;
+            if (!cred || !cred.idToken) return;
+            const credential = providerId === 'apple.com'
+                ? new window.OAuthProvider('apple.com').credential({ idToken: cred.idToken, rawNonce: cred.nonce })
+                : window.GoogleAuthProvider.credential(cred.idToken, cred.accessToken);
+            await window.signInWithCredential(auth, credential);
+        } catch (error) {
+            // Closing the Google or Apple sheet rejects with a "cancel" message; ignore that
+            if (/cancel/i.test(String(error && (error.message || error.code)))) return;
+            console.error("Native sign-in error:", error);
+            setNotification({ type: 'error', message: 'Sign-in failed. Please try again.' });
+        }
+    };
+
     const handleGoogleSignIn = async () => {
+        if (nousIsNative()) return handleNativeSignIn('google.com');
         try {
             const provider = new window.GoogleAuthProvider();
             await window.signInWithPopup(auth, provider);
@@ -905,8 +937,16 @@ const AuthComponent = ({ auth, setNotification }) => {
                 React.createElement('span', { className: "flex-shrink mx-4 text-gray-400" }, "Or"),
                 React.createElement('div', { className: "flex-grow border-t border-gray-300" })
             ),
-            // Google popup sign-in can't open inside the iOS app's web view, so it's web-only
-            !(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()) && React.createElement('button', {
+            // In the iOS app, Google and Apple sign-in use the native sheets (see handleNativeSignIn)
+            nousIsNative() && React.createElement('button', {
+                onClick: () => handleNativeSignIn('apple.com'),
+                className: "w-full bg-black text-white py-3 px-4 rounded-xl soft-shadow hover:opacity-90 focus:outline-none transition flex items-center justify-center gap-3",
+                style: { fontWeight: 400 }
+            },
+                React.createElement(AppleIcon),
+                "continue with Apple"
+            ),
+            React.createElement('button', {
                 onClick: handleGoogleSignIn,
                 className: "w-full bg-white soft-shadow text-calm-700 py-3 px-4 rounded-xl hover:bg-calm-50 focus:outline-none transition flex items-center justify-center gap-3",
                 style: { fontWeight: 400 }
@@ -945,8 +985,7 @@ const nousAskNotificationPermission = () => {
 // iOS app: push alerts for friend requests and study invites (sent by Cloud Functions).
 // The device token is stored under the signed-in user and removed on sign-out.
 let nousPushUser = null; // { db, userId, token }
-const nousPushAvailable = () => !!(window.Capacitor && typeof window.Capacitor.isNativePlatform === 'function' &&
-    window.Capacitor.isNativePlatform() && window.Capacitor.isPluginAvailable && window.Capacitor.isPluginAvailable('FirebaseMessaging'));
+const nousPushAvailable = () => nousIsNative() && !!(window.Capacitor.isPluginAvailable && window.Capacitor.isPluginAvailable('FirebaseMessaging'));
 const nousPushCall = (method) => window.Capacitor.nativePromise('FirebaseMessaging', method, {});
 const nousPushDoc = (db, userId) => window.doc(db, 'artifacts', 'study-tracker-app', 'users', userId, 'private', 'push');
 const nousPushRegister = async (prompt) => {
@@ -1177,8 +1216,8 @@ const Header = ({ setCurrentPage, currentPage, onNavigateToHabits, onNavigateToR
                     },
                         React.createElement(UsersIcon)
                     ),
-                    // Rewards/Habits Toggle Button
-                    React.createElement('button', {
+                    // Rewards shop (web only; the iOS app keeps the nav short)
+                    !nousIsNative() && React.createElement('button', {
                         onClick: onNavigateToRewards,
                         title: "Rewards",
                         className: `p-2 rounded-full transition ${currentPage === 'habits' ? 'bg-calm-100 text-accent-blue' : 'text-calm-600 hover:bg-calm-50'}`,
@@ -3794,7 +3833,7 @@ const Dashboard = ({ db, userId, setNotification, activeTimers, setActiveTimers,
                 React.createElement('div', { className: "flex justify-center gap-3 mb-5 text-sm" },
                     sessionSummary.streak > 0 && React.createElement('span', { className: "px-3 py-1 rounded-full bg-orange-50 text-orange-600", style: { fontWeight: 400 } },
                         `🔥 ${sessionSummary.streak}-day together streak`),
-                    sessionSummary.bonus > 0 && React.createElement('span', { className: "px-3 py-1 rounded-full bg-yellow-50 text-yellow-700", style: { fontWeight: 400 } },
+                    sessionSummary.bonus > 0 && !nousIsNative() && React.createElement('span', { className: "px-3 py-1 rounded-full bg-yellow-50 text-yellow-700", style: { fontWeight: 400 } },
                         `+${sessionSummary.bonus} coins`)
                 ),
                 React.createElement('button', {
@@ -4609,28 +4648,24 @@ const MoodInsights = ({ db, userId, appId }) => {
         return (sum / logs.length).toFixed(1);
     };
 
-    if (isLoading) {
-        return React.createElement('div', { className: "stat-card mt-8" },
-            React.createElement('h3', { className: "text-lg font-medium text-gray-900 dark:text-white mb-4 lowercase" }, "mood insights"),
-            React.createElement('div', { className: "text-center py-4 text-gray-400" }, "loading...")
-        );
-    }
+    if (isLoading) return null;
+    if (moodHistory.length === 0) return null;
 
     const weeklyAvg = getAverage(7);
     const monthlyAvg = getAverage(30);
     const totalLogs = moodHistory.length;
 
-    return React.createElement('div', { className: "stat-card mt-8" },
-        React.createElement('h3', { className: "text-lg font-medium text-gray-900 dark:text-white mb-6 lowercase" }, "mood insights"),
-        React.createElement('div', { className: "flex justify-center gap-12 sm:gap-24" },
+    return React.createElement('div', { className: "rp-card" },
+        React.createElement('h3', { className: "rp-h3" }, "mood"),
+        React.createElement('div', { className: "rp-mood" },
             [
-                { label: '7-day avg', value: weeklyAvg },
-                { label: '30-day avg', value: monthlyAvg },
-                { label: 'total logs', value: totalLogs }
+                { label: 'last 7 days', value: weeklyAvg || '–' },
+                { label: 'last 30 days', value: monthlyAvg || '–' },
+                { label: 'check-ins', value: totalLogs }
             ].map(stat =>
-                React.createElement('div', { key: stat.label, className: "text-center flex flex-col items-center" },
-                    React.createElement('div', { className: "text-3xl font-light text-gray-800 dark:text-white mb-1 tracking-tighter" }, stat.value),
-                    React.createElement('div', { className: "text-[10px] text-gray-400 font-bold lowercase tracking-[0.2em]" }, stat.label)
+                React.createElement('div', { key: stat.label },
+                    React.createElement('div', { className: "rp-big" }, stat.value),
+                    React.createElement('div', { className: "rp-label", style: { marginTop: 4 } }, stat.label)
                 )
             )
         )
@@ -4652,6 +4687,7 @@ const Reports = ({ db, userId, setNotification }) => {
     });
     const [chartData, setChartData] = useState([]);
     const [habitBreakdown, setHabitBreakdown] = useState([]);
+    const [pickedBar, setPickedBar] = useState(null); // index of the tapped bar, shown in the header
 
     const appId = typeof __app_id !== 'undefined' ? __app_id : 'study-tracker-app';
 
@@ -4699,14 +4735,22 @@ const Reports = ({ db, userId, setNotification }) => {
 
     const formatDateRange = () => {
         const { start, end } = getPeriodRange(selectedDate, viewMode);
+        const today = new Date();
+        const yesterday = new Date(); yesterday.setDate(today.getDate() - 1);
+        let label;
         if (viewMode === 'day') {
-            if (start.toDateString() === new Date().toDateString()) return 'Today';
-            return start.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
+            if (start.toDateString() === today.toDateString()) label = 'today';
+            else if (start.toDateString() === yesterday.toDateString()) label = 'yesterday';
+            else label = start.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
         } else if (viewMode === 'month') {
-            return start.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+            label = start.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+        } else if (today >= start && today <= end) {
+            label = 'this week';
         } else {
-            return `${start.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} – ${end.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`;
+            const sameMonth = start.getMonth() === end.getMonth();
+            label = `${start.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} – ${sameMonth ? end.getDate() : end.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`;
         }
+        return label.toLowerCase();
     };
 
     // Fetch habits for dropdown
@@ -4733,6 +4777,7 @@ const Reports = ({ db, userId, setNotification }) => {
 
         const fetchData = async () => {
             setIsLoading(true);
+            setPickedBar(null);
             try {
                 const { start, end } = getPeriodRange(selectedDate, viewMode);
                 const sessionsQuery = window.query(
@@ -4813,14 +4858,17 @@ const Reports = ({ db, userId, setNotification }) => {
             const maxVal = Math.max(...dayBuckets, 1);
             const today = new Date();
             chart = dayBuckets.map((val, idx) => ({
-                label: (idx + 1) % 7 === 1 || idx === 0 ? `${idx + 1}` : '', // Show label every 7 days + first day
+                label: idx % 7 === 0 ? `${idx + 1}` : '', // 1, 8, 15, 22, 29
+                name: new Date(start.getFullYear(), start.getMonth(), idx + 1).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }).toLowerCase(),
                 value: val,
                 heightPct: (val / maxVal) * 100,
                 isToday: today.getMonth() === start.getMonth() && today.getFullYear() === start.getFullYear() && today.getDate() === idx + 1
             }));
         } else if (viewMode === 'week') {
             // 7 days
-            const days = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
+            const days = ['m', 't', 'w', 't', 'f', 's', 's'];
+            const dayNames = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
+            const todayStr = new Date().toDateString();
             const dayBuckets = Array(7).fill(0);
 
             filteredData.forEach(s => {
@@ -4832,12 +4880,17 @@ const Reports = ({ db, userId, setNotification }) => {
             });
 
             const maxVal = Math.max(...dayBuckets, 1); // Avoid div by zero
-            chart = dayBuckets.map((val, idx) => ({
-                label: days[idx],
-                value: val,
-                heightPct: (val / maxVal) * 100,
-                isToday: new Date().getDay() - 1 === idx // Rough approximation
-            }));
+            chart = dayBuckets.map((val, idx) => {
+                const d = new Date(start);
+                d.setDate(start.getDate() + idx);
+                return {
+                    label: days[idx],
+                    name: dayNames[idx],
+                    value: val,
+                    heightPct: (val / maxVal) * 100,
+                    isToday: d.toDateString() === todayStr
+                };
+            });
         } else {
             // 24 hours (4-hour buckets for simplicity or 24 bars)
             const hourBuckets = Array(24).fill(0);
@@ -4852,8 +4905,10 @@ const Reports = ({ db, userId, setNotification }) => {
             });
 
             const maxVal = Math.max(...hourBuckets, 1);
+            const hourName = (h) => `${h % 12 === 0 ? 12 : h % 12}${h < 12 ? 'am' : 'pm'}`;
             chart = hourBuckets.map((val, idx) => ({
-                label: idx % 6 === 0 ? `${idx}` : '', // Show label every 6 hours
+                label: idx % 6 === 0 ? hourName(idx).replace('m', '') : '', // 12a, 6a, 12p, 6p
+                name: `${hourName(idx)} – ${hourName((idx + 1) % 24)}`,
                 value: val,
                 heightPct: (val / maxVal) * 100,
             }));
@@ -4874,171 +4929,150 @@ const Reports = ({ db, userId, setNotification }) => {
         return `${minutes}m`;
     };
 
-    return React.createElement('div', { className: "max-w-4xl mx-auto p-4 sm:p-6 lg:p-8" },
-        // Header with Date Nav and Toggle
-        React.createElement('div', { className: "flex flex-col md:flex-row justify-between items-center mb-8 gap-4" },
-            React.createElement('h2', { className: "text-3xl font-light text-gray-800 dark:text-gray-100" }, "reports"),
+    // Big number with a smaller unit: 12.4 h, or minutes under an hour
+    const bigTime = (ms) => {
+        const mins = Math.round(ms / 60000);
+        if (mins < 60) return [String(mins), 'm'];
+        return [(ms / 3600000).toFixed(1).replace(/\.0$/, ''), 'h'];
+    };
 
-            React.createElement('div', { className: "flex items-center gap-4 bg-white dark:bg-gray-800 p-1 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700" },
-                React.createElement('div', { className: "segmented-control" },
-                    React.createElement('button', {
-                        className: viewMode === 'day' ? 'active' : '',
-                        onClick: () => setViewMode('day')
-                    }, "Day"),
-                    React.createElement('button', {
-                        className: viewMode === 'week' ? 'active' : '',
-                        onClick: () => setViewMode('week')
-                    }, "Week"),
-                    React.createElement('button', {
-                        className: viewMode === 'month' ? 'active' : '',
-                        onClick: () => setViewMode('month')
-                    }, "Month")
-                )
+    // Lucide line icons
+    const lucide = (paths, size = 18) => React.createElement('svg', {
+        width: size, height: size, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor",
+        strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round"
+    }, ...paths.map((d, i) => typeof d === 'string'
+        ? React.createElement('path', { key: i, d })
+        : React.createElement(d.tag, { key: i, ...d.attrs })));
+    const clockIcon = () => lucide([{ tag: 'circle', attrs: { cx: 12, cy: 12, r: 10 } }, "M12 6v6l4 2"]);
+    const repeatIcon = () => lucide(["m17 2 4 4-4 4", "M3 11v-1a4 4 0 0 1 4-4h14", "m7 22-4-4 4-4", "M21 13v1a4 4 0 0 1-4 4H3"]);
+    const chartIcon = () => lucide(["M3 3v16a2 2 0 0 0 2 2h16", "M18 17V9", "M13 17V5", "M8 17v-3"], 32);
+
+    const habitColors = ['#6B8DD6', '#8B7FB8', '#7FAFA3', '#D9A66B', '#C98BA8'];
+    const periodWord = viewMode === 'week' ? 'week' : viewMode === 'month' ? 'month' : 'day';
+    const isCurrentPeriod = getPeriodRange(selectedDate, viewMode).end >= new Date();
+    const picked = pickedBar !== null ? chartData[pickedBar] : null;
+    const [totalNum, totalUnit] = bigTime(picked ? picked.value : stats.totalDuration);
+    const [avgNum, avgUnit] = bigTime(stats.dailyAverage);
+    const hasData = stats.totalDuration > 0;
+
+    return React.createElement('div', { className: "rp-page" },
+        React.createElement('h2', { className: "rp-title" }, "reports"),
+        React.createElement('p', { className: "rp-sub" }, "where your study time went"),
+
+        React.createElement('div', { className: "rp-controls" },
+            React.createElement('div', { className: "rp-seg" },
+                ['day', 'week', 'month'].map(mode => React.createElement('button', {
+                    key: mode,
+                    className: viewMode === mode ? 'is-active' : '',
+                    onClick: () => setViewMode(mode)
+                }, mode))
             ),
-
-            // Habit Selector Dropdown - styled to match segmented control
-            React.createElement('div', { className: "relative inline-flex" },
+            allHabits.length > 0 && React.createElement('div', { className: "rp-select-wrap" },
                 React.createElement('select', {
                     value: selectedHabit,
                     onChange: (e) => setSelectedHabit(e.target.value),
-                    className: "habit-selector appearance-none pl-3 pr-8 py-1 bg-gray-200 dark:bg-slate-800 rounded-lg text-sm font-medium text-gray-600 dark:text-slate-300 border border-gray-200/50 dark:border-slate-700 hover:bg-gray-300 dark:hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/50 cursor-pointer transition-all duration-200"
+                    className: "rp-select",
+                    'aria-label': "habit"
                 },
-                    React.createElement('option', { value: 'all' }, "All Habits"),
-                    allHabits.map(h => React.createElement('option', { key: h.id, value: h.id }, h.title || h.name))
+                    React.createElement('option', { value: 'all' }, "all habits"),
+                    allHabits.map(h => React.createElement('option', { key: h.id, value: h.id }, (h.title || h.name || 'untitled').toLowerCase()))
                 ),
-                // Subtle dropdown arrow
-                React.createElement('div', { className: "absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none" },
-                    React.createElement('svg', { className: "w-4 h-4 text-gray-500 dark:text-slate-400", fill: "none", stroke: "currentColor", viewBox: "0 0 24 24" },
-                        React.createElement('path', { strokeLinecap: "round", strokeLinejoin: "round", strokeWidth: "2", d: "M19 9l-7 7-7-7" })
-                    )
-                )
+                lucide(["m6 9 6 6 6-6"], 14)
             )
         ),
 
-        // Date Navigator
-        React.createElement('div', { className: "flex justify-center items-center mb-8" },
-            React.createElement('button', { onClick: () => navigateDate(-1), className: "p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition" },
-                React.createElement('svg', { width: "24", height: "24", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2" }, React.createElement('path', { d: "M15 18l-6-6 6-6" }))
+        React.createElement('div', { className: "rp-nav" },
+            React.createElement('button', { onClick: () => navigateDate(-1), className: "rp-nav-btn", 'aria-label': `previous ${periodWord}` },
+                lucide(["m15 18-6-6 6-6"], 20)
             ),
-            React.createElement('span', { className: "mx-4 text-lg font-medium text-gray-700 dark:text-gray-200 min-w-[200px] text-center" }, formatDateRange()),
-            React.createElement('button', { onClick: () => navigateDate(1), className: "p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition" },
-                React.createElement('svg', { width: "24", height: "24", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2" }, React.createElement('path', { d: "M9 18l6-6-6-6" }))
+            React.createElement('span', { className: "rp-nav-label" }, formatDateRange()),
+            React.createElement('button', { onClick: () => navigateDate(1), className: "rp-nav-btn", disabled: isCurrentPeriod, 'aria-label': `next ${periodWord}` },
+                lucide(["m9 18 6-6-6-6"], 20)
             )
         ),
 
-        isLoading ?
-            React.createElement('div', { className: "flex justify-center p-12" }, React.createElement('div', { className: "animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500" }))
-            : React.createElement('div', { className: "space-y-6" },
+        isLoading ? React.createElement('div', { className: "rp-spin" }) :
+            React.createElement('div', { className: "rp-stack" },
 
-                // Hero Chart Card
-                React.createElement('div', { className: "stat-card" },
-                    React.createElement('div', { className: "flex justify-between items-end mb-6" },
+                // Total + chart
+                React.createElement('div', { className: "rp-card" },
+                    React.createElement('div', { className: "rp-hero-top" },
                         React.createElement('div', null,
-                            React.createElement('p', { className: "text-gray-500 dark:text-gray-400 text-sm font-medium uppercase tracking-wide mb-1" },
-                                viewMode === 'week' ? "Weekly Total" : viewMode === 'month' ? "Monthly Total" : "Daily Total"
-                            ),
-                            React.createElement('h3', { className: "text-4xl font-light text-gray-900 dark:text-white" },
-                                formatDurationHrs(stats.totalDuration)
+                            React.createElement('p', { className: "rp-label" }, picked ? picked.name : `total this ${periodWord}`),
+                            React.createElement('div', { className: "rp-big" }, totalNum, React.createElement('small', null, totalUnit))
+                        ),
+                        viewMode !== 'day' && !picked && React.createElement('div', { style: { textAlign: 'right' } },
+                            React.createElement('p', { className: "rp-label" }, "daily average"),
+                            React.createElement('p', { className: "rp-mid" }, `${avgNum}${avgUnit}`)
+                        ),
+                        picked && React.createElement('button', {
+                            onClick: () => setPickedBar(null),
+                            className: "rp-label",
+                            style: { textDecoration: 'underline', textUnderlineOffset: 3 }
+                        }, `show ${periodWord}`)
+                    ),
+                    !hasData ? React.createElement('div', { className: "rp-empty" },
+                        chartIcon(),
+                        `nothing tracked ${viewMode === 'day' ? (formatDateRange() === 'today' ? 'yet today' : 'this day') : isCurrentPeriod ? `yet this ${periodWord}` : `this ${periodWord}`}`
+                    ) : React.createElement('div', { className: `rp-chart ${viewMode !== 'week' ? 'is-dense' : ''}` },
+                        chartData.map((bar, idx) => React.createElement('div', {
+                            key: idx,
+                            className: "rp-col",
+                            title: `${bar.name}: ${formatDurationFull(bar.value)}`,
+                            onClick: () => setPickedBar(pickedBar === idx ? null : idx)
+                        },
+                            React.createElement('div', {
+                                className: `rp-bar ${bar.value === 0 ? 'is-empty' : ''} ${bar.isToday ? 'is-today' : ''} ${pickedBar === idx ? 'is-picked' : ''}`,
+                                style: { height: bar.value === 0 ? '4px' : `${Math.max(bar.heightPct, 6)}%` }
+                            })
+                        ))
+                    ),
+                    hasData && React.createElement('div', { className: "rp-axis" },
+                        chartData.map((bar, idx) => React.createElement('span', { key: idx, className: bar.isToday ? 'is-today' : '' }, bar.label))
+                    )
+                ),
+
+                hasData ? React.createElement(React.Fragment, null,
+                    React.createElement('div', { className: "rp-grid" },
+                        React.createElement('div', { className: "rp-card rp-tile" },
+                            React.createElement('span', { className: "rp-icon" }, clockIcon()),
+                            React.createElement('div', null,
+                                React.createElement('p', { className: "rp-label" }, "most time"),
+                                React.createElement('p', { className: "rp-tile-name" }, stats.mostUsedHabit ? stats.mostUsedHabit.name : '–'),
+                                React.createElement('p', { className: "rp-tile-meta" }, stats.mostUsedHabit ? formatDurationFull(stats.mostUsedHabit.duration) : '')
                             )
                         ),
-                        React.createElement('div', { className: "text-right" },
-                            React.createElement('p', { className: "text-gray-500 dark:text-gray-400 text-sm" }, "Daily Average"),
-                            React.createElement('p', { className: "text-xl font-medium text-gray-800 dark:text-gray-200" },
-                                formatDurationHrs(stats.dailyAverage)
+                        React.createElement('div', { className: "rp-card rp-tile" },
+                            React.createElement('span', { className: "rp-icon" }, repeatIcon()),
+                            React.createElement('div', null,
+                                React.createElement('p', { className: "rp-label" }, "most sessions"),
+                                React.createElement('p', { className: "rp-tile-name" }, stats.mostFrequentHabit ? stats.mostFrequentHabit.name : '–'),
+                                React.createElement('p', { className: "rp-tile-meta" }, stats.mostFrequentHabit ? `${stats.mostFrequentHabit.count} ${stats.mostFrequentHabit.count === 1 ? 'session' : 'sessions'}` : '')
                             )
                         )
                     ),
 
-                    // Bar Chart
-                    React.createElement('div', { className: `h-48 flex justify-between ${viewMode === 'month' ? 'gap-0.5' : 'gap-2'} pt-4 border-t border-gray-100 dark:border-gray-700` },
-                        chartData.length > 0 ? chartData.map((bar, idx) =>
-                            React.createElement('div', { key: idx, className: "chart-bar-container flex-1 group" },
-                                React.createElement('div', {
-                                    className: `chart-bar w-full ${viewMode === 'month' ? 'max-w-[8px]' : 'max-w-[30px]'} rounded-t-md mx-auto ${bar.isToday ? 'bg-blue-600 dark:bg-blue-500' : 'bg-indigo-300 dark:bg-indigo-600'} group-hover:bg-blue-400 transition-all`,
-                                    style: {
-                                        height: `${Math.max(bar.heightPct, 4)}%`,
-                                        opacity: bar.value === 0 ? 0.5 : 1
-                                    }
-                                }),
-                                React.createElement('div', { className: "mt-2 text-xs text-gray-400 dark:text-gray-500 font-medium" }, bar.label),
-                                // Tooltip
-                                React.createElement('div', { className: "absolute bottom-full mb-2 bg-gray-900 text-white text-xs py-1 px-2 rounded opacity-0 group-hover:opacity-100 transition pointer-events-none whitespace-nowrap z-10" },
-                                    formatDurationFull(bar.value)
-                                )
-                            )
-                        ) : React.createElement('div', { className: "w-full text-center text-gray-400" }, "No data")
-                    )
-                ),
-
-                // Stats Grid
-                React.createElement('div', { className: "reports-grid" },
-                    React.createElement('div', { className: "stat-card" },
-                        React.createElement('div', { className: "flex items-start justify-between" },
-                            React.createElement('div', null,
-                                React.createElement('p', { className: "text-gray-500 dark:text-gray-400 text-xs uppercase tracking-wide font-bold" }, "Most Used"),
-                                React.createElement('h4', { className: "text-lg font-medium text-gray-900 dark:text-white mt-1" },
-                                    stats.mostUsedHabit ? stats.mostUsedHabit.name : "-"
-                                )
-                            ),
-                            React.createElement('div', { className: "bg-blue-100 dark:bg-blue-900/30 p-2 rounded-lg" },
-                                React.createElement('svg', { className: "w-5 h-5 text-blue-600 dark:text-blue-400", fill: "none", stroke: "currentColor", viewBox: "0 0 24 24" },
-                                    React.createElement('path', { strokeLinecap: "round", strokeLinejoin: "round", strokeWidth: "2", d: "M13 10V3L4 14h7v7l9-11h-7z" })
-                                )
-                            )
-                        ),
-                        React.createElement('p', { className: "text-sm text-gray-600 dark:text-gray-400 mt-2" },
-                            stats.mostUsedHabit ? formatDurationFull(stats.mostUsedHabit.duration) : "No activity"
-                        )
-                    ),
-
-                    React.createElement('div', { className: "stat-card" },
-                        React.createElement('div', { className: "flex items-start justify-between" },
-                            React.createElement('div', null,
-                                React.createElement('p', { className: "text-gray-500 dark:text-gray-400 text-xs uppercase tracking-wide font-bold" }, "Top Habit"),
-                                React.createElement('h4', { className: "text-lg font-medium text-gray-900 dark:text-white mt-1" },
-                                    stats.mostFrequentHabit ? stats.mostFrequentHabit.name : "-"
-                                )
-                            ),
-                            React.createElement('div', { className: "bg-green-100 dark:bg-green-900/30 p-2 rounded-lg" },
-                                React.createElement('svg', { className: "w-5 h-5 text-green-600 dark:text-green-400", fill: "none", stroke: "currentColor", viewBox: "0 0 24 24" },
-                                    React.createElement('path', { strokeLinecap: "round", strokeLinejoin: "round", strokeWidth: "2", d: "M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" })
-                                )
-                            )
-                        ),
-                        React.createElement('p', { className: "text-sm text-gray-600 dark:text-gray-400 mt-2" },
-                            stats.mostFrequentHabit ? `${stats.mostFrequentHabit.count} sessions` : "No sessions"
-                        )
-                    )
-                ),
-
-                // Detailed List
-                React.createElement('div', { className: "stat-card" },
-                    React.createElement('h3', { className: "text-lg font-medium text-gray-900 dark:text-white mb-4" }, "Details"),
-                    React.createElement('div', { className: "space-y-4" },
-                        habitBreakdown.length > 0 ? habitBreakdown.map((item, idx) =>
-                            React.createElement('div', { key: item.name, className: "group" },
-                                React.createElement('div', { className: "flex justify-between items-center mb-1" },
-                                    React.createElement('div', { className: "flex items-center gap-2" },
-                                        React.createElement('span', { className: "text-gray-800 dark:text-gray-200 font-medium" }, item.name),
-                                        React.createElement('span', { className: "text-xs text-gray-500" }, `${item.count} sessions`)
+                    React.createElement('div', { className: "rp-card" },
+                        React.createElement('h3', { className: "rp-h3" }, "by habit"),
+                        habitBreakdown.map((item, idx) => {
+                            const pct = stats.totalDuration ? Math.round((item.duration / stats.totalDuration) * 100) : 0;
+                            const color = habitColors[idx % habitColors.length];
+                            return React.createElement('div', { key: item.name, className: "rp-row" },
+                                React.createElement('div', { className: "rp-row-top" },
+                                    React.createElement('div', { className: "rp-row-name" },
+                                        React.createElement('span', null, item.name || 'untitled'),
+                                        React.createElement('span', { className: "rp-dot", style: { background: color, order: -1 } })
                                     ),
-                                    React.createElement('span', { className: "text-gray-800 dark:text-gray-200 font-medium" }, formatDurationFull(item.duration))
+                                    React.createElement('span', { className: "rp-row-val" }, formatDurationFull(item.duration), React.createElement('em', null, `${pct}%`))
                                 ),
-                                React.createElement('div', { className: "w-full bg-gray-100 dark:bg-gray-700/50 rounded-full h-4 overflow-hidden" },
-                                    React.createElement('div', {
-                                        className: "h-full rounded-full transition-all duration-1000 ease-out",
-                                        style: {
-                                            width: `${(item.duration / stats.totalDuration) * 100}%`,
-                                            backgroundColor: ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899'][idx % 5]
-                                        }
-                                    })
+                                React.createElement('div', { className: "rp-track" },
+                                    React.createElement('div', { className: "rp-fill", style: { width: `${pct}%`, background: color } })
                                 )
-                            )
-                        ) : React.createElement('p', { className: "text-gray-500 text-center py-4" }, "No usage data for this period")
+                            );
+                        })
                     )
-                ),
+                ) : null,
 
-                // Mood Insights Section (uses MoodStats from MoodTrackerTab)
                 React.createElement(MoodInsights, { db, userId, appId })
             )
     );
@@ -5461,6 +5495,10 @@ const Settings = ({ auth, userId, db, userProfile, setNotification, isNightMode,
 
     const handleLogout = async () => {
         await nousPushUnregister();
+        // Also sign out of the native Google/Apple session so the account picker shows next time
+        if (nousIsNative()) {
+            try { await window.Capacitor.nativePromise('FirebaseAuthentication', 'signOut', {}); } catch (e) { /* not signed in natively */ }
+        }
         window.signOut(auth);
     };
 
@@ -5963,8 +6001,8 @@ const Settings = ({ auth, userId, db, userProfile, setNotification, isNightMode,
             )
         ),
 
-        // Install App Section
-        React.createElement('div', { className: "bg-gradient-to-br from-blue-50 to-purple-50 rounded-lg shadow-sm p-6 mb-6 border border-blue-100" },
+        // Install App Section (web only; the iOS app is already installed)
+        !nousIsNative() && React.createElement('div', { className: "bg-gradient-to-br from-blue-50 to-purple-50 rounded-lg shadow-sm p-6 mb-6 border border-blue-100" },
             React.createElement('div', { className: "flex items-start gap-4" },
                 React.createElement('div', { className: "flex-shrink-0 mt-1" },
                     React.createElement('svg', {

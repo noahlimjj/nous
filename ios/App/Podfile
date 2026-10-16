@@ -11,6 +11,7 @@ install! 'cocoapods', :disable_input_output_paths => true
 def capacitor_pods
   pod 'Capacitor', :path => '../../node_modules/@capacitor/ios'
   pod 'CapacitorCordova', :path => '../../node_modules/@capacitor/ios'
+  pod 'CapacitorFirebaseAuthentication', :path => '../../node_modules/@capacitor-firebase/authentication'
   pod 'CapacitorFirebaseMessaging', :path => '../../node_modules/@capacitor-firebase/messaging'
   pod 'CapacitorApp', :path => '../../node_modules/@capacitor/app'
 end
@@ -18,6 +19,7 @@ end
 target 'App' do
   capacitor_pods
   # Add your Pods here
+  pod 'CapacitorFirebaseAuthentication/Google', :path => '../../node_modules/@capacitor-firebase/authentication'
 end
 
 post_install do |installer|
@@ -25,6 +27,10 @@ post_install do |installer|
   installer.pods_project.targets.each do |target|
     target.build_configurations.each do |config|
       config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '15.0'
+      # GoogleSignIn ships resource bundles, which fail to build if Xcode tries to sign them
+      if target.respond_to?(:product_type) and target.product_type == "com.apple.product-type.bundle"
+        config.build_settings['CODE_SIGNING_ALLOWED'] = 'NO'
+      end
     end
   end
 end

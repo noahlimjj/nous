@@ -190,6 +190,9 @@
         }, React.createElement("path", { d: paths[name] || "" }));
     };
 
+    // The iOS app leaves out the rewards shop, so coins aren't shown there either
+    const isNativeApp = !!(window.Capacitor && typeof window.Capacitor.isNativePlatform === 'function' && window.Capacitor.isNativePlatform());
+
     const CoinDisplay = ({ amount }) => React.createElement("div", {
         className: "flex items-center gap-2 px-4 py-2 rounded-full",
         style: {
@@ -2423,7 +2426,7 @@
                                 }, h.title || 'untitled'),
                                 // Hide coins/streak on mobile to save space
                                 !isMobile && React.createElement("div", { className: "flex items-center gap-2 text-xs text-gray-400 mt-1" },
-                                    React.createElement("span", { title: "Coins per completion" }, `${coinVal}c`),
+                                    !isNativeApp && React.createElement("span", { title: "Coins per completion" }, `${coinVal}c`),
                                     streak > 0 && React.createElement("span", { className: "text-orange-500 inline-flex items-center gap-0.5 font-medium", title: `${streak} day streak` },
                                         React.createElement(Icon, { name: "fire", size: 12, color: "#f97316" }),
                                         streak
@@ -2613,7 +2616,7 @@
                                         className: `py-4 px-2 rounded-xl border lowercase transition-all text-sm font-medium flex flex-col items-center gap-1 ${bgColor} ${isSelected ? 'shadow-sm ring-1 ring-inset ring-black/5 dark:ring-white/10' : ''}`
                                     },
                                         React.createElement("span", null, d),
-                                        React.createElement("span", { className: "text-[10px] opacity-70" }, `+${coins} coins`)
+                                        !isNativeApp && React.createElement("span", { className: "text-[10px] opacity-70" }, `+${coins} coins`)
                                     );
                                 })
                             )
@@ -2785,7 +2788,7 @@
                                         className: `py-4 px-2 rounded-xl border lowercase transition-all text-sm font-medium flex flex-col items-center gap-1 ${bgColor} ${isSelected ? 'shadow-sm ring-1 ring-inset ring-black/5 dark:ring-white/10' : ''}`
                                     },
                                         React.createElement("span", null, d),
-                                        React.createElement("span", { className: "text-[10px] opacity-70" }, `+${coins} coins`)
+                                        !isNativeApp && React.createElement("span", { className: "text-[10px] opacity-70" }, `+${coins} coins`)
                                     );
                                 })
                             )
@@ -3191,7 +3194,7 @@
     };
 
     const GamificationTab = (props) => {
-        if (props.isRewardsPage) return React.createElement(RewardsPage, props);
+        if (props.isRewardsPage && !isNativeApp) return React.createElement(RewardsPage, props);
         return React.createElement(HabitsPage, props);
     };
 

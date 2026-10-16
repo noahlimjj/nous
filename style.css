@@ -1616,3 +1616,81 @@ header.sticky {
     padding-top: max(20px, calc(env(safe-area-inset-top) + 8px)) !important;
     padding-bottom: max(20px, calc(env(safe-area-inset-bottom) + 8px)) !important;
 }
+
+/* ============================================
+   REPORTS (calm redesign)
+   ============================================ */
+.rp-page { max-width: 46rem; margin: 0 auto; padding: 24px 16px 48px; color: #363f51; }
+.rp-title { font-size: 30px; font-weight: 300; color: #363f51; letter-spacing: -0.01em; }
+.rp-sub { font-size: 14px; font-weight: 300; color: #7d8ca8; margin-top: 2px; }
+.rp-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin: 20px 0 12px; }
+.rp-seg { display: inline-flex; background: #f1f3f7; border-radius: 9999px; padding: 3px; }
+.rp-seg button { padding: 6px 16px; border-radius: 9999px; font-size: 13px; font-weight: 400; color: #7d8ca8; transition: all .2s ease; }
+.rp-seg button.is-active { background: #fff; color: #6B8DD6; box-shadow: 0 1px 4px rgba(99,110,129,.12); }
+.rp-select-wrap { position: relative; display: inline-flex; }
+.rp-select { appearance: none; -webkit-appearance: none; background: #f1f3f7; border: 0; border-radius: 9999px; padding: 7px 32px 7px 14px; font: inherit; font-size: 13px; font-weight: 400; color: #5d6b86; cursor: pointer; }
+.rp-select:focus { outline: 2px solid rgba(107,141,214,.35); outline-offset: 1px; }
+.rp-select-wrap svg { position: absolute; right: 11px; top: 50%; transform: translateY(-50%); pointer-events: none; color: #a8b3c7; }
+.rp-nav { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+.rp-nav-btn { width: 34px; height: 34px; border-radius: 9999px; display: inline-flex; align-items: center; justify-content: center; color: #7d8ca8; background: transparent; transition: background .2s ease; }
+.rp-nav-btn:hover { background: #f1f3f7; }
+.rp-nav-btn:disabled { opacity: .3; cursor: default; background: transparent; }
+.rp-nav-label { font-size: 15px; font-weight: 400; color: #4a5568; }
+.rp-card { background: #fff; border-radius: 20px; padding: 20px; box-shadow: 0 2px 12px rgba(99,110,129,.08), 0 1px 4px rgba(99,110,129,.04); }
+.rp-stack > * + * { margin-top: 14px; }
+.rp-label { font-size: 13px; font-weight: 300; color: #7d8ca8; }
+.rp-big { font-size: 40px; line-height: 1.1; font-weight: 300; color: #252d3d; letter-spacing: -0.02em; }
+.rp-big small { font-size: 18px; color: #7d8ca8; margin-left: 2px; }
+.rp-mid { font-size: 18px; font-weight: 400; color: #363f51; }
+.rp-hero-top { display: flex; justify-content: space-between; align-items: flex-end; gap: 12px; margin-bottom: 18px; }
+.rp-chart { height: 160px; display: flex; align-items: flex-end; gap: 6px; }
+.rp-chart.is-dense { gap: 2px; }
+.rp-col { flex: 1; height: 100%; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.rp-bar { width: 100%; max-width: 28px; border-radius: 6px 6px 3px 3px; background: #dfe6f7; transition: height .6s cubic-bezier(.34,1.3,.64,1), background .2s ease; }
+.rp-chart.is-dense .rp-bar { max-width: 9px; border-radius: 3px 3px 1px 1px; }
+.rp-bar.is-empty { background: #eef1f6; }
+.rp-bar.is-today { background: #6B8DD6; }
+.rp-col:hover .rp-bar:not(.is-empty), .rp-bar.is-picked { background: #8aa6e2; }
+.rp-bar.is-today.is-picked { background: #5878c4; }
+.rp-axis { display: flex; gap: 6px; margin-top: 8px; }
+.rp-chart.is-dense + .rp-axis { gap: 2px; }
+.rp-axis span { flex: 1; text-align: center; font-size: 11px; font-weight: 400; color: #a8b3c7; white-space: nowrap; }
+.rp-axis span.is-today { color: #6B8DD6; }
+.rp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.rp-tile { display: flex; flex-direction: column; gap: 10px; }
+.rp-icon { width: 34px; height: 34px; border-radius: 9999px; background: #eef2fb; color: #6B8DD6; display: inline-flex; align-items: center; justify-content: center; }
+.rp-tile-name { font-size: 16px; font-weight: 400; color: #363f51; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rp-tile-meta { font-size: 13px; font-weight: 300; color: #7d8ca8; }
+.rp-h3 { font-size: 16px; font-weight: 400; color: #363f51; margin-bottom: 14px; }
+.rp-row + .rp-row { margin-top: 14px; }
+.rp-row-top { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; margin-bottom: 6px; }
+.rp-row-name { display: flex; align-items: center; gap: 8px; min-width: 0; font-size: 14px; font-weight: 400; color: #4a5568; }
+.rp-row-name span:first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rp-dot { width: 8px; height: 8px; border-radius: 9999px; flex-shrink: 0; }
+.rp-row-val { font-size: 14px; font-weight: 400; color: #4a5568; white-space: nowrap; }
+.rp-row-val em { font-style: normal; font-weight: 300; color: #a8b3c7; margin-left: 6px; }
+.rp-track { height: 6px; border-radius: 9999px; background: #f1f3f7; overflow: hidden; }
+.rp-fill { height: 100%; border-radius: 9999px; transition: width 1s cubic-bezier(.4,0,.2,1); }
+.rp-empty { text-align: center; padding: 28px 8px; color: #a8b3c7; font-size: 14px; font-weight: 300; }
+.rp-empty svg { margin: 0 auto 10px; display: block; color: #d1d7e3; }
+.rp-mood { display: grid; grid-template-columns: repeat(3, 1fr); text-align: center; }
+.rp-mood .rp-big { font-size: 28px; }
+.rp-spin { width: 28px; height: 28px; margin: 48px auto; border-radius: 9999px; border: 2px solid #e4e8ee; border-top-color: #6B8DD6; animation: spin 1s linear infinite; }
+@media (max-width: 420px) { .rp-big { font-size: 34px; } .rp-card { padding: 16px; } .rp-grid { gap: 10px; } }
+
+body.night-mode .rp-page, body.night-mode .rp-title, body.night-mode .rp-mid, body.night-mode .rp-h3, body.night-mode .rp-tile-name { color: #e4e8ee; }
+body.night-mode .rp-big { color: #f1f3f7; }
+body.night-mode .rp-nav-label, body.night-mode .rp-row-name, body.night-mode .rp-row-val { color: #d1d7e3; }
+body.night-mode .rp-card { background: rgba(30,41,59,.6); box-shadow: none; border: 1px solid rgba(148,163,184,.1); }
+body.night-mode .rp-seg, body.night-mode .rp-select, body.night-mode .rp-track { background: rgba(255,255,255,.06); }
+body.night-mode .rp-select { color: #d1d7e3; }
+body.night-mode .rp-seg button.is-active { background: rgba(107,141,214,.22); color: #c7d4f2; box-shadow: none; }
+body.night-mode .rp-nav-btn:hover { background: rgba(255,255,255,.06); }
+body.night-mode .rp-bar { background: rgba(107,141,214,.35); }
+body.night-mode .rp-bar.is-empty { background: rgba(255,255,255,.06); }
+body.night-mode .rp-bar.is-today { background: #7f9de0; }
+body.night-mode .rp-icon { background: rgba(107,141,214,.16); color: #9fb5e8; }
+/* The app-wide night-mode button style (bordered glass pills) doesn't suit these controls */
+body.night-mode .rp-page button { background: transparent !important; border: 0 !important; box-shadow: none !important; transform: none !important; backdrop-filter: none; }
+body.night-mode .rp-page .rp-seg button.is-active { background: rgba(107,141,214,.22) !important; }
+body.night-mode .rp-page .rp-nav-btn:hover:not(:disabled) { background: rgba(255,255,255,.06) !important; }
