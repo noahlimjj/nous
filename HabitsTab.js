@@ -1982,17 +1982,17 @@
         }, []);
 
         // Adjust sizes based on screen width
-        const checkboxSize = isMobile ? '22px' : '28px';
+        const checkboxSize = isMobile ? '30px' : '28px';
         const habitColWidth = isMobile ? '84px' : '210px';
         const flameColWidth = isMobile ? '24px' : '36px';
 
-        const rowStyle = { display: 'flex', alignItems: 'center', gap: isMobile ? '1px' : '4px' };
+        const rowStyle = { display: 'flex', alignItems: 'center', gap: '4px' };
         const dayStyle = { flex: '1', textAlign: 'center', minWidth: isMobile ? '22px' : '28px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' };
         const habitColStyle = { width: habitColWidth, flexShrink: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' };
 
         return React.createElement("div", { className: "px-4 py-2 max-w-4xl mx-auto", style: { paddingBottom: '80px', position: 'relative' } },
             notification && React.createElement("div", {
-                className: "fixed top-20 left-1/2 transform -translate-x-1/2 bg-gray-900 text-white px-6 py-3 rounded-xl shadow-2xl lowercase",
+                className: "nous-toast is-dark lowercase",
                 style: { zIndex: 9999 }
             }, notification),
 
@@ -2360,8 +2360,8 @@
             // Days Header - includes spacer for flame icon alignment
             habits.length > 0 && React.createElement("div", { style: { ...rowStyle, alignItems: 'flex-end', padding: isMobile ? '0 12px' : '0 16px' }, className: "mb-3" },
                 // Spacer for flame icon (responsive)
-                React.createElement("div", { style: { width: flameColWidth, flexShrink: 0 } }),
-                React.createElement("div", { style: { ...habitColStyle, paddingLeft: isMobile ? 0 : '4px' }, className: "text-sm text-gray-500 dark:text-gray-400" }, "habit"),
+                !isMobile && React.createElement("div", { style: { width: flameColWidth, flexShrink: 0 } }),
+                !isMobile && React.createElement("div", { style: { ...habitColStyle, paddingLeft: '4px' }, className: "text-sm text-gray-500 dark:text-gray-400" }, "habit"),
                 weekDays.map(d => {
                     const iso = toLocalDateString(d);
                     const isToday = iso === todayStr;
@@ -2399,8 +2399,43 @@
                         touchAction: 'none'
                     }
                 },
+                    // Phones: name on its own line, then the week's circles across the full width
+                    isMobile ? React.createElement("div", { style: { padding: '12px' } },
+                        React.createElement("div", { className: "flex items-center gap-2", style: { marginBottom: 10 } },
+                            React.createElement("button", {
+                                onClick: () => { setSelectedHabitId(h.id); window.scrollTo({ top: 0, behavior: 'smooth' }); },
+                                className: `nous-icon-btn ${(selectedHabitId || habits[0]?.id) === h.id ? 'is-active' : ''}`,
+                                style: { width: '28px', height: '28px' },
+                                title: "Focus on this habit"
+                            }, h.tracking_type === 'binary' ? React.createElement(SysIcon, { name: "check", size: 16 }) : (h.timerMode === 'timer' ? React.createElement(HourglassIcon, { size: 16 }) : React.createElement(StopwatchIcon, { size: 16 }))),
+                            React.createElement("div", {
+                                className: "flex-1 min-w-0 truncate text-gray-900 dark:text-white lowercase select-none",
+                                style: { fontSize: 15, fontWeight: 400 },
+                                onClick: () => setSelectedHabitId(h.id),
+                                onDoubleClick: () => setEditingHabit({ ...h, difficulty: h.difficulty || 'medium', icon: h.icon || 'study', color: '#111827', daily_goal_mins: h.daily_goal_mins || 0 })
+                            }, h.title || 'untitled'),
+                            streak > 0 && React.createElement("span", { className: "text-orange-500 inline-flex items-center gap-0.5 text-xs", title: `${streak} day streak` },
+                                React.createElement(Icon, { name: "fire", size: 12, color: "#f97316" }),
+                                streak
+                            )
+                        ),
+                        React.createElement("div", { style: rowStyle },
+                            weekDays.map(d => {
+                                const iso = toLocalDateString(d);
+                                const done = (h.completionDates || []).includes(iso);
+                                return React.createElement("div", { key: iso, style: dayStyle },
+                                    React.createElement("button", {
+                                        onClick: () => toggleDate(h.id, iso),
+                                        className: `transition-all duration-200 rounded-full flex items-center justify-center ${done ? 'bg-green-500 shadow-sm' : 'bg-gray-50 border-2 border-gray-200'}`,
+                                        style: { width: checkboxSize, height: checkboxSize },
+                                        'aria-label': `${h.title || 'habit'} ${iso}`
+                                    }, done && React.createElement(SysIcon, { name: "check", size: 14 }))
+                                );
+                            })
+                        )
+                    ) :
                     // Main habit row
-                    React.createElement("div", { style: { ...rowStyle, padding: isMobile ? '12px' : '16px' } },
+                    React.createElement("div", { style: { ...rowStyle, padding: '16px' } },
                         // Timer toggle button - changed to Focus button - shows correct icon based on timer mode or binary
                         React.createElement("button", {
                             onClick: () => {
@@ -3088,7 +3123,7 @@
         };
 
         return React.createElement("div", { className: "container mx-auto px-4 py-6 max-w-4xl", style: { paddingBottom: '100px', marginTop: '16px' } },
-            notification && React.createElement("div", { className: "fixed top-20 left-1/2 transform -translate-x-1/2 bg-gray-900 text-white px-6 py-3 rounded-xl shadow-2xl lowercase", style: { zIndex: 9999 } }, notification),
+            notification && React.createElement("div", { className: "nous-toast is-dark lowercase", style: { zIndex: 9999 } }, notification),
 
             React.createElement("div", { className: "flex justify-between items-center mb-6" },
                 React.createElement("h2", { className: "text-3xl text-calm-800 mb-2", style: { fontWeight: 300 } }, "rewards"),

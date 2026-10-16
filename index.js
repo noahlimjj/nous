@@ -165,6 +165,12 @@ const LoaderIcon = () => React.createElement('svg', {
 // True inside the iOS app (Capacitor), false in the browser
 const nousIsNative = () => !!(window.Capacitor && typeof window.Capacitor.isNativePlatform === 'function' && window.Capacitor.isNativePlatform());
 
+// Centered "loading ..." line used by pages while their data arrives
+const LoadingState = ({ label }) => React.createElement('div', {
+    className: "flex justify-center items-center gap-3 py-12 text-calm-600",
+    style: { fontSize: 18, fontWeight: 300 }
+}, React.createElement(LoaderIcon), label);
+
 const GoogleIcon = () => React.createElement('svg', {
     xmlns: "http://www.w3.org/2000/svg",
     width: "20",
@@ -560,6 +566,10 @@ const toDate = (timestamp) => {
     }
     if (timestamp instanceof Date) {
         return timestamp;
+    }
+    // A Timestamp that went through JSON (e.g. a cached list) is { seconds, nanoseconds }
+    if (typeof timestamp.seconds === 'number') {
+        return new Date(timestamp.seconds * 1000 + Math.floor((timestamp.nanoseconds || 0) / 1e6));
     }
     // Handle string or number (milliseconds)
     return new Date(timestamp);
@@ -1491,7 +1501,8 @@ const Dashboard = ({ db, userId, setNotification, activeTimers, setActiveTimers,
             endOfDay.setHours(23, 59, 59, 999);
             endOfDay.setMinutes(endOfDay.getMinutes() - offsetDiff); // Adjust to Singapore end of day
 
-            const snapshot = await window.getDocs(sessionsQuery);
+            // Only today's sessions, not the whole history
+            const snapshot = await window.getDocs(window.query(sessionsQuery, window.where('startTime', '>=', window.Timestamp.fromDate(startOfDay))));
             const sessionsList = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
             // Filter sessions to only those from today (Singapore time)
@@ -3391,11 +3402,9 @@ const Dashboard = ({ db, userId, setNotification, activeTimers, setActiveTimers,
                 return;
             }
 
+            const hours = await Promise.all(friends.map(friend => calculateDailyHours(friend.userId)));
             const dailyData = {};
-            for (const friend of friends) {
-                const hours = await calculateDailyHours(friend.userId);
-                dailyData[friend.userId] = hours;
-            }
+            friends.forEach((friend, i) => { dailyData[friend.userId] = hours[i]; });
             setFriendsDailyHours(dailyData);
         };
 
@@ -7461,10 +7470,7 @@ const Notebook = ({ db, userId, setNotification }) => {
         return React.createElement('div', null,
             React.createElement('h2', { className: "text-3xl text-calm-800 mb-2", style: { fontWeight: 300 } }, "notebook"),
             React.createElement('div', { className: "bg-white rounded-xl soft-shadow p-6 mb-6" },
-                React.createElement('div', { className: "flex justify-center items-center" },
-                    React.createElement(LoaderIcon),
-                    React.createElement('span', { className: "ml-2" }, "loading notebook...")
-                )
+                React.createElement(LoadingState, { label: "loading notebook…" })
             )
         );
     }
@@ -7697,8 +7703,14 @@ const Friends = ({ db, userId, setNotification, userProfile }) => {
     const [showAcceptModal, setShowAcceptModal] = useState(false);
     const [acceptingRequest, setAcceptingRequest] = useState(null);
     const [friendCodeInput, setFriendCodeInput] = useState('');
-    const [isLoading, setIsLoading] = useState(true);
+    // Show the last known friends list straight away, then refresh it from Firestore
+    const friendsCacheKey = `nous_friends_${userId}`;
+    const cachedFriends = React.useMemo(() => {
+        try { return JSON.parse(localStorage.getItem(friendsCacheKey) || 'null'); } catch (e) { return null; }
+    }, [friendsCacheKey]);
+    const [isLoading, setIsLoading] = useState(!cachedFriends);
     const [isSearching, setIsSearching] = useState(false);
+    useEffect(() => { if (cachedFriends) setFriends(cachedFriends); }, [cachedFriends]);
 
     // Helper function to calculate daily hours for a user (Singapore timezone) - REAL-TIME
     const calculateDailyHours = async (targetUserId) => {
@@ -7720,7 +7732,8 @@ const Friends = ({ db, userId, setNotification, userProfile }) => {
             endOfDay.setHours(23, 59, 59, 999);
             endOfDay.setMinutes(endOfDay.getMinutes() - offsetDiff); // Adjust to Singapore end of day
 
-            const snapshot = await window.getDocs(sessionsQuery);
+            // Only today's sessions, not the whole history
+            const snapshot = await window.getDocs(window.query(sessionsQuery, window.where('startTime', '>=', window.Timestamp.fromDate(startOfDay))));
             const sessions = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
             // Filter sessions to only those from today (Singapore time)
@@ -7819,23 +7832,28 @@ const Friends = ({ db, userId, setNotification, userProfile }) => {
         const rebuildFriends = async () => {
             const token = ++rebuildToken;
             try {
+                // Fetch all friend profiles in parallel
+                const docs = [...friendshipDocs.a, ...friendshipDocs.b];
+                const friendIdOf = (data) => data.user1Id === userId ? data.user2Id : data.user1Id;
+                const profiles = await Promise.all(docs.map(doc => window.getDoc(window.doc(db, 'users', friendIdOf(doc.data())))));
                 const friendsList = [];
-                for (const doc of [...friendshipDocs.a, ...friendshipDocs.b]) {
+                docs.forEach((doc, i) => {
                     const data = doc.data();
-                    const friendId = data.user1Id === userId ? data.user2Id : data.user1Id;
-                    const friendSnapshot = await window.getDoc(window.doc(db, 'users', friendId));
-                    const friendData = friendSnapshot.data();
+                    const friendData = profiles[i].data();
                     if (friendData) {
                         friendsList.push({
                             id: doc.id,
                             friendshipId: doc.id,
-                            userId: friendId,
+                            userId: friendIdOf(data),
                             ...friendData,
                             username: friendData.username || (data.user1Id === userId ? data.user2Username : data.user1Username)
                         });
                     }
+                });
+                if (token === rebuildToken) {
+                    setFriends(friendsList);
+                    try { localStorage.setItem(friendsCacheKey, JSON.stringify(friendsList)); } catch (e) { /* storage full or unavailable */ }
                 }
-                if (token === rebuildToken) setFriends(friendsList);
             } catch (error) {
                 console.error("Error fetching friends:", error);
                 setNotification({ type: 'error', message: 'Failed to load friends: ' + error.message });
@@ -7847,13 +7865,15 @@ const Friends = ({ db, userId, setNotification, userProfile }) => {
             console.error("Error listening to friendships:", error);
             setIsLoading(false);
         };
+        // Rebuild once both sides have reported, instead of twice on load
+        const seen = { a: false, b: false };
         const unsubscribeFriendships1 = window.onSnapshot(friendshipsQuery1, snap => {
-            friendshipDocs.a = snap.docs;
-            rebuildFriends();
+            friendshipDocs.a = snap.docs; seen.a = true;
+            if (seen.b) rebuildFriends();
         }, onFriendsError);
         const unsubscribeFriendships2 = window.onSnapshot(friendshipsQuery2, snap => {
-            friendshipDocs.b = snap.docs;
-            rebuildFriends();
+            friendshipDocs.b = snap.docs; seen.b = true;
+            if (seen.a) rebuildFriends();
         }, onFriendsError);
 
         return () => {
@@ -7869,11 +7889,9 @@ const Friends = ({ db, userId, setNotification, userProfile }) => {
         if (!db || !friends || friends.length === 0) return;
 
         const calculateAllFriendsDailyHours = async () => {
+            const hours = await Promise.all(friends.map(friend => calculateDailyHours(friend.userId)));
             const dailyData = {};
-            for (const friend of friends) {
-                const hours = await calculateDailyHours(friend.userId);
-                dailyData[friend.userId] = hours;
-            }
+            friends.forEach((friend, i) => { dailyData[friend.userId] = hours[i]; });
             setFriendsDailyHours(dailyData);
         };
 
@@ -7885,8 +7903,9 @@ const Friends = ({ db, userId, setNotification, userProfile }) => {
     }, [db, friends]);
 
     // Load suggested friends (active users, friends of friends, and NoahLim)
+    const friendIdsKey = friends.map(f => f.userId).sort().join(',');
     useEffect(() => {
-        if (!db || !userId) return;
+        if (!db || !userId || isLoading) return;
 
         const fetchSuggestedFriends = async () => {
             try {
@@ -7905,37 +7924,19 @@ const Friends = ({ db, userId, setNotification, userProfile }) => {
                 // Query all session collections to find recent activity
                 let activeUsers = [];
 
-                // We'll check each user to see if they have recent sessions
-                for (const user of allUsers) {
-                    // Skip current user, friends, users without usernames, and test accounts
-                    if (user.id === userId || friendIds.includes(user.id) || !user.username || user.username.trim() === '' || user.username.toLowerCase().includes('test')) {
-                        continue;
-                    }
-
-                    try {
-                        const appId = typeof __app_id !== 'undefined' ? __app_id : 'study-tracker-app';
-                        const sessionsQuery = window.query(
-                            window.collection(db, `/artifacts/${appId}/users/${user.id}/sessions`),
-                            window.where('startTime', '>=', twoWeeksAgo) // Sessions from the last 14 days
-                        );
-
-                        const sessionsSnapshot = await window.getDocs(sessionsQuery);
-
-                        // If the user has sessions in the past 14 days, they are active
-                        if (!sessionsSnapshot.empty) {
-                            activeUsers.push({
-                                id: user.id,
-                                username: user.username,
-                                isFounder: false,
-                                stats: user.stats || {}
-                            });
-                        }
-                    } catch (sessionError) {
-                        // If we can't access a user's sessions (maybe due to security rules), 
-                        // skip them but don't break the entire process
-                        console.warn(`Could not access sessions for user ${user.id}:`, sessionError.message);
-                    }
-                }
+                // Check candidates in parallel; one recent session is enough to count as active
+                const appId = typeof __app_id !== 'undefined' ? __app_id : 'study-tracker-app';
+                const candidates = allUsers.filter(user => !(user.id === userId || friendIds.includes(user.id) || !user.username || user.username.trim() === '' || user.username.toLowerCase().includes('test')));
+                const activity = await Promise.all(candidates.map(user =>
+                    window.getDocs(window.query(
+                        window.collection(db, `/artifacts/${appId}/users/${user.id}/sessions`),
+                        window.where('startTime', '>=', twoWeeksAgo),
+                        window.limit(1)
+                    )).then(snap => !snap.empty).catch(() => false) // unreadable sessions: skip that user
+                ));
+                candidates.forEach((user, i) => {
+                    if (activity[i]) activeUsers.push({ id: user.id, username: user.username, isFounder: false, stats: user.stats || {} });
+                });
 
                 // Find friends of friends to include them in suggestions
                 let friendsOfFriends = [];
@@ -8063,7 +8064,7 @@ const Friends = ({ db, userId, setNotification, userProfile }) => {
         };
 
         fetchSuggestedFriends();
-    }, [db, userId, friends]);
+    }, [db, userId, friendIdsKey, isLoading]);
 
     // My shared sessions, for "N-day streak together" on each friend
     const [sharedSessions, setSharedSessions] = useState([]);
@@ -8383,10 +8384,7 @@ const Friends = ({ db, userId, setNotification, userProfile }) => {
     };
 
     if (isLoading) {
-        return React.createElement('div', { className: "flex justify-center items-center p-8" },
-            React.createElement(LoaderIcon),
-            React.createElement('span', { className: "ml-2" }, "loading friends...")
-        );
+        return React.createElement(LoadingState, { label: "loading friends…" });
     }
 
     return React.createElement('div', { className: "max-w-4xl mx-auto p-4 sm:p-6 lg:p-8 space-y-6" },
@@ -8904,7 +8902,8 @@ const Leaderboard = ({ db, userId, setNotification, userProfile }) => {
             endOfDay.setHours(23, 59, 59, 999);
             endOfDay.setMinutes(endOfDay.getMinutes() - offsetDiff); // Adjust to Singapore end of day
 
-            const snapshot = await window.getDocs(sessionsQuery);
+            // Only today's sessions, not the whole history
+            const snapshot = await window.getDocs(window.query(sessionsQuery, window.where('startTime', '>=', window.Timestamp.fromDate(startOfDay))));
             const sessions = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
             // Filter sessions to only those from today (Singapore time)
@@ -9205,10 +9204,7 @@ const Leaderboard = ({ db, userId, setNotification, userProfile }) => {
     };
 
     if (isLoading) {
-        return React.createElement('div', { className: "flex justify-center items-center p-8" },
-            React.createElement(LoaderIcon),
-            React.createElement('span', { className: "ml-2" }, "loading leaderboard...")
-        );
+        return React.createElement(LoadingState, { label: "loading leaderboard…" });
     }
 
     return React.createElement('div', { className: "max-w-4xl mx-auto p-4 sm:p-6 lg:p-8 space-y-6" },
@@ -9838,10 +9834,9 @@ function App() {
         ),
 
         notification && React.createElement('div', {
-            className: `fixed top-5 right-5 p-4 rounded-2xl soft-shadow-lg text-white z-50 ${notification.type === 'success' ? 'neuron-pulse' : ''}`,
+            className: `nous-toast ${notification.type === 'success' ? 'neuron-pulse' : ''}`,
             style: {
-                backgroundColor: notification.type === 'success' ? '#6B8DD6' : '#a8b3c7',
-                fontWeight: 300
+                backgroundColor: notification.type === 'success' ? '#6B8DD6' : '#5d6b86'
             }
         }, notification.message),
 

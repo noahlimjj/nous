@@ -1546,9 +1546,12 @@ body.night-mode .nous-chip-selected {
 .nous-hero-identity {
     flex: 1 1 200px;
 }
+/* Phones: the nav fills the space next to the logo with the icons evenly spaced */
+@media (max-width: 640px) {
+    .nous-nav { flex: 1; justify-content: space-evenly; gap: 0; margin-left: 12px; }
+}
 @media (max-width: 440px) {
-    .nous-nav { gap: 0; }
-    .nous-nav > button { padding: 7px !important; }
+    .nous-nav > button { padding: 8px !important; }
     .nous-nav > button svg { width: 22px; height: 22px; }
 }
 
@@ -1694,3 +1697,37 @@ body.night-mode .rp-icon { background: rgba(107,141,214,.16); color: #9fb5e8; }
 body.night-mode .rp-page button { background: transparent !important; border: 0 !important; box-shadow: none !important; transform: none !important; backdrop-filter: none; }
 body.night-mode .rp-page .rp-seg button.is-active { background: rgba(107,141,214,.22) !important; }
 body.night-mode .rp-page .rp-nav-btn:hover:not(:disabled) { background: rgba(255,255,255,.06) !important; }
+
+/* Toasts: centered just below the header, clear of the iOS status bar and notch */
+.nous-toast {
+    position: fixed;
+    top: calc(env(safe-area-inset-top) + 76px);
+    /* Centered with margins, since the success pulse animates transform */
+    left: 0;
+    right: 0;
+    margin: 0 auto;
+    z-index: 70;
+    width: max-content;
+    max-width: calc(100vw - 32px);
+    padding: 12px 18px;
+    border-radius: 16px;
+    color: #fff;
+    font-size: 15px;
+    font-weight: 400;
+    line-height: 1.35;
+    text-align: center;
+    box-shadow: 0 8px 24px rgba(99, 110, 129, 0.18), 0 2px 8px rgba(99, 110, 129, 0.08);
+}
+.nous-toast.is-dark { background: #363f51; }
+
+/* Crisp text everywhere: grayscale antialiasing for the light Satoshi weights,
+   and no automatic text inflation in the iOS web view */
+html {
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+}
+body {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+}
