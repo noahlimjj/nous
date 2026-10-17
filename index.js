@@ -9360,6 +9360,21 @@ function App() {
                 setAuth(authInstance);
                 setDb(dbInstance);
 
+                // Open straight into the last signed-in account. On launch Firebase Auth
+                // re-checks the saved user with Google before reporting it (about 11s in
+                // the iOS web view), so show the cached data now and let onAuthStateChanged
+                // confirm or sign out once that check finishes.
+                const LAST_USER_KEY = 'nous_last_user';
+                let lastUser = null;
+                try { lastUser = JSON.parse(localStorage.getItem(LAST_USER_KEY) || 'null'); } catch (e) { /* no cached user */ }
+                if (lastUser && lastUser.uid && !authInstance.currentUser) {
+                    setUser({ uid: lastUser.uid, isAnonymous: !!lastUser.isAnonymous, isPending: true });
+                    setUserId(lastUser.uid);
+                    window.userId = lastUser.uid;
+                    setIsAuthReady(true);
+                    clearTimeout(authTimeout);
+                }
+
                 // Expose to window for debugging
                 window.db = dbInstance;
                 window.auth = authInstance;
@@ -9369,6 +9384,7 @@ function App() {
                     clearTimeout(authTimeout); // Clear timeout since auth is responding
 
                     if (user) {
+                        try { localStorage.setItem('nous_last_user', JSON.stringify({ uid: user.uid, isAnonymous: user.isAnonymous })); } catch (e) { /* storage unavailable */ }
                         setUser(user);
                         setUserId(user.uid);
                         nousPushSetUser(dbInstance, user.uid);
@@ -9387,6 +9403,7 @@ function App() {
                             }
                         } else {
                             // Otherwise, no user and no token, so clear state.
+                            try { localStorage.removeItem('nous_last_user'); } catch (e) { /* storage unavailable */ }
                             setUser(null);
                             setUserId(null);
                             nousPushSetUser(null, null);
