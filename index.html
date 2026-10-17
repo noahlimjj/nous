@@ -26,15 +26,17 @@
         href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cstyle%3Etext%7Bfont-family:Inter,-apple-system,sans-serif;font-weight:300;font-size:72px;fill:%235d6b86;text-anchor:middle;dominant-baseline:central%7D%3C/style%3E%3Ccircle cx='50' cy='50' r='35' fill='none' stroke='%235d6b86' stroke-width='3'/%3E%3Ctext x='50' y='45.7' letter-spacing='1.5'%3En%3C/text%3E%3C/svg%3E">
 
     <!-- Resource Hints for Performance -->
-    <link rel="preconnect" href="https://unpkg.com" crossorigin>
-    <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
-    <link rel="preconnect" href="https://api.fontshare.com" crossorigin>
-    <link rel="dns-prefetch" href="https://unpkg.com">
-    <link rel="dns-prefetch" href="https://www.gstatic.com">
-    <link rel="dns-prefetch" href="https://api.fontshare.com">
+    <!-- React, Firebase and the Satoshi font are bundled in vendor/ so startup never
+         waits on a CDN and the iOS app opens offline. Start fetching them right away. -->
+    <link rel="preload" href="vendor/fonts/satoshi-300.woff2" as="font" type="font/woff2" crossorigin>
+    <link rel="preload" href="vendor/fonts/satoshi-400.woff2" as="font" type="font/woff2" crossorigin>
+    <link rel="modulepreload" href="vendor/firebase/firebase-app.js">
+    <link rel="modulepreload" href="vendor/firebase/firebase-auth.js">
+    <link rel="modulepreload" href="vendor/firebase/firebase-firestore.js">
+    <link rel="modulepreload" href="vendor/firebase/firebase-functions.js">
 
     <!-- Satoshi font -->
-    <link href="https://api.fontshare.com/v2/css?f[]=satoshi@300,400,500,700&display=swap" rel="stylesheet">
+    <link href="vendor/fonts/satoshi.css" rel="stylesheet">
 
     <link rel="stylesheet" href="style.css?v=crisp_3">
     <link rel="stylesheet" href="gamification.css">
@@ -139,18 +141,18 @@
     <script src="config.js?v=16&t=1730700000"></script>
 
     <!-- Offline Mode Handler - Suppress Firebase errors when offline -->
-    <script src="offline-handler.js"></script>
+    <script src="offline-handler.js?v=2"></script>
 
     <!-- Offline Timer Manager - Handle timer operations offline and sync when back online -->
     <script src="offline-timer-manager.js?v=2"></script>
 
-    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <script src="vendor/react.production.min.js"></script>
+    <script src="vendor/react-dom.production.min.js"></script>
+    <script src="vendor/confetti.browser.min.js" defer></script>
 
     <!-- Firebase SDK -->
     <script type="module">
-        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+        import { initializeApp } from './vendor/firebase/firebase-app.js';
         import {
             getAuth,
             onAuthStateChanged,
@@ -168,7 +170,7 @@
             initializeAuth,
             indexedDBLocalPersistence,
             deleteUser
-        } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+        } from './vendor/firebase/firebase-auth.js';
         import {
             getFirestore,
             initializeFirestore,
@@ -192,11 +194,11 @@
             arrayRemove,
             deleteField,
             limit
-        } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+        } from './vendor/firebase/firebase-firestore.js';
         import {
             getFunctions,
             httpsCallable
-        } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-functions.js';
+        } from './vendor/firebase/firebase-functions.js';
 
         // Make Firebase functions globally available
         window.initializeApp = initializeApp;

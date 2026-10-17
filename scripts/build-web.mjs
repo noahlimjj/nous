@@ -25,7 +25,8 @@ const INCLUDE = [
   'manifest.json',
   'privacy.html',
   'icons',
-  'assets'
+  'assets',
+  'vendor'
 ];
 
 async function exists(p) {
