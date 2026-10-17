@@ -1586,7 +1586,11 @@ const Dashboard = ({ db, userId, user, setNotification, activeTimers, setActiveT
 
     // Listen for Nous requests and shared timers
     useEffect(() => {
+        // Wait for auth to confirm the cached user: a listener started before then is
+        // rejected (permission-denied) and never retries, so accepted sessions never show up
+        const currentAuth = window.auth;
         if (!db || !userId) return;
+        if (user?.isPending || !currentAuth?.currentUser || currentAuth.currentUser.uid !== userId) return;
 
         // Listen to incoming Nous requests (multi-participant support with auto-decline)
         const nousRequestsQuery = window.query(
@@ -1622,6 +1626,8 @@ const Dashboard = ({ db, userId, user, setNotification, activeTimers, setActiveT
             }
 
             setNousRequests(requests);
+        }, (error) => {
+            console.error("Error listening to Nous requests:", error);
         });
 
         // Listen to incoming session invites
@@ -1666,7 +1672,7 @@ const Dashboard = ({ db, userId, user, setNotification, activeTimers, setActiveT
             unsubscribeSessionInvites();
             unsubscribeSharedTimers();
         };
-    }, [db, userId]);
+    }, [db, userId, user]);
 
     // Listen for chat messages for active shared timers
     useEffect(() => {
