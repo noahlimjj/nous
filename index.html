@@ -114,6 +114,18 @@
             animation: pulse 1.5s infinite ease-in-out;
         }
 
+        /* Growth tree: new branches and leaves fade in, and the tree sways while a timer runs */
+        .tree-branch { animation: treeFadeIn 1.2s ease-out both; }
+        .tree-leaf { transform-box: fill-box; transform-origin: center; animation: treeLeafIn 1.4s ease-out both; }
+        .tree-sway { transform-box: view-box; transform-origin: 100px 220px; animation: treeSway 6s ease-in-out infinite; }
+        .tree-growing-label { animation: pulse 2.5s infinite ease-in-out; }
+        @keyframes treeFadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes treeLeafIn { from { transform: scale(0); opacity: 0; } to { transform: scale(1); opacity: 0.8; } }
+        @keyframes treeSway { 0%, 100% { transform: rotate(-1.2deg); } 50% { transform: rotate(1.2deg); } }
+        @media (prefers-reduced-motion: reduce) {
+            .tree-branch, .tree-leaf, .tree-sway, .tree-growing-label { animation: none; }
+        }
+
         @keyframes pulse {
             0% {
                 opacity: 0.6;

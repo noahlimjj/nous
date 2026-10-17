@@ -683,16 +683,27 @@ const calculateTotalHours = (sessions) => {
     return totalMs / (1000 * 60 * 60); // Convert to hours
 };
 
+// Hours a tree takes to grow fully: the gap until the next tree unlocks (the last tree takes 200h)
+const getTreeSpan = (tree) => {
+    const next = TREE_TYPES[TREE_TYPES.indexOf(tree) + 1];
+    return next ? next.requiredHours - tree.requiredHours : 200;
+};
+
 // Get tree growth stage based on hours (0-100%)
 const getTreeGrowth = (totalHours, currentTree) => {
-    // Calculate hours since this tree was unlocked
     const hoursSinceUnlock = totalHours - currentTree.requiredHours;
-    return Math.min(100, (hoursSinceUnlock / 5) * 100); // Full growth at 5 hours after unlock
+    return Math.max(0, Math.min(100, (hoursSinceUnlock / getTreeSpan(currentTree)) * 100));
 };
 
 // Get available tree types based on hours
 const getUnlockedTrees = (totalHours) => {
     return TREE_TYPES.filter(tree => totalHours >= tree.requiredHours);
+};
+
+// The tree being grown now: the most recently unlocked one
+const getGrowingTree = (totalHours) => {
+    const unlocked = getUnlockedTrees(totalHours);
+    return unlocked[unlocked.length - 1] || TREE_TYPES[0];
 };
 
 // --- Auto-Migration Utility ---
@@ -2055,8 +2066,8 @@ const Dashboard = ({ db, userId, user, setNotification, activeTimers, setActiveT
         if (fresh.length === 0) return;
         const from = fresh[0].fromUsername || 'a friend';
         playPingSound();
-        setNotification({ type: 'success', message: `@${from} wants to study together!` });
-        nousNotify('Study together?', `@${from} wants to study together on Nous`);
+        setNotification({ type: 'success', message: `@${from} wants to nous together!` });
+        nousNotify('nous together?', `@${from} wants to nous together`);
     }, [nousRequests, sessionInvites]);
 
     // Opened from a "join me" link: look up the session and ask what to work on
@@ -2353,7 +2364,7 @@ const Dashboard = ({ db, userId, user, setNotification, activeTimers, setActiveT
             setNotification({
                 type: 'success',
                 message: result.started
-                    ? `You're now studying together with @${request.fromUsername}!`
+                    ? `You're now in nous together with @${request.fromUsername}!`
                     : `You accepted! Waiting for ${result.waitingFor} more friend${result.waitingFor === 1 ? '' : 's'}...`
             });
         } catch (error) {
@@ -3742,7 +3753,7 @@ const Dashboard = ({ db, userId, user, setNotification, activeTimers, setActiveT
                                 onClick: () => setStudyWithFriendId(studyWithFriendId === friend.userId ? null : friend.userId),
                                 className: "px-3 py-1 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition text-sm flex-shrink-0",
                                 style: { fontWeight: 400 }
-                            }, "study together")
+                            }, "nous together")
                         ),
                         studyWithFriendId === friend.userId && React.createElement('div', { className: "mt-2 pl-4" },
                             React.createElement('p', { className: "text-sm text-gray-600 mb-2", style: { fontWeight: 400 } }, "what are you working on?"),
@@ -3933,7 +3944,7 @@ const Dashboard = ({ db, userId, user, setNotification, activeTimers, setActiveT
                                                 React.createElement(GripIcon)
                                             ),
                                             React.createElement('h3', { className: "text-xl text-purple-900", style: { fontWeight: 400 } },
-                                                `Nous Together (${session.participants.length} participants)`
+                                                `Nous Together (${session.participants.length} participant${session.participants.length === 1 ? '' : 's'})`
                                             )
                                         ),
 
@@ -4438,7 +4449,7 @@ const Dashboard = ({ db, userId, user, setNotification, activeTimers, setActiveT
         React.createElement('div', { className: "lg:col-span-3 grid grid-cols-1 lg:grid-cols-3 gap-6" },
             // Growth Tree (takes 2 columns on large screens)
             React.createElement('div', { className: "lg:col-span-2" },
-                React.createElement(GrowthTree, { sessions, db, userId, setNotification })
+                React.createElement(GrowthTree, { sessions, db, userId, setNotification, activeTimers, sharedTimers })
             ),
 
             // Right column: Recent Sessions
@@ -6253,31 +6264,160 @@ const Settings = ({ auth, userId, db, userProfile, setNotification, isNightMode,
 // About Component removed - content moved to Settings page as collapsible section
 
 // Growth Tree Component - Aesthetic visualization of study progress
-const GrowthTree = ({ sessions, db, userId, setNotification }) => {
+// Beautiful Tree SVG. Kept at module level so it isn't remounted on every render:
+// branches and leaves that appear as the tree grows fade in, and existing ones stay put.
+const TreeSVG = React.memo(({ growth, color, treeType, isGrowing }) => {
+    const typeProps = TREE_TYPES.find(t => t.id === treeType) || TREE_TYPES[0];
+    const stage = Math.min(100, Math.max(0, growth)) / 100;
+
+    // Deterministic random for consistent tree shape per type
+    const seededRandom = (s) => {
+        const x = Math.sin(s) * 10000;
+        return x - Math.floor(x);
+    };
+
+    const renderTree = () => {
+        if (stage < 0.05) {
+            // Seed stage
+            return [
+                React.createElement('circle', { key: 'seed', className: 'tree-leaf', cx: 100, cy: 220, r: 5 + stage * 40, fill: '#8D6E63' })
+            ];
+        } else if (stage < 0.15) {
+            // Sprout stage
+            return [
+                React.createElement('path', {
+                    key: 'stem',
+                    d: `M100,220 Q100,${210 - (stage * 100)} ${100 + (Math.sin(stage * 10) * 10)},${200 - (stage * 100)}`,
+                    stroke: '#66BB6A',
+                    strokeWidth: 3,
+                    fill: 'none'
+                }),
+                React.createElement('circle', { key: 'leaf1', className: 'tree-leaf', cx: 100 + (Math.sin(stage * 10) * 10), cy: 200 - (stage * 100), r: 4, fill: '#66BB6A' })
+            ];
+        }
+
+        // Fractal Tree Generation
+        const elements = [];
+        const trunkColor = typeProps.branchColor || '#5D4037';
+        const leafColors = typeProps.leafColors || [color];
+
+        // Deterministic structure based on tree name
+        const seed = treeType.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+
+        const growBranch = (x, y, length, angle, depth, id) => {
+            if (depth === 0) return;
+
+            const endX = x + length * Math.sin(angle);
+            const endY = y - length * Math.cos(angle);
+
+            // Branch
+            elements.push(React.createElement('line', {
+                key: `b-${id}`,
+                className: 'tree-branch',
+                x1: x, y1: y,
+                x2: endX, y2: endY,
+                stroke: trunkColor,
+                strokeWidth: Math.max(1, depth),
+                strokeLinecap: 'round'
+            }));
+
+            // Leaves at ends of branches
+            if (depth <= 2 || (depth <= 4 && seededRandom(id * seed) > 0.6)) {
+                // Start leaves appearing after 30% growth
+                if (stage > 0.3) {
+                    const leafSize = (4 + (depth * 2)) * stage;
+                    const leafColor = leafColors[Math.floor(seededRandom(id) * leafColors.length)];
+
+                    elements.push(React.createElement('circle', {
+                        key: `l-${id}`,
+                        className: 'tree-leaf',
+                        cx: endX, cy: endY,
+                        r: leafSize,
+                        fill: leafColor,
+                        opacity: 0.8
+                    }));
+                }
+            }
+
+            const newLength = length * 0.75;
+            const spread = 0.5 + (seededRandom(depth + seed) * 0.3);
+
+            // Recursively grow
+            growBranch(endX, endY, newLength, angle - spread, depth - 1, id * 2);
+            growBranch(endX, endY, newLength, angle + spread, depth - 1, id * 2 + 1);
+        };
+
+        // Initial growth parameters based on stage
+        const maxDepth = Math.min(6, Math.floor(stage * 6) + 2);
+        const initialLength = 40 + (stage * 20);
+
+        growBranch(100, 220, initialLength / (7 / maxDepth), 0, maxDepth, 1);
+
+        return elements;
+    };
+
+    return React.createElement('svg', {
+        viewBox: "0 0 200 240",
+        className: "w-full h-full",
+        style: { overflow: 'visible' }
+    },
+        // Ground shadow
+        React.createElement('ellipse', { cx: 100, cy: 220, rx: 50 * stage, ry: 8, fill: "#000", opacity: 0.1 }),
+        // Sways gently while a timer is running
+        React.createElement('g', { className: isGrowing ? 'tree-sway' : '' }, renderTree())
+    );
+});
+
+// Running time not yet saved as a session: solo timers plus this user's share of live nous together sessions
+const liveStudyMs = (activeTimers, sharedTimers, userId, now = Date.now()) => {
+    let ms = 0;
+    Object.values(activeTimers || {}).forEach(t => {
+        const start = tsMillis(t.startTime);
+        ms += (t.elapsedBeforePause || 0) + (!t.isPaused && start ? Math.max(0, now - start) : 0);
+    });
+    (sharedTimers || []).forEach(t => {
+        if (t.status === 'active') ms += sharedCreditedMs(t, userId, sharedElapsedMs(t, now));
+    });
+    return ms;
+};
+
+const GrowthTree = ({ sessions, db, userId, setNotification, activeTimers, sharedTimers }) => {
     const [treeName, setTreeName] = useState('my tree');
-    const [selectedTreeType, setSelectedTreeType] = useState('seedling');
+    const [previewTreeId, setPreviewTreeId] = useState(null);
     const [isEditingName, setIsEditingName] = useState(false);
     const [tempName, setTempName] = useState('');
+    const [now, setNow] = useState(Date.now());
 
     const appId = typeof __app_id !== 'undefined' ? __app_id : 'study-tracker-app';
 
-    // Calculate growth metrics
-    const totalHours = calculateTotalHours(sessions);
+    // Calculate growth metrics, including time on timers that are still running
+    const liveMs = liveStudyMs(activeTimers, sharedTimers, userId, now);
+    const isGrowing = liveMs > 0 && (
+        Object.values(activeTimers || {}).some(t => !t.isPaused) ||
+        (sharedTimers || []).some(t => t.status === 'active' && !t.isPaused)
+    );
+    const totalHours = calculateTotalHours(sessions) + liveMs / (1000 * 60 * 60);
     const unlockedTrees = getUnlockedTrees(totalHours);
-    const currentTree = TREE_TYPES.find(t => t.id === selectedTreeType) || TREE_TYPES[0];
+    const growingTree = getGrowingTree(totalHours);
+    const currentTree = unlockedTrees.find(t => t.id === previewTreeId) || growingTree;
     const growthPercent = getTreeGrowth(totalHours, currentTree);
+    const span = getTreeSpan(currentTree);
+    const nextTree = TREE_TYPES[TREE_TYPES.indexOf(growingTree) + 1];
 
-    // Load tree preferences
+    // Re-render every few seconds while studying so the tree grows live
+    useEffect(() => {
+        if (!isGrowing) return;
+        const interval = setInterval(() => setNow(Date.now()), 5000);
+        return () => clearInterval(interval);
+    }, [isGrowing]);
+
+    // Load tree name
     useEffect(() => {
         if (!db || !userId) return;
         const userDoc = window.doc(db, `artifacts/${appId}/users/${userId}`);
-        window.onSnapshot(userDoc, (snapshot) => {
-            if (snapshot.exists()) {
-                const data = snapshot.data();
-                if (data.treeName) setTreeName(data.treeName);
-                if (data.treeType) setSelectedTreeType(data.treeType);
-            }
-        });
+        return window.onSnapshot(userDoc, (snapshot) => {
+            if (snapshot.exists() && snapshot.data().treeName) setTreeName(snapshot.data().treeName);
+        }, (error) => console.warn('[GrowthTree] listener error:', error));
     }, [db, userId, appId]);
 
     // Save tree name
@@ -6285,7 +6425,7 @@ const GrowthTree = ({ sessions, db, userId, setNotification }) => {
         if (tempName.trim()) {
             try {
                 const userDoc = window.doc(db, `artifacts/${appId}/users/${userId}`);
-                await window.setDoc(userDoc, { treeName: tempName.trim(), treeType: selectedTreeType }, { merge: true });
+                await window.setDoc(userDoc, { treeName: tempName.trim() }, { merge: true });
                 setTreeName(tempName.trim());
                 setIsEditingName(false);
             } catch (error) {
@@ -6294,117 +6434,13 @@ const GrowthTree = ({ sessions, db, userId, setNotification }) => {
         }
     };
 
-    // Change tree type
-    const handleChangeTree = async (treeId) => {
-        try {
-            const userDoc = window.doc(db, `artifacts/${appId}/users/${userId}`);
-            await window.setDoc(userDoc, { treeName: treeName, treeType: treeId }, { merge: true });
-            setSelectedTreeType(treeId);
-            setNotification({ type: 'success', message: `Changed to ${TREE_TYPES.find(t => t.id === treeId).name}!` });
-        } catch (error) {
-            console.error("Error changing tree:", error);
-        }
+    // Look at another unlocked tree; tapping the growing one (or the same one again) goes back to it
+    const handleChangeTree = (treeId) => {
+        setPreviewTreeId(treeId === growingTree.id || treeId === previewTreeId ? null : treeId);
     };
 
-    // Beautiful Tree SVG with crisp animations
-    const TreeSVG = React.memo(({ growth, color, treeType }) => {
-        const typeProps = TREE_TYPES.find(t => t.id === treeType) || TREE_TYPES[0];
-        const stage = Math.min(100, Math.max(0, growth)) / 100;
+    const percentLabel = growthPercent >= 100 ? '100' : growthPercent.toFixed(1);
 
-        // Deterministic random for consistent tree shape per type
-        const seededRandom = (s) => {
-            const x = Math.sin(s) * 10000;
-            return x - Math.floor(x);
-        };
-
-        const renderTree = () => {
-            if (stage < 0.05) {
-                // Seed stage
-                return [
-                    React.createElement('circle', { key: 'seed', cx: 100, cy: 220, r: 5, fill: '#8D6E63' })
-                ];
-            } else if (stage < 0.15) {
-                // Sprout stage
-                return [
-                    React.createElement('path', {
-                        key: 'stem',
-                        d: `M100,220 Q100,${210 - (stage * 100)} ${100 + (Math.sin(stage * 10) * 10)},${200 - (stage * 100)}`,
-                        stroke: '#66BB6A',
-                        strokeWidth: 3,
-                        fill: 'none'
-                    }),
-                    React.createElement('circle', { key: 'leaf1', cx: 100 + (Math.sin(stage * 10) * 10), cy: 200 - (stage * 100), r: 4, fill: '#66BB6A' })
-                ];
-            }
-
-            // Fractal Tree Generation
-            const elements = [];
-            const trunkColor = typeProps.branchColor || '#5D4037';
-            const leafColors = typeProps.leafColors || [color];
-
-            // Deterministic structure based on tree name
-            const seed = treeType.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
-
-            const growBranch = (x, y, length, angle, depth, id) => {
-                if (depth === 0) return;
-
-                const endX = x + length * Math.sin(angle);
-                const endY = y - length * Math.cos(angle);
-
-                // Branch
-                elements.push(React.createElement('line', {
-                    key: `b-${id}`,
-                    x1: x, y1: y,
-                    x2: endX, y2: endY,
-                    stroke: trunkColor,
-                    strokeWidth: Math.max(1, depth),
-                    strokeLinecap: 'round'
-                }));
-
-                // Leaves at ends of branches
-                if (depth <= 2 || (depth <= 4 && seededRandom(id * seed) > 0.6)) {
-                    // Start leaves appearing after 30% growth
-                    if (stage > 0.3) {
-                        const leafSize = (4 + (depth * 2)) * stage;
-                        const leafColor = leafColors[Math.floor(seededRandom(id) * leafColors.length)];
-
-                        elements.push(React.createElement('circle', {
-                            key: `l-${id}`,
-                            cx: endX, cy: endY,
-                            r: leafSize,
-                            fill: leafColor,
-                            opacity: 0.8
-                        }));
-                    }
-                }
-
-                const newLength = length * 0.75;
-                const spread = 0.5 + (seededRandom(depth + seed) * 0.3);
-
-                // Recursively grow
-                growBranch(endX, endY, newLength, angle - spread, depth - 1, id * 2);
-                growBranch(endX, endY, newLength, angle + spread, depth - 1, id * 2 + 1);
-            };
-
-            // Initial growth parameters based on stage
-            const maxDepth = Math.min(6, Math.floor(stage * 6) + 2);
-            const initialLength = 40 + (stage * 20);
-
-            growBranch(100, 220, initialLength / (7 / maxDepth), 0, maxDepth, 1);
-
-            return elements;
-        };
-
-        return React.createElement('svg', {
-            viewBox: "0 0 200 240",
-            className: "w-full h-full",
-            style: { overflow: 'visible' }
-        },
-            // Ground shadow
-            React.createElement('ellipse', { cx: 100, cy: 220, rx: 50 * stage, ry: 8, fill: "#000", opacity: 0.1 }),
-            renderTree()
-        );
-    });
     return React.createElement('div', { className: "bg-white rounded-xl soft-shadow p-6" },
         // Header
         React.createElement('div', { className: "flex justify-between items-center mb-4" },
@@ -6442,20 +6478,28 @@ const GrowthTree = ({ sessions, db, userId, setNotification }) => {
                 boxShadow: 'inset 0 2px 8px rgba(0,0,0,0.05)'
             }
         },
-            React.createElement(TreeSVG, { key: currentTree.id, growth: growthPercent, color: currentTree.color, treeType: currentTree.id }),
+            React.createElement(TreeSVG, {
+                key: currentTree.id, growth: growthPercent, color: currentTree.color, treeType: currentTree.id,
+                isGrowing: isGrowing && currentTree === growingTree && growthPercent < 100
+            }),
 
             // Growth percentage badge
             React.createElement('div', {
                 className: "absolute top-2 right-2 bg-white px-3 py-1 rounded-full text-sm soft-shadow",
                 style: { fontWeight: 300, color: currentTree.color }
-            }, `${Math.min(100, Math.round(growthPercent))}% grown`)
+            }, `${percentLabel}% grown`),
+
+            isGrowing && currentTree === growingTree && growthPercent < 100 && React.createElement('div', {
+                className: "absolute bottom-2 left-2 bg-white px-3 py-1 rounded-full text-xs soft-shadow tree-growing-label",
+                style: { fontWeight: 300, color: currentTree.color }
+            }, 'growing…')
         ),
 
         // Progress bar
         React.createElement('div', { className: "mb-4" },
             React.createElement('div', { className: "flex justify-between text-xs text-calm-600 mb-1", style: { fontWeight: 300 } },
                 React.createElement('span', null, currentTree.name),
-                React.createElement('span', null, `${Math.max(0, totalHours - currentTree.requiredHours).toFixed(1)} / 5.0 hours`)
+                React.createElement('span', null, `${Math.min(span, Math.max(0, totalHours - currentTree.requiredHours)).toFixed(1)} / ${span.toFixed(1)} hours`)
             ),
             React.createElement('div', { className: "w-full bg-calm-200 rounded-full h-2" },
                 React.createElement('div', {
@@ -6478,7 +6522,7 @@ const GrowthTree = ({ sessions, db, userId, setNotification }) => {
             React.createElement('div', { className: "flex flex-wrap gap-2" },
                 TREE_TYPES.map(tree => {
                     const isUnlocked = unlockedTrees.some(t => t.id === tree.id);
-                    const isSelected = tree.id === selectedTreeType;
+                    const isSelected = tree.id === currentTree.id;
 
                     return React.createElement('button', {
                         key: tree.id,
@@ -6499,29 +6543,16 @@ const GrowthTree = ({ sessions, db, userId, setNotification }) => {
             )
         ),
 
-        // Next tree message - shows next tree to grow or unlock
+        // Next tree message: hours left on the tree that's growing now
         (() => {
-            // Find the first unlocked tree that's not fully grown
-            const nextTreeToGrow = unlockedTrees.find(tree => {
-                const growth = getTreeGrowth(totalHours, tree);
-                return growth < 100;
-            });
-
-            if (nextTreeToGrow) {
-                const hoursNeeded = 5 - (totalHours - nextTreeToGrow.requiredHours);
-                return React.createElement('p', {
-                    className: "text-xs text-calm-500 mt-3 text-center",
-                    style: { fontWeight: 300 }
-                }, `Study ${hoursNeeded.toFixed(1)} more hours to fully grow ${nextTreeToGrow.name}`);
-            } else if (unlockedTrees.length < TREE_TYPES.length) {
-                // All unlocked trees are fully grown, show next unlock
-                const nextToUnlock = TREE_TYPES[unlockedTrees.length];
-                return React.createElement('p', {
-                    className: "text-xs text-calm-500 mt-3 text-center",
-                    style: { fontWeight: 300 }
-                }, `Study ${(nextToUnlock.requiredHours - totalHours).toFixed(1)} more hours to unlock ${nextToUnlock.name}`);
-            }
-            return null;
+            const hoursNeeded = Math.max(0, growingTree.requiredHours + getTreeSpan(growingTree) - totalHours);
+            if (getTreeGrowth(totalHours, growingTree) >= 100) return null;
+            return React.createElement('p', {
+                className: "text-xs text-calm-500 mt-3 text-center",
+                style: { fontWeight: 300 }
+            }, nextTree
+                ? `Study ${hoursNeeded.toFixed(1)} more hours to fully grow ${growingTree.name} and unlock ${nextTree.name}`
+                : `Study ${hoursNeeded.toFixed(1)} more hours to fully grow ${growingTree.name}`);
         })()
     );
 };
