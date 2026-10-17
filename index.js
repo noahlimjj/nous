@@ -6550,10 +6550,9 @@ const GrowthTree = ({ sessions, db, userId, setNotification, activeTimers, share
 
     // Calculate growth metrics, including time on timers that are still running
     const liveMs = liveStudyMs(activeTimers, sharedTimers, userId, now);
-    const isGrowing = liveMs > 0 && (
-        Object.values(activeTimers || {}).some(t => !t.isPaused) ||
-        (sharedTimers || []).some(t => t.status === 'active' && !t.isPaused)
-    );
+    // Not gated on liveMs: a timer started after mount reads 0ms until the first tick, and the ticker needs isGrowing to start
+    const isGrowing = Object.values(activeTimers || {}).some(t => !t.isPaused) ||
+        (sharedTimers || []).some(t => t.status === 'active' && !t.isPaused);
     const totalHours = calculateTotalHours(sessions) + liveMs / (1000 * 60 * 60);
     const unlockedTrees = getUnlockedTrees(totalHours);
     const growingTree = getGrowingTree(totalHours);
