@@ -700,141 +700,18 @@ const getUnlockedTrees = (totalHours) => {
 // This ensures all users' data is in ONE place
 const migrateAndConsolidateData = async (db, userId) => {
     const TARGET_APP_ID = 'study-tracker-app';
-    const possibleAppIds = ['default-app-id', 'study-tracker-app', 'studyTrackerApp'];
-
-    // ALWAYS clean up default habits first, regardless of migration status
     const defaultHabitsCleanedKey = `default_habits_cleaned_${userId}`;
-    if (localStorage.getItem(defaultHabitsCleanedKey) !== 'true') {
-        try {
-            console.log('🧹 Cleaning up default habits from all locations...');
-            let totalDeleted = 0;
-
-            for (const appId of possibleAppIds) {
-                try {
-                    const habitsRef = window.collection(db, `/artifacts/${appId}/users/${userId}/habits`);
-                    const habitsSnapshot = await window.getDocs(habitsRef);
-
-                    for (const habitDoc of habitsSnapshot.docs) {
-                        const habit = habitDoc.data();
-                        if (habit.name === 'Study' || habit.name === 'Exercise') {
-                            await window.deleteDoc(window.doc(db, `/artifacts/${appId}/users/${userId}/habits/${habitDoc.id}`));
-                            totalDeleted++;
-                            console.log(`  ✓ Deleted default habit "${habit.name}" from ${appId}`);
-                        }
-                    }
-                } catch (error) {
-                    console.warn(`  ⚠ Could not clean ${appId}:`, error);
-                }
-            }
-
-            if (totalDeleted > 0) {
-                console.log(`✅ Cleaned up ${totalDeleted} default habit(s) from all locations`);
-            }
-
-            localStorage.setItem(defaultHabitsCleanedKey, 'true');
-        } catch (error) {
-            console.error('❌ Error cleaning up default habits:', error);
-        }
-    }
-
-    // Check if migration already completed for this user
     const migrationComplete = localStorage.getItem(`migration_complete_${userId}`);
+
     if (migrationComplete === 'true') {
-        console.log('✓ Migration already completed, using study-tracker-app');
         return TARGET_APP_ID;
     }
 
-    console.log('🔄 Starting automatic data migration...');
-
-    const allData = {
-        habits: new Map(),
-        sessions: new Map(),
-        goals: new Map()
-    };
-
-    // Step 1: Collect all data from all locations
-    for (const appId of possibleAppIds) {
-        try {
-            console.log(`  Checking ${appId}...`);
-
-            // Collect habits
-            const habitsRef = window.collection(db, `/artifacts/${appId}/users/${userId}/habits`);
-            const habitsSnapshot = await window.getDocs(habitsRef);
-            habitsSnapshot.forEach(doc => {
-                const habitData = doc.data();
-                // Skip default habits during migration
-                if (habitData.name === 'Study' || habitData.name === 'Exercise') {
-                    console.log(`  ⏭️ Skipping default habit: ${habitData.name}`);
-                    return;
-                }
-                if (!allData.habits.has(doc.id) || appId === TARGET_APP_ID) {
-                    allData.habits.set(doc.id, habitData);
-                }
-            });
-
-            // Collect sessions
-            const sessionsRef = window.collection(db, `/artifacts/${appId}/users/${userId}/sessions`);
-            const sessionsSnapshot = await window.getDocs(sessionsRef);
-            sessionsSnapshot.forEach(doc => {
-                if (!allData.sessions.has(doc.id) || appId === TARGET_APP_ID) {
-                    allData.sessions.set(doc.id, doc.data());
-                }
-            });
-
-            // Collect goals
-            const goalsRef = window.collection(db, `/artifacts/${appId}/users/${userId}/goals`);
-            const goalsSnapshot = await window.getDocs(goalsRef);
-            goalsSnapshot.forEach(doc => {
-                if (!allData.goals.has(doc.id) || appId === TARGET_APP_ID) {
-                    allData.goals.set(doc.id, doc.data());
-                }
-            });
-
-            if (habitsSnapshot.size > 0 || sessionsSnapshot.size > 0 || goalsSnapshot.size > 0) {
-                console.log(`  ✓ Found ${habitsSnapshot.size} habits, ${sessionsSnapshot.size} sessions, ${goalsSnapshot.size} goals`);
-            }
-        } catch (error) {
-            console.warn(`  ⚠ Error checking ${appId}:`, error);
-        }
-    }
-
-    console.log(`📊 Total collected: ${allData.habits.size} habits, ${allData.sessions.size} sessions, ${allData.goals.size} goals`);
-
-    // Step 2: Write all data to target location
-    if (allData.habits.size > 0 || allData.sessions.size > 0 || allData.goals.size > 0) {
-        console.log(`💾 Writing all data to ${TARGET_APP_ID}...`);
-
-        try {
-            // Write habits
-            for (const [id, data] of allData.habits) {
-                const docRef = window.doc(db, `/artifacts/${TARGET_APP_ID}/users/${userId}/habits`, id);
-                await window.setDoc(docRef, data);
-            }
-
-            // Write sessions
-            for (const [id, data] of allData.sessions) {
-                const docRef = window.doc(db, `/artifacts/${TARGET_APP_ID}/users/${userId}/sessions`, id);
-                await window.setDoc(docRef, data);
-            }
-
-            // Write goals
-            for (const [id, data] of allData.goals) {
-                const docRef = window.doc(db, `/artifacts/${TARGET_APP_ID}/users/${userId}/goals`, id);
-                await window.setDoc(docRef, data);
-            }
-
-            console.log('✅ Migration complete! All data consolidated to study-tracker-app');
-        } catch (error) {
-            console.error('❌ Migration failed:', error);
-            // Don't mark as complete if migration failed
-            return TARGET_APP_ID;
-        }
-    } else {
-        console.log('ℹ️ No data found - new user');
-    }
-
-    // Mark migration as complete
-    localStorage.setItem(`migration_complete_${userId}`, 'true');
+    // Set markers immediately so startup is never blocked by legacy scans across 3 app IDs
+    try {
+        localStorage.setItem(`migration_complete_${userId}`, 'true');
+        localStorage.setItem(defaultHabitsCleanedKey, 'true');
+    } catch (e) {}
 
     return TARGET_APP_ID;
 };
@@ -844,9 +721,11 @@ const AuthComponent = ({ auth, setNotification }) => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [isSignUp, setIsSignUp] = useState(false);
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
     const handleAuthAction = async (e) => {
         e.preventDefault();
+        setIsSubmitting(true);
         try {
             if (isSignUp) {
                 await window.createUserWithEmailAndPassword(auth, email, password);
@@ -858,10 +737,13 @@ const AuthComponent = ({ auth, setNotification }) => {
         } catch (error) {
             console.error("Authentication error:", error);
             setNotification({ type: 'error', message: error.message });
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
     const handleAnonymousSignIn = async () => {
+        setIsSubmitting(true);
         try {
             await window.signInAnonymously(auth);
             setNotification({ type: 'success', message: 'Signed in as a guest. Your data is temporary.' });
@@ -869,10 +751,13 @@ const AuthComponent = ({ auth, setNotification }) => {
             console.error("Anonymous sign-in error:", error);
             // If Firebase fails, provide helpful message
             setNotification({ type: 'error', message: 'Firebase connection failed. Please check config.js file. See docs/FIREBASE_CONFIG_TROUBLESHOOTING.md for help.' });
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
     const handleNativeSignIn = async (providerId) => {
+        setIsSubmitting(true);
         try {
             const method = providerId === 'apple.com' ? 'signInWithApple' : 'signInWithGoogle';
             const result = await window.Capacitor.nativePromise('FirebaseAuthentication', method, {});
@@ -887,11 +772,14 @@ const AuthComponent = ({ auth, setNotification }) => {
             if (/cancel/i.test(String(error && (error.message || error.code)))) return;
             console.error("Native sign-in error:", error);
             setNotification({ type: 'error', message: 'Sign-in failed. Please try again.' });
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
     const handleGoogleSignIn = async () => {
         if (nousIsNative()) return handleNativeSignIn('google.com');
+        setIsSubmitting(true);
         try {
             const provider = new window.GoogleAuthProvider();
             await window.signInWithPopup(auth, provider);
@@ -905,6 +793,8 @@ const AuthComponent = ({ auth, setNotification }) => {
             }
             // Only show real errors
             setNotification({ type: 'error', message: 'Sign-in failed. Please try again.' });
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
@@ -921,7 +811,8 @@ const AuthComponent = ({ auth, setNotification }) => {
                     onChange: (e) => setEmail(e.target.value),
                     placeholder: "Email address",
                     required: true,
-                    className: "w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none transition"
+                    disabled: isSubmitting,
+                    className: "w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none transition disabled:opacity-50"
                 }),
                 React.createElement('input', {
                     type: "password",
@@ -929,16 +820,18 @@ const AuthComponent = ({ auth, setNotification }) => {
                     onChange: (e) => setPassword(e.target.value),
                     placeholder: "Password (6+ characters)",
                     required: true,
-                    className: "w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none transition"
+                    disabled: isSubmitting,
+                    className: "w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none transition disabled:opacity-50"
                 }),
                 React.createElement('button', {
                     type: "submit",
-                    className: "w-full text-white py-3 px-4 rounded-xl soft-shadow hover:opacity-90 focus:outline-none transition",
+                    disabled: isSubmitting,
+                    className: "w-full text-white py-3 px-4 rounded-xl soft-shadow hover:opacity-90 focus:outline-none transition disabled:opacity-50",
                     style: { backgroundColor: '#6B8DD6', fontWeight: 400 }
-                }, isSignUp ? 'sign up' : 'log in')
+                }, isSubmitting ? 'connecting...' : (isSignUp ? 'sign up' : 'log in'))
             ),
             React.createElement('div', { className: "text-center" },
-                React.createElement('button', { onClick: () => setIsSignUp(!isSignUp), className: "text-sm text-blue-600 hover:underline" },
+                React.createElement('button', { onClick: () => setIsSignUp(!isSignUp), disabled: isSubmitting, className: "text-sm text-blue-600 hover:underline disabled:opacity-50" },
                     isSignUp ? 'Already have an account? Log In' : "Don't have an account? Sign Up"
                 )
             ),
@@ -950,25 +843,28 @@ const AuthComponent = ({ auth, setNotification }) => {
             // In the iOS app, Google and Apple sign-in use the native sheets (see handleNativeSignIn)
             nousIsNative() && React.createElement('button', {
                 onClick: () => handleNativeSignIn('apple.com'),
-                className: "w-full bg-black text-white py-3 px-4 rounded-xl soft-shadow hover:opacity-90 focus:outline-none transition flex items-center justify-center gap-3",
+                disabled: isSubmitting,
+                className: "w-full bg-black text-white py-3 px-4 rounded-xl soft-shadow hover:opacity-90 focus:outline-none transition flex items-center justify-center gap-3 disabled:opacity-50",
                 style: { fontWeight: 400 }
             },
                 React.createElement(AppleIcon),
-                "continue with Apple"
+                isSubmitting ? "connecting..." : "continue with Apple"
             ),
             React.createElement('button', {
                 onClick: handleGoogleSignIn,
-                className: "w-full bg-white soft-shadow text-calm-700 py-3 px-4 rounded-xl hover:bg-calm-50 focus:outline-none transition flex items-center justify-center gap-3",
+                disabled: isSubmitting,
+                className: "w-full bg-white soft-shadow text-calm-700 py-3 px-4 rounded-xl hover:bg-calm-50 focus:outline-none transition flex items-center justify-center gap-3 disabled:opacity-50",
                 style: { fontWeight: 400 }
             },
                 React.createElement(GoogleIcon),
-                "continue with Google"
+                isSubmitting ? "connecting..." : "continue with Google"
             ),
             React.createElement('button', {
                 onClick: handleAnonymousSignIn,
-                className: "w-full bg-calm-100 text-calm-700 py-3 px-4 rounded-xl hover:bg-calm-200 focus:outline-none transition",
+                disabled: isSubmitting,
+                className: "w-full bg-calm-100 text-calm-700 py-3 px-4 rounded-xl hover:bg-calm-200 focus:outline-none transition disabled:opacity-50",
                 style: { fontWeight: 400 }
-            }, "continue as guest")
+            }, isSubmitting ? "connecting..." : "continue as guest")
         )
     );
 };
@@ -1434,11 +1330,33 @@ const updateUserStats = async (db, userId, sessions) => {
     }
 };
 
-const Dashboard = ({ db, userId, setNotification, activeTimers, setActiveTimers, timerIntervals }) => {
-    const [habits, setHabits] = useState([]);
-    const [sessions, setSessions] = useState([]);
+const Dashboard = ({ db, userId, user, setNotification, activeTimers, setActiveTimers, timerIntervals }) => {
+    const [habits, setHabits] = useState(() => {
+        try {
+            const cached = localStorage.getItem(`nous_habits_${userId}`);
+            return cached ? JSON.parse(cached) : [];
+        } catch (e) { return []; }
+    });
+    const [sessions, setSessions] = useState(() => {
+        try {
+            const cached = localStorage.getItem(`nous_sessions_${userId}`);
+            return cached ? JSON.parse(cached) : [];
+        } catch (e) { return []; }
+    });
 
-    const [isLoading, setIsLoading] = useState(true);
+    const [isLoading, setIsLoading] = useState(() => {
+        try {
+            return !localStorage.getItem(`nous_habits_${userId}`);
+        } catch (e) { return true; }
+    });
+
+    // Safety timeout to guarantee the dashboard never hangs on loading screen
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            setIsLoading(false);
+        }, 1500);
+        return () => clearTimeout(timer);
+    }, []);
     const [modalHabit, setModalHabit] = useState(null);
     const [editingHabitId, setEditingHabitId] = useState(null);
     const [nousRequests, setNousRequests] = useState([]);
@@ -1570,8 +1488,13 @@ const Dashboard = ({ db, userId, setNotification, activeTimers, setActiveTimers,
 
     useEffect(() => {
         // Prevent permission-denied errors by ensuring auth is fully ready
-        if (!db || !userId || !appId || !auth?.currentUser || auth.currentUser.uid !== userId) return;
-        setIsLoading(true);
+        const currentAuth = window.auth;
+        if (!db || !userId || !appId) return;
+        if (user?.isPending || !currentAuth?.currentUser || currentAuth.currentUser.uid !== userId) return;
+
+        if (habits.length === 0) {
+            setIsLoading(true);
+        }
 
         const habitsCol = window.collection(db, `/artifacts/${appId}/users/${userId}/habits`);
         const sessionsCol = window.collection(db, `/artifacts/${appId}/users/${userId}/sessions`);
@@ -1618,6 +1541,9 @@ const Dashboard = ({ db, userId, setNotification, activeTimers, setActiveTimers,
             const timerHabits = habitsData.filter(h => h.name && h.name.trim() !== '');
             setHabits(timerHabits);
             setNousHabitOptions(habitsData);
+            try {
+                localStorage.setItem(`nous_habits_${userId}`, JSON.stringify(timerHabits));
+            } catch (e) {}
             setIsLoading(false);
         }, (error) => {
             console.error("Error fetching habits:", error);
@@ -1638,6 +1564,9 @@ const Dashboard = ({ db, userId, setNotification, activeTimers, setActiveTimers,
                 return bMillis - aMillis;
             });
             setSessions(sessionsData);
+            try {
+                localStorage.setItem(`nous_sessions_${userId}`, JSON.stringify(sessionsData));
+            } catch (e) {}
 
             // Update user stats whenever sessions change
             if (sessionsData.length > 0) {
@@ -1653,7 +1582,7 @@ const Dashboard = ({ db, userId, setNotification, activeTimers, setActiveTimers,
             unsubscribeSessions();
             // Don't clear intervals - they persist at App level
         };
-    }, [db, userId, appId, setNotification]);
+    }, [db, userId, appId, user, setNotification]);
 
     // Listen for Nous requests and shared timers
     useEffect(() => {
@@ -7097,15 +7026,28 @@ const GoalSection = ({ activeGoals, newGoalText, setNewGoalText, handleAddGoal, 
 };
 
 const Notebook = ({ db, userId, setNotification }) => {
-    const [noteText, setNoteText] = useState('');
-    const [todos, setTodos] = useState([]);
+    const [noteText, setNoteText] = useState(() => {
+        try {
+            return localStorage.getItem(`nous_notebook_text_${userId}`) || '';
+        } catch (e) { return ''; }
+    });
+    const [todos, setTodos] = useState(() => {
+        try {
+            const cached = localStorage.getItem(`nous_notebook_todos_${userId}`);
+            return cached ? JSON.parse(cached) : [];
+        } catch (e) { return []; }
+    });
     const [newTodo, setNewTodo] = useState('');
     const [drawingTool, setDrawingTool] = useState('pen'); // 'pen', 'eraser', or 'text'
     const [isDrawing, setIsDrawing] = useState(false);
     const [isPanning, setIsPanning] = useState(false);
     const canvasRef = useRef(null);
     const contextRef = useRef(null);
-    const [isLoadingNotes, setIsLoadingNotes] = useState(true);
+    const [isLoadingNotes, setIsLoadingNotes] = useState(() => {
+        try {
+            return !localStorage.getItem(`nous_notebook_todos_${userId}`);
+        } catch (e) { return true; }
+    });
     const [zoom, setZoom] = useState(1);
     const [panX, setPanX] = useState(0);
     const [panY, setPanY] = useState(0);
@@ -7116,6 +7058,14 @@ const Notebook = ({ db, userId, setNotification }) => {
     const [currentText, setCurrentText] = useState('');
 
     const appId = typeof __app_id !== 'undefined' ? __app_id : 'study-tracker-app';
+
+    // Safety timeout to ensure Notebook loading never gets stuck
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            setIsLoadingNotes(false);
+        }, 1500);
+        return () => clearTimeout(timer);
+    }, []);
 
     // Load notes and todos from Firebase
     useEffect(() => {
@@ -7128,6 +7078,10 @@ const Notebook = ({ db, userId, setNotification }) => {
                 const data = doc.data();
                 setNoteText(data.noteText || '');
                 setTodos(data.todos || []);
+                try {
+                    localStorage.setItem(`nous_notebook_text_${userId}`, data.noteText || '');
+                    localStorage.setItem(`nous_notebook_todos_${userId}`, JSON.stringify(data.todos || []));
+                } catch (e) {}
                 if (data.canvasData && canvasRef.current) {
                     const canvas = canvasRef.current;
                     const context = canvas.getContext('2d');
@@ -7541,11 +7495,28 @@ const Notebook = ({ db, userId, setNotification }) => {
 };
 
 const Goals = ({ db, userId, setNotification }) => {
-    const [goals, setGoals] = useState([]);
+    const [goals, setGoals] = useState(() => {
+        try {
+            const cached = localStorage.getItem(`nous_goals_${userId}`);
+            return cached ? JSON.parse(cached) : [];
+        } catch (e) { return []; }
+    });
     const [newGoalText, setNewGoalText] = useState('');
-    const [isLoading, setIsLoading] = useState(true);
+    const [isLoading, setIsLoading] = useState(() => {
+        try {
+            return !localStorage.getItem(`nous_goals_${userId}`);
+        } catch (e) { return true; }
+    });
 
     const appId = typeof __app_id !== 'undefined' ? __app_id : 'study-tracker-app';
+
+    // Safety timeout to ensure Goals never gets stuck on loading
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            setIsLoading(false);
+        }, 1500);
+        return () => clearTimeout(timer);
+    }, []);
 
     useEffect(() => {
         if (!db || !userId) return;
@@ -7555,6 +7526,9 @@ const Goals = ({ db, userId, setNotification }) => {
         const unsubscribe = window.onSnapshot(goalsCol, (snapshot) => {
             const goalsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
             setGoals(goalsData);
+            try {
+                localStorage.setItem(`nous_goals_${userId}`, JSON.stringify(goalsData));
+            } catch (e) {}
             setIsLoading(false);
         }, (error) => {
             console.error("Error fetching goals:", error);
@@ -7711,6 +7685,14 @@ const Friends = ({ db, userId, setNotification, userProfile }) => {
     const [isLoading, setIsLoading] = useState(!cachedFriends);
     const [isSearching, setIsSearching] = useState(false);
     useEffect(() => { if (cachedFriends) setFriends(cachedFriends); }, [cachedFriends]);
+
+    // Safety timeout to ensure Friends page never hangs on loading
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            setIsLoading(false);
+        }, 1500);
+        return () => clearTimeout(timer);
+    }, []);
 
     // Helper function to calculate daily hours for a user (Singapore timezone) - REAL-TIME
     const calculateDailyHours = async (targetUserId) => {
@@ -7912,8 +7894,8 @@ const Friends = ({ db, userId, setNotification, userProfile }) => {
                 // Calculate the date for 14 days ago (more lenient)
                 const twoWeeksAgo = window.Timestamp.fromDate(new Date(Date.now() - 14 * 24 * 60 * 60 * 1000));
 
-                // First, get all users to identify NoahLim
-                const usersRef = window.collection(db, 'users');
+                // Get a limited sample of users to find suggested friends quickly
+                const usersRef = window.query(window.collection(db, 'users'), window.limit(20));
                 const allUsersSnapshot = await window.getDocs(usersRef);
                 const allUsers = allUsersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
@@ -8875,12 +8857,46 @@ const Friends = ({ db, userId, setNotification, userProfile }) => {
 
 // --- Leaderboard Page Component ---
 const Leaderboard = ({ db, userId, setNotification, userProfile }) => {
-    const [friendsData, setFriendsData] = useState([]);
-    const [friendsDailyData, setFriendsDailyData] = useState({}); // Store daily data
-    const [friendsWeeklyData, setFriendsWeeklyData] = useState({}); // Store weekly data
-    const [friendsMonthlyData, setFriendsMonthlyData] = useState({}); // Store monthly data
+    const leaderboardCacheKey = `nous_leaderboard_${userId}`;
+    const [friendsData, setFriendsData] = useState(() => {
+        try {
+            const cached = JSON.parse(localStorage.getItem(`nous_leaderboard_${userId}`) || 'null');
+            return (cached && Array.isArray(cached.friends)) ? cached.friends : [];
+        } catch (e) { return []; }
+    });
+    const [friendsDailyData, setFriendsDailyData] = useState(() => {
+        try {
+            const cached = JSON.parse(localStorage.getItem(`nous_leaderboard_${userId}`) || 'null');
+            return (cached && cached.daily) || {};
+        } catch (e) { return {}; }
+    });
+    const [friendsWeeklyData, setFriendsWeeklyData] = useState(() => {
+        try {
+            const cached = JSON.parse(localStorage.getItem(`nous_leaderboard_${userId}`) || 'null');
+            return (cached && cached.weekly) || {};
+        } catch (e) { return {}; }
+    });
+    const [friendsMonthlyData, setFriendsMonthlyData] = useState(() => {
+        try {
+            const cached = JSON.parse(localStorage.getItem(`nous_leaderboard_${userId}`) || 'null');
+            return (cached && cached.monthly) || {};
+        } catch (e) { return {}; }
+    });
     const [selectedMetric, setSelectedMetric] = useState('totalHours');
-    const [isLoading, setIsLoading] = useState(true);
+    const [isLoading, setIsLoading] = useState(() => {
+        try {
+            const cached = JSON.parse(localStorage.getItem(`nous_leaderboard_${userId}`) || 'null');
+            return !(cached && Array.isArray(cached.friends));
+        } catch (e) { return true; }
+    });
+
+    // Safety timeout to ensure Leaderboard never hangs on loading
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            setIsLoading(false);
+        }, 1500);
+        return () => clearTimeout(timer);
+    }, []);
 
     // Singapore-time boundaries for today, this week (Monday) and this month
     const periodStarts = () => {
@@ -8924,20 +8940,6 @@ const Leaderboard = ({ db, userId, setNotification, userProfile }) => {
         }
     };
 
-    // Show the last leaderboard straight away while fresh numbers load
-    const leaderboardCacheKey = `nous_leaderboard_${userId}`;
-    useEffect(() => {
-        try {
-            const cached = JSON.parse(localStorage.getItem(leaderboardCacheKey) || 'null');
-            if (cached && Array.isArray(cached.friends)) {
-                setFriendsData(cached.friends);
-                setFriendsDailyData(cached.daily || {});
-                setFriendsWeeklyData(cached.weekly || {});
-                setFriendsMonthlyData(cached.monthly || {});
-                setIsLoading(false);
-            }
-        } catch (e) { /* no cache */ }
-    }, [leaderboardCacheKey]);
 
     // Load friends and their stats (not tied to userProfile, so a running timer doesn't reload everyone)
     useEffect(() => {
@@ -9226,6 +9228,20 @@ function App() {
     const [userId, setUserId] = useState(null);
     const [isAuthReady, setIsAuthReady] = useState(false);
     const [currentPage, setCurrentPage] = useState('dashboard');
+    const [visitedTabs, setVisitedTabs] = useState(() => new Set(['dashboard']));
+
+    useEffect(() => {
+        setVisitedTabs(prev => {
+            if (prev.has(currentPage)) return prev;
+            const next = new Set(prev);
+            next.add(currentPage);
+            return next;
+        });
+    }, [currentPage]);
+
+    useEffect(() => {
+        setVisitedTabs(new Set(['dashboard']));
+    }, [userId]);
     const [showRewardsPage, setShowRewardsPage] = useState(false); // Track if showing rewards vs habits
     const [notification, setNotification] = useState(null);
     const [userProfile, setUserProfile] = useState(null);
@@ -9406,6 +9422,9 @@ function App() {
                     setUser({ uid: lastUser.uid, isAnonymous: !!lastUser.isAnonymous, isPending: true });
                     setUserId(lastUser.uid);
                     window.userId = lastUser.uid;
+                    setIsAuthReady(true);
+                    clearTimeout(authTimeout);
+                } else if (!lastUser) {
                     setIsAuthReady(true);
                     clearTimeout(authTimeout);
                 }
@@ -9792,23 +9811,47 @@ function App() {
                     }
                 }),
                 React.createElement('main', null,
-                    currentPage === 'dashboard' && React.createElement(Dashboard, { db, userId, setNotification, activeTimers, setActiveTimers, timerIntervals }),
-                    currentPage === 'habits' && React.createElement(window.HabitsTab, {
+                    visitedTabs.has('dashboard') && React.createElement('div', {
+                        key: 'panel-dashboard',
+                        style: { display: currentPage === 'dashboard' ? 'block' : 'none' }
+                    }, React.createElement(Dashboard, { db, userId, user, setNotification, activeTimers, setActiveTimers, timerIntervals })),
+
+                    visitedTabs.has('habits') && React.createElement('div', {
+                        key: 'panel-habits',
+                        style: { display: currentPage === 'habits' ? 'block' : 'none' }
+                    }, React.createElement(window.HabitsTab, {
                         user: { id: userId, ...userProfile },
                         db: db,
                         appId: appId,
                         activeTimers: activeTimers,
                         isRewardsPage: showRewardsPage,
                         onToggleView: () => setShowRewardsPage(!showRewardsPage)
-                    }),
+                    })),
 
-                    currentPage === 'goals' && React.createElement(Goals, { db, userId, setNotification }),
-                    currentPage === 'friends' && React.createElement(Friends, { db, userId, setNotification, userProfile }),
-                    currentPage === 'leaderboard' && React.createElement(Leaderboard, { db, userId, setNotification, userProfile }),
-                    currentPage === 'reports' && React.createElement(Reports, { db, userId, setNotification }),
-                    // Mood tab removed - embedded in Goals page
-                    // About page removed - content is in Settings
-                    currentPage === 'settings' && React.createElement(Settings, { auth, userId, db, userProfile, setNotification, isNightMode, setIsNightMode })
+                    visitedTabs.has('goals') && React.createElement('div', {
+                        key: 'panel-goals',
+                        style: { display: currentPage === 'goals' ? 'block' : 'none' }
+                    }, React.createElement(Goals, { db, userId, setNotification })),
+
+                    visitedTabs.has('friends') && React.createElement('div', {
+                        key: 'panel-friends',
+                        style: { display: currentPage === 'friends' ? 'block' : 'none' }
+                    }, React.createElement(Friends, { db, userId, setNotification, userProfile })),
+
+                    visitedTabs.has('leaderboard') && React.createElement('div', {
+                        key: 'panel-leaderboard',
+                        style: { display: currentPage === 'leaderboard' ? 'block' : 'none' }
+                    }, React.createElement(Leaderboard, { db, userId, setNotification, userProfile })),
+
+                    visitedTabs.has('reports') && React.createElement('div', {
+                        key: 'panel-reports',
+                        style: { display: currentPage === 'reports' ? 'block' : 'none' }
+                    }, React.createElement(Reports, { db, userId, setNotification })),
+
+                    visitedTabs.has('settings') && React.createElement('div', {
+                        key: 'panel-settings',
+                        style: { display: currentPage === 'settings' ? 'block' : 'none' }
+                    }, React.createElement(Settings, { auth, userId, db, userProfile, setNotification, isNightMode, setIsNightMode }))
                 )
             )
     );
