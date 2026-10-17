@@ -8882,228 +8882,106 @@ const Leaderboard = ({ db, userId, setNotification, userProfile }) => {
     const [selectedMetric, setSelectedMetric] = useState('totalHours');
     const [isLoading, setIsLoading] = useState(true);
 
-    // Helper function to calculate daily study hours for a user (Singapore timezone)
-    const calculateDailyHours = async (userId) => {
+    // Singapore-time boundaries for today, this week (Monday) and this month
+    const periodStarts = () => {
+        const sgNow = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Singapore' }));
+        const shift = Date.now() - sgNow.getTime(); // local clock vs Singapore wall clock
+        const fromSg = (d) => new Date(d.getTime() + shift);
+        const day = new Date(sgNow); day.setHours(0, 0, 0, 0);
+        const week = new Date(day); week.setDate(day.getDate() - ((day.getDay() + 6) % 7));
+        const month = new Date(day.getFullYear(), day.getMonth(), 1);
+        return { day: fromSg(day), week: fromSg(week), month: fromSg(month) };
+    };
+
+    // One query per person: sessions since the earlier of this week and this month,
+    // then split into today / this week / this month
+    const fetchPeriodHours = async (targetUserId) => {
+        const { day, week, month } = periodStarts();
+        const since = week < month ? week : month;
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'study-tracker-app';
         try {
-            const appId = typeof __app_id !== 'undefined' ? __app_id : 'study-tracker-app';
-            const sessionsQuery = window.collection(db, `/artifacts/${appId}/users/${userId}/sessions`);
-
-            // Calculate the start and end of today in Singapore timezone (UTC+8)
-            const now = new Date();
-            const singaporeOffset = 8 * 60; // UTC+8 in minutes
-            const localOffset = now.getTimezoneOffset(); // Local offset from UTC
-            const offsetDiff = singaporeOffset + localOffset; // Minutes to adjust to Singapore time
-
-            const startOfDay = new Date();
-            startOfDay.setHours(0, 0, 0, 0);
-            startOfDay.setMinutes(startOfDay.getMinutes() - offsetDiff); // Adjust to Singapore midnight
-
-            const endOfDay = new Date();
-            endOfDay.setHours(23, 59, 59, 999);
-            endOfDay.setMinutes(endOfDay.getMinutes() - offsetDiff); // Adjust to Singapore end of day
-
-            // Only today's sessions, not the whole history
-            const snapshot = await window.getDocs(window.query(sessionsQuery, window.where('startTime', '>=', window.Timestamp.fromDate(startOfDay))));
-            const sessions = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-
-            // Filter sessions to only those from today (Singapore time)
-            const dailySessions = sessions.filter(session => {
-                const sessionDate = toDate(session.startTime);
-                return sessionDate >= startOfDay && sessionDate <= endOfDay;
+            const snap = await window.getDocs(window.query(
+                window.collection(db, `/artifacts/${appId}/users/${targetUserId}/sessions`),
+                window.where('startTime', '>=', window.Timestamp.fromDate(since))
+            ));
+            const now = Date.now();
+            const totals = { daily: 0, weekly: 0, monthly: 0 };
+            snap.docs.forEach(d => {
+                const s = d.data();
+                const start = toDate(s.startTime);
+                if (!start) return;
+                // Running sessions count up to now for "today"
+                const ms = s.duration || (!s.endTime ? now - start.getTime() : 0);
+                if (start >= day) totals.daily += ms;
+                if (start >= week) totals.weekly += s.duration || 0;
+                if (start >= month) totals.monthly += s.duration || 0;
             });
-
-            // Calculate total hours for the day (including ACTIVE sessions)
-            const dailyTotalMs = dailySessions.reduce((sum, s) => {
-                if (s.duration) {
-                    // Completed session - use duration
-                    return sum + s.duration;
-                } else if (s.startTime && !s.endTime) {
-                    // ACTIVE session - calculate elapsed time from startTime to now
-                    const elapsed = now.getTime() - toDate(s.startTime).getTime();
-                    return sum + elapsed;
-                }
-                return sum;
-            }, 0);
-            const dailyTotalHours = dailyTotalMs / (1000 * 60 * 60);
-
-            return dailyTotalHours;
+            const h = (ms) => ms / 3600000;
+            return { daily: h(totals.daily), weekly: h(totals.weekly), monthly: h(totals.monthly) };
         } catch (error) {
-            console.error(`Error calculating daily hours for user ${userId}:`, error);
-            return 0;
+            console.error(`Error loading leaderboard hours for ${targetUserId}:`, error);
+            return { daily: 0, weekly: 0, monthly: 0 };
         }
     };
 
-    // Helper function to calculate weekly study hours for a user (Singapore timezone)
-    const calculateWeeklyHours = async (userId) => {
+    // Show the last leaderboard straight away while fresh numbers load
+    const leaderboardCacheKey = `nous_leaderboard_${userId}`;
+    useEffect(() => {
         try {
-            const appId = typeof __app_id !== 'undefined' ? __app_id : 'study-tracker-app';
-            const sessionsQuery = window.collection(db, `/artifacts/${appId}/users/${userId}/sessions`);
+            const cached = JSON.parse(localStorage.getItem(leaderboardCacheKey) || 'null');
+            if (cached && Array.isArray(cached.friends)) {
+                setFriendsData(cached.friends);
+                setFriendsDailyData(cached.daily || {});
+                setFriendsWeeklyData(cached.weekly || {});
+                setFriendsMonthlyData(cached.monthly || {});
+                setIsLoading(false);
+            }
+        } catch (e) { /* no cache */ }
+    }, [leaderboardCacheKey]);
 
-            // Calculate the start of the current week (Monday) in Singapore timezone
-            const now = new Date();
-            const singaporeOffset = 8 * 60; // UTC+8 in minutes
-            const localOffset = now.getTimezoneOffset(); // Local offset from UTC
-            const offsetDiff = singaporeOffset + localOffset; // Minutes to adjust to Singapore time
-
-            // Get day of week in Singapore time
-            const singaporeNow = new Date(now.getTime() - (offsetDiff * 60 * 1000));
-            const dayOfWeek = singaporeNow.getDay(); // 0 (Sunday) to 6 (Saturday)
-            const daysSinceMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1; // Adjust to make Monday 0
-
-            const startOfCurrentWeek = new Date(now);
-            startOfCurrentWeek.setDate(now.getDate() - daysSinceMonday);
-            startOfCurrentWeek.setHours(0, 0, 0, 0);
-            startOfCurrentWeek.setMinutes(startOfCurrentWeek.getMinutes() - offsetDiff); // Adjust to Singapore midnight
-
-            const endOfCurrentWeek = new Date(startOfCurrentWeek);
-            endOfCurrentWeek.setDate(startOfCurrentWeek.getDate() + 7);
-            endOfCurrentWeek.setHours(23, 59, 59, 999);
-
-            const snapshot = await window.getDocs(sessionsQuery);
-            const sessions = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-
-            // Filter sessions to only those in the current week (Singapore time)
-            const weeklySessions = sessions.filter(session => {
-                const sessionDate = toDate(session.startTime);
-                return sessionDate >= startOfCurrentWeek && sessionDate <= endOfCurrentWeek;
-            });
-
-            // Calculate total hours for the week
-            const weeklyTotalMs = weeklySessions.reduce((sum, s) => sum + (s.duration || 0), 0);
-            const weeklyTotalHours = weeklyTotalMs / (1000 * 60 * 60);
-
-            return weeklyTotalHours;
-        } catch (error) {
-            console.error(`Error calculating weekly hours for user ${userId}:`, error);
-            return 0;
-        }
-    };
-
-    // Helper function to calculate monthly study hours for a user (Singapore timezone)
-    const calculateMonthlyHours = async (userId) => {
-        try {
-            const appId = typeof __app_id !== 'undefined' ? __app_id : 'study-tracker-app';
-            const sessionsQuery = window.collection(db, `/artifacts/${appId}/users/${userId}/sessions`);
-
-            // Calculate the start of the current month in Singapore timezone
-            const now = new Date();
-            const singaporeOffset = 8 * 60; // UTC+8 in minutes
-            const localOffset = now.getTimezoneOffset(); // Local offset from UTC
-            const offsetDiff = singaporeOffset + localOffset; // Minutes to adjust to Singapore time
-
-            // Get current month in Singapore time
-            const singaporeNow = new Date(now.getTime() - (offsetDiff * 60 * 1000));
-
-            const startOfMonth = new Date(singaporeNow.getFullYear(), singaporeNow.getMonth(), 1);
-            startOfMonth.setHours(0, 0, 0, 0);
-            // Convert back to local time for comparison
-            startOfMonth.setMinutes(startOfMonth.getMinutes() - offsetDiff);
-
-            const endOfMonth = new Date(singaporeNow.getFullYear(), singaporeNow.getMonth() + 1, 0);
-            endOfMonth.setHours(23, 59, 59, 999);
-            // Convert back to local time for comparison
-            endOfMonth.setMinutes(endOfMonth.getMinutes() - offsetDiff);
-
-            const snapshot = await window.getDocs(sessionsQuery);
-            const sessions = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-
-            // Filter sessions to only those in the current month (Singapore time)
-            const monthlySessions = sessions.filter(session => {
-                const sessionDate = toDate(session.startTime);
-                return sessionDate >= startOfMonth && sessionDate <= endOfMonth;
-            });
-
-            // Calculate total hours for the month
-            const monthlyTotalMs = monthlySessions.reduce((sum, s) => sum + (s.duration || 0), 0);
-            const monthlyTotalHours = monthlyTotalMs / (1000 * 60 * 60);
-
-            return monthlyTotalHours;
-        } catch (error) {
-            console.error(`Error calculating monthly hours for user ${userId}:`, error);
-            return 0;
-        }
-    };
-
-    // Load friends and their stats
+    // Load friends and their stats (not tied to userProfile, so a running timer doesn't reload everyone)
     useEffect(() => {
         if (!db || !userId) return;
+        let cancelled = false;
 
         const fetchLeaderboard = async () => {
             try {
-                // Get all friendships
-                const friendshipsQuery1 = window.query(
-                    window.collection(db, 'friendships'),
-                    window.where('user1Id', '==', userId)
-                );
-                const friendshipsQuery2 = window.query(
-                    window.collection(db, 'friendships'),
-                    window.where('user2Id', '==', userId)
-                );
-
                 const [snap1, snap2] = await Promise.all([
-                    window.getDocs(friendshipsQuery1),
-                    window.getDocs(friendshipsQuery2)
+                    window.getDocs(window.query(window.collection(db, 'friendships'), window.where('user1Id', '==', userId))),
+                    window.getDocs(window.query(window.collection(db, 'friendships'), window.where('user2Id', '==', userId)))
                 ]);
-
-                const allFriendsData = [];
-
-                // Get stats for each friend
-                for (const doc of [...snap1.docs, ...snap2.docs]) {
+                const links = [...snap1.docs, ...snap2.docs].map(doc => {
                     const data = doc.data();
-                    const friendId = data.user1Id === userId ? data.user2Id : data.user1Id;
+                    const mine = data.user1Id === userId;
+                    return { friendId: mine ? data.user2Id : data.user1Id, username: mine ? data.user2Username : data.user1Username };
+                });
 
-                    // Fetch friend's profile
-                    const friendDocRef = window.doc(db, 'users', friendId);
-                    const friendSnapshot = await window.getDoc(friendDocRef);
-                    const friendData = friendSnapshot.data();
+                // Profiles and period hours for everyone, all in parallel
+                const ids = [userId, ...links.map(l => l.friendId)];
+                const [profiles, hours] = await Promise.all([
+                    Promise.all(links.map(l => window.getDoc(window.doc(db, 'users', l.friendId)))),
+                    Promise.all(ids.map(fetchPeriodHours))
+                ]);
+                if (cancelled) return;
 
+                const friends = [];
+                links.forEach((l, i) => {
+                    const friendData = profiles[i].data();
                     if (friendData && friendData.stats) {
-                        allFriendsData.push({
-                            userId: friendId,
-                            username: data.user1Id === userId ? data.user2Username : data.user1Username,
-                            stats: friendData.stats,
-                            isCurrentUser: false
-                        });
+                        friends.push({ userId: l.friendId, username: friendData.username || l.username, stats: friendData.stats, isCurrentUser: false });
                     }
-                }
+                });
+                const daily = {}, weekly = {}, monthly = {};
+                ids.forEach((id, i) => { daily[id] = hours[i].daily; weekly[id] = hours[i].weekly; monthly[id] = hours[i].monthly; });
 
-                // Add current user to leaderboard
-                if (userProfile && userProfile.stats) {
-                    allFriendsData.push({
-                        userId: userId,
-                        username: userProfile.username,
-                        stats: userProfile.stats,
-                        isCurrentUser: true
-                    });
-                }
-
-                // Calculate daily hours for all friends
-                const dailyData = {};
-                for (const friend of allFriendsData) {
-                    const dailyHours = await calculateDailyHours(friend.userId);
-                    dailyData[friend.userId] = dailyHours;
-                }
-                setFriendsDailyData(dailyData);
-
-                // Calculate weekly hours for all friends
-                const weeklyData = {};
-                for (const friend of allFriendsData) {
-                    const weeklyHours = await calculateWeeklyHours(friend.userId);
-                    weeklyData[friend.userId] = weeklyHours;
-                }
-                setFriendsWeeklyData(weeklyData);
-
-                // Calculate monthly hours for all friends
-                const monthlyData = {};
-                for (const friend of allFriendsData) {
-                    const monthlyHours = await calculateMonthlyHours(friend.userId);
-                    monthlyData[friend.userId] = monthlyHours;
-                }
-                setFriendsMonthlyData(monthlyData);
-
-                setFriendsData(allFriendsData);
+                setFriendsData(friends);
+                setFriendsDailyData(daily);
+                setFriendsWeeklyData(weekly);
+                setFriendsMonthlyData(monthly);
                 setIsLoading(false);
+                try { localStorage.setItem(leaderboardCacheKey, JSON.stringify({ friends, daily, weekly, monthly })); } catch (e) { /* storage full */ }
             } catch (error) {
+                if (cancelled) return;
                 console.error("Error fetching leaderboard:", error);
                 setNotification({ type: 'error', message: 'Failed to load leaderboard: ' + error.message });
                 setIsLoading(false);
@@ -9111,10 +8989,16 @@ const Leaderboard = ({ db, userId, setNotification, userProfile }) => {
         };
 
         fetchLeaderboard();
-    }, [db, userId, userProfile]);
+        return () => { cancelled = true; };
+    }, [db, userId]);
+
+    // You, always from the live profile
+    const leaderboardRows = userProfile && userProfile.stats
+        ? [...friendsData.filter(f => !f.isCurrentUser), { userId, username: userProfile.username, stats: userProfile.stats, isCurrentUser: true }]
+        : friendsData.filter(f => !f.isCurrentUser);
 
     // Sort friends by selected metric
-    const sortedFriends = [...friendsData].sort((a, b) => {
+    const sortedFriends = [...leaderboardRows].sort((a, b) => {
         let aValue, bValue;
 
         if (selectedMetric === 'dailyHours') {
