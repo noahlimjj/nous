@@ -119,11 +119,15 @@
         .tree-leaf { transform-box: fill-box; transform-origin: center; animation: treeLeafIn 1.4s ease-out both; }
         .tree-sway { transform-box: view-box; transform-origin: 100px 220px; animation: treeSway 6s ease-in-out infinite; }
         .tree-growing-label { animation: pulse 2.5s infinite ease-in-out; }
+        .tree-twinkle { transform-box: fill-box; transform-origin: center; animation: treeTwinkle 2.4s ease-in-out infinite; }
+        .tree-cloud { animation: treeCloud 40s linear infinite; }
+        @keyframes treeTwinkle { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.35; transform: scale(0.7); } }
+        @keyframes treeCloud { from { transform: translateX(-30px); } 50% { transform: translateX(30px); } to { transform: translateX(-30px); } }
         @keyframes treeFadeIn { from { opacity: 0; } to { opacity: 1; } }
         @keyframes treeLeafIn { from { transform: scale(0); opacity: 0; } to { transform: scale(1); opacity: 0.8; } }
         @keyframes treeSway { 0%, 100% { transform: rotate(-1.2deg); } 50% { transform: rotate(1.2deg); } }
         @media (prefers-reduced-motion: reduce) {
-            .tree-branch, .tree-leaf, .tree-sway, .tree-growing-label { animation: none; }
+            .tree-branch, .tree-leaf, .tree-sway, .tree-growing-label, .tree-twinkle, .tree-cloud { animation: none; }
         }
 
         @keyframes pulse {

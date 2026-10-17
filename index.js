@@ -6264,105 +6264,263 @@ const Settings = ({ auth, userId, db, userProfile, setNotification, isNightMode,
 // About Component removed - content moved to Settings page as collapsible section
 
 // Growth Tree Component - Aesthetic visualization of study progress
+// How each tree looks beyond its colours: silhouette, bark, and the flowers/fruit that show once it's mostly grown
+const TREE_LOOKS = {
+    oak: { form: 'round', accent: '#DC2626' },
+    maple: { form: 'round', wide: true },
+    cherry: { form: 'round', accent: '#FFFFFF' },
+    willow: { form: 'weeping', leafColors: ['#6BA292', '#8DB38B', '#A3C9A8', '#557A46', '#7FA36B'] },
+    pine: { form: 'conifer' },
+    cypress: { form: 'columnar' },
+    birch: { form: 'round', slim: true, bark: ['#E7E5E4', '#FAFAF9', '#D6D3D1'], marks: true },
+    sakura: { form: 'round', wide: true, accent: '#FFFFFF' },
+    jacaranda: { form: 'round', wide: true, accent: '#EDE9FE' },
+    baobab: { form: 'baobab' },
+    flame: { form: 'round', wide: true, accent: '#FDE68A' },
+    magnolia: { form: 'round', accent: '#FFFFFF' },
+    wisteria: { form: 'weeping', accent: '#C4B5FD' },
+    'starry-night': { form: 'round', accent: '#FDE047', twinkle: true, leafColors: ['#312E81', '#3730A3', '#4338CA', '#1E3A8A', '#5B21B6'] },
+    rainbow: { form: 'round', slim: true, bark: ['#22C55E', '#3B82F6', '#A855F7', '#F97316', '#EAB308'] },
+    redwood: { form: 'conifer', tall: true, leafColors: ['#14532D', '#166534', '#1F5130', '#2F6B3A', '#3F7D45'] },
+    ginkgo: { form: 'round', wide: true }
+};
+
+// Blend a hex colour toward another (t = 0..1)
+const mixHex = (a, b, t) => {
+    const p = (h) => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16));
+    const [x, y] = [p(a), p(b)];
+    return '#' + x.map((v, i) => Math.round(v + (y[i] - v) * t).toString(16).padStart(2, '0')).join('');
+};
+
 // Beautiful Tree SVG. Kept at module level so it isn't remounted on every render:
 // branches and leaves that appear as the tree grows fade in, and existing ones stay put.
 const TreeSVG = React.memo(({ growth, color, treeType, isGrowing }) => {
     const typeProps = TREE_TYPES.find(t => t.id === treeType) || TREE_TYPES[0];
+    const look = TREE_LOOKS[typeProps.id] || { form: 'round' };
     const stage = Math.min(100, Math.max(0, growth)) / 100;
+    const leafColors = look.leafColors || typeProps.leafColors || [color];
+    const shapes = typeProps.leafShapes || ['circle'];
+    const barkColor = typeProps.branchColor || '#5D4037';
+    const barkId = `bark-${typeProps.id}`;
+    const GROUND = 222;
+    const f = (n) => n.toFixed(1);
 
-    // Deterministic random for consistent tree shape per type
-    const seededRandom = (s) => {
-        const x = Math.sin(s) * 10000;
+    // Deterministic random so each tree type always grows the same shape
+    const seed = typeProps.id.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+    const rnd = (n) => {
+        const x = Math.sin(n * 12.9898 + seed * 78.233) * 43758.5453;
         return x - Math.floor(x);
+    };
+    const pick = (arr, n) => arr[Math.floor(rnd(n) * arr.length) % arr.length];
+
+    const branches = [], back = [], front = [], extras = [];
+
+    // A tapered, slightly curved limb from (x1,y1) to (x2,y2)
+    const limb = (key, x1, y1, x2, y2, w1, w2, bend) => {
+        const len = Math.hypot(x2 - x1, y2 - y1) || 1;
+        const nx = -(y2 - y1) / len, ny = (x2 - x1) / len;
+        const cx = (x1 + x2) / 2 + nx * bend, cy = (y1 + y2) / 2 + ny * bend;
+        const wm = (w1 + w2) / 4;
+        branches.push(React.createElement('path', {
+            key, className: 'tree-branch', fill: `url(#${barkId})`, stroke: barkColor, strokeWidth: 0.3, strokeLinejoin: 'round',
+            d: `M${f(x1 + nx * w1 / 2)},${f(y1 + ny * w1 / 2)} Q${f(cx + nx * wm)},${f(cy + ny * wm)} ${f(x2 + nx * w2 / 2)},${f(y2 + ny * w2 / 2)} ` +
+               `L${f(x2 - nx * w2 / 2)},${f(y2 - ny * w2 / 2)} Q${f(cx - nx * wm)},${f(cy - ny * wm)} ${f(x1 - nx * w1 / 2)},${f(y1 - ny * w1 / 2)} Z`
+        }));
+    };
+
+    // One leaf in the tree's own shape. The rotation sits on a wrapper so the grow-in scale can't override it
+    const leaf = (key, shape, x, y, r, fill, rot, opacity = 0.92, className = 'tree-leaf') => {
+        const pts = (n, inner) => Array.from({ length: n * (inner ? 2 : 1) }, (_, i) => {
+            const a = (Math.PI * 2 * i) / (n * (inner ? 2 : 1)) - Math.PI / 2;
+            const rr = inner && i % 2 ? r * inner : r;
+            return `${f(x + Math.cos(a) * rr)},${f(y + Math.sin(a) * rr)}`;
+        }).join(' ');
+        const p = { className, fill, opacity };
+        let el;
+        switch (shape) {
+            case 'oval': el = React.createElement('ellipse', { ...p, cx: x, cy: y, rx: r, ry: r * 0.55 }); break;
+            case 'star': el = React.createElement('polygon', { ...p, points: pts(5, 0.45) }); break;
+            case 'diamond': el = React.createElement('polygon', { ...p, points: `${f(x)},${f(y - r)} ${f(x + r * 0.62)},${f(y)} ${f(x)},${f(y + r)} ${f(x - r * 0.62)},${f(y)}` }); break;
+            case 'triangle': el = React.createElement('polygon', { ...p, points: pts(3) }); break;
+            case 'hexagon': el = React.createElement('polygon', { ...p, points: pts(6) }); break;
+            case 'rectangle': el = React.createElement('rect', { ...p, x: x - r * 0.4, y: y - r * 0.8, width: r * 0.8, height: r * 1.6, rx: r * 0.2 }); break;
+            case 'heart': el = React.createElement('path', { ...p, d: `M${f(x)},${f(y + r * 0.8)} C${f(x - r * 1.3)},${f(y - r * 0.1)} ${f(x - r * 0.6)},${f(y - r * 1.1)} ${f(x)},${f(y - r * 0.35)} C${f(x + r * 0.6)},${f(y - r * 1.1)} ${f(x + r * 1.3)},${f(y - r * 0.1)} ${f(x)},${f(y + r * 0.8)} Z` }); break;
+            case 'fan': el = React.createElement('path', { ...p, d: `M${f(x)},${f(y + r * 0.7)} L${f(x - r)},${f(y - r * 0.35)} Q${f(x)},${f(y - r * 1.2)} ${f(x + r)},${f(y - r * 0.35)} Z` }); break;
+            default: el = React.createElement('circle', { ...p, cx: x, cy: y, r });
+        }
+        return React.createElement('g', { key, transform: `rotate(${f(rot)} ${f(x)} ${f(y)})` }, el);
+    };
+
+    // Small flowers / fruit / twinkling stars, once the tree is mostly grown
+    const accent = (key, x, y, n) => {
+        if (!look.accent || stage < 0.6 || rnd(n) < 0.45) return;
+        extras.push(look.twinkle
+            ? leaf(key, 'star', x, y, 2.6, look.accent, rnd(n + 1) * 70, 1, 'tree-twinkle')
+            : React.createElement('circle', { key, className: 'tree-leaf', cx: x, cy: y, r: 1.4 + rnd(n + 2) * 1.2, fill: look.accent, opacity: 0.95 }));
+    };
+
+    // A clump of foliage: a shaded mass behind, individual leaves on top
+    const cluster = (id, x, y, scale = 1) => {
+        if (stage < 0.18) {
+            front.push(React.createElement('circle', { key: `bud-${id}`, className: 'tree-leaf', cx: x, cy: y, r: 2, fill: leafColors[0] }));
+            return;
+        }
+        const r = (5 + stage * 8) * scale;
+        back.push(React.createElement('circle', { key: `cb-${id}`, className: 'tree-leaf', cx: x, cy: y + r * 0.1, r: r * 1.05, fill: mixHex(pick(leafColors, id), '#000000', 0.22), opacity: 0.9 }));
+        back.push(React.createElement('circle', { key: `cm-${id}`, className: 'tree-leaf', cx: x - r * 0.15, cy: y - r * 0.15, r: r * 0.8, fill: pick(leafColors, id + 1), opacity: 0.85 }));
+        const n = 4 + Math.floor(stage * 5);
+        for (let i = 0; i < n; i++) {
+            const a = rnd(id * 10 + i) * Math.PI * 2, d = r * (0.2 + rnd(id * 10 + i + 5) * 0.75);
+            front.push(leaf(`cl-${id}-${i}`, pick(shapes, id * 10 + i), x + Math.cos(a) * d, y + Math.sin(a) * d - r * 0.15,
+                r * (0.32 + rnd(id * 10 + i + 7) * 0.2), pick(leafColors, id * 10 + i + 3), rnd(id * 10 + i + 9) * 360));
+        }
+        accent(`ac-${id}`, x + (rnd(id + 11) - 0.5) * r, y + (rnd(id + 12) - 0.5) * r, id + 13);
+    };
+
+    // Recursive branching shared by the broadleaf shapes. Children of node id are id*3, id*3+1 and id*3+2
+    const tips = [];
+    const grow = (x, y, len, angle, width, depth, id, opts) => {
+        const ex = x + len * Math.sin(angle), ey = y - len * Math.cos(angle);
+        const tipW = Math.max(0.7, width * 0.64);
+        limb(`b-${id}`, x, y, ex, ey, width, tipW, (rnd(id) - 0.5) * len * 0.3);
+        if (depth <= 1 || len < 5) { tips.push({ x: ex, y: ey, id, angle }); return; }
+        if (opts.leafy && depth <= 3 && rnd(id + 5) > 0.55) cluster(id * 7 + 1, ex, ey, 0.8);
+        const spread = opts.spread + rnd(id + 1) * 0.3;
+        const lean = (rnd(id + 2) - 0.5) * 0.3;
+        const shrink = opts.shrink + rnd(id + 3) * 0.08;
+        grow(ex, ey, len * shrink, angle - spread + lean, tipW, depth - 1, id * 3, opts);
+        grow(ex, ey, len * shrink, angle + spread + lean, tipW, depth - 1, id * 3 + 1, opts);
+        if (depth >= 3 && rnd(id + 4) > 0.55) grow(ex, ey, len * shrink * 0.8, angle + lean * 2, tipW * 0.8, depth - 2, id * 3 + 2, opts);
+    };
+
+    const drawRound = () => {
+        const depth = Math.min(6, 2 + Math.floor(stage * 5));
+        const trunk = (18 + stage * 30) * (look.slim ? 1.15 : 1);
+        const width = (3 + stage * 11) * (look.slim ? 0.65 : 1);
+        grow(100, GROUND, trunk, (rnd(1) - 0.5) * 0.1, width, depth, 1, { spread: look.wide ? 0.38 : look.slim ? 0.24 : 0.3, shrink: look.slim ? 0.7 : 0.74, leafy: true });
+        tips.forEach(t => cluster(t.id, t.x, t.y));
+        if (look.marks && stage > 0.15) {
+            // Birch bark: dark dashes up the trunk
+            for (let i = 0; i < 6; i++) {
+                const y = GROUND - trunk * (0.12 + i * 0.14), w = width * (1 - i * 0.05);
+                extras.unshift(React.createElement('rect', { key: `mk-${i}`, x: 100 - w / 2 + (i % 2 ? w * 0.45 : 0), y, width: w * 0.5, height: 1.4, rx: 0.7, fill: '#292524', opacity: 0.7 }));
+            }
+        }
+    };
+
+    const drawWeeping = () => {
+        const depth = Math.min(4, 2 + Math.floor(stage * 3));
+        grow(100, GROUND, 24 + stage * 34, 0, 3 + stage * 9, depth, 1, { spread: 0.5, shrink: 0.72, leafy: true });
+        tips.forEach(t => {
+            cluster(t.id, t.x, t.y, 0.9);
+            if (stage < 0.25) return;
+            // Long drooping strands hanging from each tip
+            const dir = t.angle >= 0 ? 1 : -1;
+            const drop = Math.min(GROUND - 12 - t.y, (18 + stage * 60) * (0.7 + rnd(t.id) * 0.5));
+            [0, 1].forEach(k => {
+            const sx = t.x + dir * (4 + k * 7 + rnd(t.id + 1 + k) * 4);
+            branches.push(React.createElement('path', {
+                key: `st-${t.id}-${k}`, className: 'tree-branch', fill: 'none', stroke: mixHex(barkColor, leafColors[0], 0.5), strokeWidth: 0.6,
+                d: `M${f(t.x)},${f(t.y)} Q${f(sx)},${f(t.y - 4)} ${f(sx)},${f(t.y + drop * (1 - k * 0.25))}`
+            }));
+            for (let i = 1; i * 4.5 < drop * (1 - k * 0.25); i++) {
+                const id2 = t.id * 2 + k;
+                const yy = t.y + i * 4.5, xx = sx - (dir * 3) / i;
+                if (look.accent && i > 1 && stage > 0.5) {
+                    front.push(React.createElement('circle', { key: `wf-${id2}-${i}`, className: 'tree-leaf', cx: xx + (i % 2 ? 1.5 : -1.5), cy: yy, r: Math.max(1.2, 3.2 - i * 0.12), fill: i % 3 ? look.accent : pick(leafColors, id2 + i), opacity: 0.9 }));
+                } else {
+                    front.push(leaf(`wl-${id2}-${i}`, 'oval', xx + (i % 2 ? 2 : -2), yy, 3, pick(leafColors, id2 * 10 + i), i % 2 ? 60 : -60));
+                }
+            }
+            });
+        });
+    };
+
+    const drawConifer = (narrow) => {
+        const h = (30 + stage * (look.tall ? 175 : 160));
+        const top = GROUND - h;
+        limb('trunk', 100, GROUND, 100, top + h * 0.1, 3 + stage * (look.tall ? 11 : 7), 1, 0);
+        const tiers = 2 + Math.floor(stage * 6);
+        const maxW = narrow ? 8 + stage * 18 : 14 + stage * 40;
+        for (let i = 0; i < tiers; i++) {
+            const t = i / tiers;
+            const yBot = GROUND - h * 0.18 - h * 0.78 * t;
+            const yTop = yBot - h * (narrow ? 0.22 : 0.3);
+            const w = maxW * (narrow ? Math.pow(1 - t, 0.8) * Math.min(1, 0.55 + t * 2.5) : 1 - t * 0.78);
+            const fill = mixHex(leafColors[i % leafColors.length], '#000000', narrow ? 0.1 : 0.18 - t * 0.15);
+            if (narrow) {
+                back.push(React.createElement('ellipse', { key: `ct-${i}`, className: 'tree-leaf', cx: 100 + (rnd(i) - 0.5) * 3, cy: (yTop + yBot) / 2, rx: w, ry: (yBot - yTop) * 0.75, fill }));
+            } else {
+                // Jagged bottom edge so tiers read as boughs
+                const jag = [-1, -0.5, 0, 0.5, 1].map((k, j) => `${f(100 + k * w)},${f(yBot + (j % 2 ? -3 : 1) * (0.5 + stage))}`).join(' L');
+                back.push(React.createElement('path', { key: `ct-${i}`, className: 'tree-branch', fill, d: `M100,${f(yTop)} L${jag} Z` }));
+            }
+            const n = 2 + Math.floor(stage * 4);
+            for (let j = 0; j < n; j++) {
+                const xx = 100 + (rnd(i * 20 + j) - 0.5) * w * 1.3, yy = yBot - (yBot - yTop) * rnd(i * 20 + j + 3) * 0.6;
+                front.push(leaf(`cn-${i}-${j}`, pick(shapes, i * 20 + j), xx, yy, 2 + stage * 2.5, pick(leafColors, i * 20 + j + 1), (rnd(i * 20 + j + 2) - 0.5) * 30, 0.75));
+            }
+        }
+    };
+
+    const drawBaobab = () => {
+        const h = 26 + stage * 70, w = 10 + stage * 30, top = GROUND - h;
+        branches.push(React.createElement('path', {
+            key: 'trunk', className: 'tree-branch', fill: `url(#${barkId})`, stroke: barkColor, strokeWidth: 0.3,
+            d: `M${f(100 - w / 2)},${GROUND} C${f(100 - w * 0.7)},${f(GROUND - h * 0.45)} ${f(100 - w * 0.32)},${f(GROUND - h * 0.75)} ${f(100 - w * 0.2)},${f(top)} ` +
+               `L${f(100 + w * 0.2)},${f(top)} C${f(100 + w * 0.32)},${f(GROUND - h * 0.75)} ${f(100 + w * 0.7)},${f(GROUND - h * 0.45)} ${f(100 + w / 2)},${GROUND} Z`
+        }));
+        const arms = 3 + Math.floor(stage * 3);
+        for (let i = 0; i < arms; i++) {
+            const a = -1.15 + (2.3 * i) / Math.max(1, arms - 1);
+            grow(100 + a * w * 0.1, top + 2, 10 + stage * 22, a, w * 0.22, Math.min(3, 1 + Math.floor(stage * 3)), 10 + i, { spread: 0.45, shrink: 0.7, leafy: false });
+        }
+        tips.forEach(t => cluster(t.id, t.x, t.y, 0.75));
     };
 
     const renderTree = () => {
         if (stage < 0.05) {
-            // Seed stage
+            // Seed resting in a little mound of soil
             return [
-                React.createElement('circle', { key: 'seed', className: 'tree-leaf', cx: 100, cy: 220, r: 5 + stage * 40, fill: '#8D6E63' })
-            ];
-        } else if (stage < 0.15) {
-            // Sprout stage
-            return [
-                React.createElement('path', {
-                    key: 'stem',
-                    d: `M100,220 Q100,${210 - (stage * 100)} ${100 + (Math.sin(stage * 10) * 10)},${200 - (stage * 100)}`,
-                    stroke: '#66BB6A',
-                    strokeWidth: 3,
-                    fill: 'none'
-                }),
-                React.createElement('circle', { key: 'leaf1', className: 'tree-leaf', cx: 100 + (Math.sin(stage * 10) * 10), cy: 200 - (stage * 100), r: 4, fill: '#66BB6A' })
+                React.createElement('ellipse', { key: 'soil', cx: 100, cy: GROUND, rx: 12, ry: 4, fill: '#8D6E63', opacity: 0.6 }),
+                React.createElement('ellipse', { key: 'seed', className: 'tree-leaf', cx: 100, cy: GROUND - 3, rx: 3.5, ry: 2.6, fill: '#6D4C41', transform: 'rotate(-20 100 219)' })
             ];
         }
-
-        // Fractal Tree Generation
-        const elements = [];
-        const trunkColor = typeProps.branchColor || '#5D4037';
-        const leafColors = typeProps.leafColors || [color];
-
-        // Deterministic structure based on tree name
-        const seed = treeType.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
-
-        const growBranch = (x, y, length, angle, depth, id) => {
-            if (depth === 0) return;
-
-            const endX = x + length * Math.sin(angle);
-            const endY = y - length * Math.cos(angle);
-
-            // Branch
-            elements.push(React.createElement('line', {
-                key: `b-${id}`,
-                className: 'tree-branch',
-                x1: x, y1: y,
-                x2: endX, y2: endY,
-                stroke: trunkColor,
-                strokeWidth: Math.max(1, depth),
-                strokeLinecap: 'round'
-            }));
-
-            // Leaves at ends of branches
-            if (depth <= 2 || (depth <= 4 && seededRandom(id * seed) > 0.6)) {
-                // Start leaves appearing after 30% growth
-                if (stage > 0.3) {
-                    const leafSize = (4 + (depth * 2)) * stage;
-                    const leafColor = leafColors[Math.floor(seededRandom(id) * leafColors.length)];
-
-                    elements.push(React.createElement('circle', {
-                        key: `l-${id}`,
-                        className: 'tree-leaf',
-                        cx: endX, cy: endY,
-                        r: leafSize,
-                        fill: leafColor,
-                        opacity: 0.8
-                    }));
-                }
-            }
-
-            const newLength = length * 0.75;
-            const spread = 0.5 + (seededRandom(depth + seed) * 0.3);
-
-            // Recursively grow
-            growBranch(endX, endY, newLength, angle - spread, depth - 1, id * 2);
-            growBranch(endX, endY, newLength, angle + spread, depth - 1, id * 2 + 1);
-        };
-
-        // Initial growth parameters based on stage
-        const maxDepth = Math.min(6, Math.floor(stage * 6) + 2);
-        const initialLength = 40 + (stage * 20);
-
-        growBranch(100, 220, initialLength / (7 / maxDepth), 0, maxDepth, 1);
-
-        return elements;
+        if (stage < 0.15) {
+            // Sprout: a curling stem with two leaves
+            const h = 10 + (stage - 0.05) * 220, tx = 100 + Math.sin(stage * 30) * 3;
+            return [
+                React.createElement('path', { key: 'stem', d: `M100,${GROUND} Q${f(100 - 4)},${f(GROUND - h / 2)} ${f(tx)},${f(GROUND - h)}`, stroke: '#4D7C0F', strokeWidth: 2.2, fill: 'none', strokeLinecap: 'round' }),
+                leaf('sl', shapes[0] === 'circle' ? 'oval' : shapes[0], tx - 5, GROUND - h + 1, 5, leafColors[0], -30),
+                leaf('sr', shapes[0] === 'circle' ? 'oval' : shapes[0], tx + 5, GROUND - h - 1, 5.5, leafColors[1] || leafColors[0], 30)
+            ];
+        }
+        if (look.form === 'weeping') drawWeeping();
+        else if (look.form === 'conifer') drawConifer(false);
+        else if (look.form === 'columnar') drawConifer(true);
+        else if (look.form === 'baobab') drawBaobab();
+        else drawRound();
+        return [...back, ...branches, ...front, ...extras];
     };
+
+    const barkStops = look.bark || [mixHex(barkColor, '#000000', 0.3), barkColor, mixHex(barkColor, '#FFFFFF', 0.18), barkColor, mixHex(barkColor, '#000000', 0.35)];
 
     return React.createElement('svg', {
         viewBox: "0 0 200 240",
         className: "w-full h-full",
-        style: { overflow: 'visible' }
+        style: { overflow: 'visible', position: 'relative', zIndex: 1 }
     },
-        // Ground shadow
-        React.createElement('ellipse', { cx: 100, cy: 220, rx: 50 * stage, ry: 8, fill: "#000", opacity: 0.1 }),
+        React.createElement('defs', null,
+            React.createElement('linearGradient', { id: barkId, x1: 0, y1: 0, x2: 1, y2: 0 },
+                barkStops.map((c, i) => React.createElement('stop', { key: i, offset: `${(i / (barkStops.length - 1)) * 100}%`, stopColor: c })))
+        ),
+        // Grass mound and the tree's shadow
+        React.createElement('ellipse', { cx: 100, cy: GROUND + 3, rx: 70, ry: 8, fill: '#4D7C0F', opacity: 0.18 }),
+        React.createElement('ellipse', { cx: 100, cy: GROUND + 1, rx: 14 + 50 * stage, ry: 5, fill: '#000', opacity: 0.12 }),
+        [-52, -38, 34, 50].map((dx, i) => React.createElement('path', {
+            key: `g-${i}`, d: `M${100 + dx},${GROUND + 3} l-2,-5 M${100 + dx},${GROUND + 3} l1,-6 M${100 + dx},${GROUND + 3} l3,-4`,
+            stroke: '#3F6212', strokeWidth: 1, strokeLinecap: 'round', opacity: 0.5
+        })),
         // Sways gently while a timer is running
         React.createElement('g', { className: isGrowing ? 'tree-sway' : '' }, renderTree())
     );
@@ -6478,6 +6636,11 @@ const GrowthTree = ({ sessions, db, userId, setNotification, activeTimers, share
                 boxShadow: 'inset 0 2px 8px rgba(0,0,0,0.05)'
             }
         },
+            // Soft sun and two slowly drifting clouds
+            React.createElement('div', { className: 'absolute', style: { top: 14, left: 18, width: 34, height: 34, borderRadius: '50%', background: 'radial-gradient(circle, #FEF9C3 0%, #FDE68A 55%, rgba(253,230,138,0) 72%)', opacity: 0.9 } }),
+            [{ top: 22, left: '22%', w: 54, d: '0s' }, { top: 48, left: '68%', w: 40, d: '-18s' }].map((c, i) => React.createElement('svg', {
+                key: `cloud-${i}`, className: 'absolute tree-cloud', viewBox: '0 0 60 24', width: c.w, style: { top: c.top, left: c.left, animationDelay: c.d, opacity: 0.85 }
+            }, React.createElement('path', { d: 'M10,22 a8,8 0 0 1 2,-15 a11,11 0 0 1 20,-3 a9,9 0 0 1 16,6 a6,6 0 0 1 2,12 Z', fill: '#FFFFFF' }))),
             React.createElement(TreeSVG, {
                 key: currentTree.id, growth: growthPercent, color: currentTree.color, treeType: currentTree.id,
                 isGrowing: isGrowing && currentTree === growingTree && growthPercent < 100
