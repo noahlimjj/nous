@@ -1689,6 +1689,12 @@
             setHabits(prev => prev.map(h => h.id === habitId ? { ...h, completionDates: newDates, streak: newStreak } : h));
             setWallet(prev => ({ ...prev, coins: Math.max(0, (prev.coins || 0) + (done ? -coins : coins)) }));
 
+            // For timed habits, ask for the duration right away rather than after the writes
+            // land; binary habits complete in one tap
+            if (!done && habit.tracking_type !== 'binary') {
+                openManualSession(habitId, dateStr);
+            }
+
             if (db && userId) {
                 try {
                     await window.updateDoc(window.doc(db, `/artifacts/${appId}/users/${userId}/habits/${habitId}`), {
@@ -1700,13 +1706,6 @@
                 } catch (e) {
                     console.error("Error saving toggleDate:", e);
                 }
-            }
-
-            // If marking as done (not unchecking):
-            // For binary habits, 1-tap completes without opening duration modal!
-            // For timed habits, open manual session modal to ask for duration.
-            if (!done && habit.tracking_type !== 'binary') {
-                openManualSession(habitId, dateStr);
             }
             // No confetti on habit completion - only on reward claims
         };
@@ -1937,7 +1936,15 @@
             }
 
             const habit = habits.find(h => h.id === habitId);
-            if (!habit) return;
+            if (!habit) {
+                console.error('Manual session: habit not found', habitId);
+                showNotif("couldn't find that habit, refresh and try again");
+                return;
+            }
+            if (!db || !userId) {
+                showNotif("sign in to save sessions");
+                return;
+            }
 
             // Save the session to Firestore
             try {
@@ -1945,14 +1952,7 @@
                 const [year, month, day] = dateStr.split('-').map(Number);
                 const sessionDate = new Date(year, month - 1, day, 12, 0, 0); // noon on target date
 
-                // Update habit completion dates if not already present
-                const currentDates = habit.completionDates || [];
-                if (!currentDates.includes(dateStr)) {
-                    await window.updateDoc(window.doc(db, `/artifacts/${appId}/users/${userId}/habits/${habitId}`), {
-                        completionDates: [...currentDates, dateStr]
-                    });
-                }
-
+                // Save the session first so a failed completion-date update can't lose it
                 await window.addDoc(window.collection(db, `/artifacts/${appId}/users/${userId}/sessions`), {
                     habitId: habitId,
                     habitName: habit.title,
@@ -1962,12 +1962,23 @@
                     isManual: true,
                     localDate: dateStr
                 });
+
+                // Mark the day done if it isn't already; non-fatal since the session is saved
+                if (!(habit.completionDates || []).includes(dateStr)) {
+                    try {
+                        await window.updateDoc(window.doc(db, `/artifacts/${appId}/users/${userId}/habits/${habitId}`), {
+                            completionDates: window.arrayUnion(dateStr)
+                        });
+                    } catch (e) {
+                        console.warn('Manual session saved, but marking the day done failed:', e);
+                    }
+                }
                 // The sessions listener picks up the new doc (latency-compensated), so no local append here
                 showNotif(`manual session saved: ${hours > 0 ? hours + 'h ' : ''}${minutes}m`);
                 setShowManualSession(null);
             } catch (error) {
                 console.error('Error saving manual session:', error);
-                showNotif("failed to save session");
+                showNotif(`failed to save session${error?.code ? ` (${error.code})` : ''}`);
             }
         };
 
