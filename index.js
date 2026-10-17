@@ -9177,6 +9177,39 @@ const Leaderboard = ({ db, userId, setNotification, userProfile }) => {
     );
 };
 // --- Main App Component ---
+// The user Firebase Auth saved in IndexedDB on the last sign-in, read directly so the app
+// can open before Auth finishes re-checking it with Google. Resolves null if there is none.
+function readPersistedAuthUser(apiKey) {
+    return new Promise((resolve) => {
+        const done = (value) => { clearTimeout(giveUp); resolve(value); };
+        const giveUp = setTimeout(() => resolve(null), 1500);
+        try {
+            const req = indexedDB.open('firebaseLocalStorageDb');
+            req.onerror = () => done(null);
+            req.onupgradeneeded = () => req.transaction.abort(); // no saved auth state
+            req.onsuccess = () => {
+                const idb = req.result;
+                try {
+                    const get = idb.transaction('firebaseLocalStorage', 'readonly')
+                        .objectStore('firebaseLocalStorage')
+                        .get(`firebase:authUser:${apiKey}:[DEFAULT]`);
+                    get.onsuccess = () => {
+                        const saved = get.result && get.result.value;
+                        idb.close();
+                        done(saved && saved.uid ? { uid: saved.uid, isAnonymous: !!saved.isAnonymous } : null);
+                    };
+                    get.onerror = () => { idb.close(); done(null); };
+                } catch (e) {
+                    idb.close();
+                    done(null);
+                }
+            };
+        } catch (e) {
+            done(null);
+        }
+    });
+}
+
 function App() {
     // These would be provided by the environment (e.g., Netlify build environment variables)
     // For local testing, you would replace these with your actual Firebase config.
@@ -9290,13 +9323,14 @@ function App() {
             return;
         }
 
-        // Safety timeout for auth initialization
+        // Safety net if auth never reports. Firebase's own check of the saved user gives
+        // up after 30s and keeps the user, so wait past that. Never show an error screen
+        // for this: drop to the sign-in screen, and onAuthStateChanged still takes over
+        // if auth answers later.
         const authTimeout = setTimeout(() => {
-            console.error('❌ Firebase auth initialization timeout after 30 seconds');
-            console.error('   This usually means Firebase config is invalid or network is blocked');
-            setConfigError('Firebase authentication timed out. Check your network connection.');
+            console.error('❌ Firebase auth did not respond after 45 seconds');
             setIsAuthReady(true);
-        }, 30000); // 30 second timeout - very generous
+        }, 45000);
 
         // Validate Firebase config
         if (!firebaseConfig || !firebaseConfig.apiKey || !firebaseConfig.projectId) {
@@ -9367,6 +9401,7 @@ function App() {
                 const LAST_USER_KEY = 'nous_last_user';
                 let lastUser = null;
                 try { lastUser = JSON.parse(localStorage.getItem(LAST_USER_KEY) || 'null'); } catch (e) { /* no cached user */ }
+                if (!lastUser) lastUser = await readPersistedAuthUser(firebaseConfig.apiKey);
                 if (lastUser && lastUser.uid && !authInstance.currentUser) {
                     setUser({ uid: lastUser.uid, isAnonymous: !!lastUser.isAnonymous, isPending: true });
                     setUserId(lastUser.uid);
